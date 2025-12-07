@@ -119,9 +119,11 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
           );
       final url = supa.storage.from(_bucket).getPublicUrl(path);
       setState(() => _imgUrl = url);
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Изображение загружено')));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Ошибка загрузки: $e')));
     }
@@ -188,20 +190,23 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
           .eq('id', widget.existing.id)
           .select();
 
-      if (res is List && res.isNotEmpty) {
+      if (res.isNotEmpty) {
         if (!mounted) return;
         Navigator.pop(context, true);
       } else {
         // ничего не вернулось — значит ничего не изменили (RLS/eq не совпал)
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Не удалось сохранить (проверьте права RLS и ID)')),
         );
       }
     } on PostgrestException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка сохранения: ${e.message}')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка сохранения: $e')),
       );
@@ -555,11 +560,11 @@ class _DropdownField<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentLabel = items
-        .firstWhere((e) => e.value == value,
-        orElse: () => DropdownMenuItem(value: null, child: Text(hint)))
-        .child ??
-        Text(hint);
+    final match = items.cast<DropdownMenuItem<T>?>().firstWhere(
+          (e) => e?.value == value,
+      orElse: () => null,
+    );
+    final currentLabel = match?.child ?? Text(hint);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),

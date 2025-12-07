@@ -68,7 +68,8 @@ class _SupportPageState extends State<SupportPage> {
         'status': 'new',
       });
 
-      // показываем модалку “Внимание!”
+      // показываем модалку "Внимание!"
+      if (!mounted) return;
       await showDialog(
         context: context,
         barrierDismissible: false,
@@ -78,10 +79,12 @@ class _SupportPageState extends State<SupportPage> {
         }),
       );
     } on PostgrestException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка БД: ${e.message}')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка: $e')),
       );

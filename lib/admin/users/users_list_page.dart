@@ -15,8 +15,6 @@ class _UsersListPageState extends State<UsersListPage> {
   static const bg = Color(0xFFFFFFFF);
   static const arrowColor = Color(0xFFCDCDCD);
   static const titleDark = Color(0xFF26351E);
-  static const textGray = Color(0xFF717171);
-  static const avatarBg = Color(0xFFEEEEEE);
 
   static const double hLogo = 62;
   static const double ls24 = 0.96; // 4% от 24px

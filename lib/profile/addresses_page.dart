@@ -51,7 +51,7 @@ class _AddressesPageState extends State<AddressesPage> {
         .eq('user_id', uid)
         .order('id', ascending: true)
         .map((rows) => rows
-        .map((e) => UserAddress.fromMap(e as Map<String, dynamic>))
+        .map((e) => UserAddress.fromMap(e))
         .toList());
   }
 

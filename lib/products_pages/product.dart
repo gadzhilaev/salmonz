@@ -120,7 +120,7 @@ class ProductPage extends StatelessWidget {
 
                     // граммы (NN г)
                     Text(
-                      '${gramm} г.',
+                      '$gramm г.',
                       style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 18,
@@ -133,7 +133,7 @@ class ProductPage extends StatelessWidget {
 
                     // количество (NN шт.)
                     Text(
-                      '${amount} шт.',
+                      '$amount шт.',
                       style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 18,

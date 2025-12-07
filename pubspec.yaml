@@ -1,5 +1,5 @@
 name: salmonz
-description: "A new Flutter project."
+description: "Salmonz - мобильное приложение для доставки японской кухни. Портфолио-проект на Flutter с Supabase backend."
 publish_to: 'none'
 version: 1.0.0+1
 

@@ -28,7 +28,6 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   _LastAddress? _lastAddr;     // последний адрес из БД
   String? _lastAddrRaw;        // строка "как была в инпуте", чтобы сравнить при сохранении
-  bool _loadingDefaults = true; // пока грузим дефолты
   final _addrCtr = TextEditingController();
   final _phoneCtr = TextEditingController(text: '+7 ');
   final _commentCtr = TextEditingController();
@@ -43,7 +42,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
   static const double hLogo = 62;
   static const double ls24 = 0.96; // 4% от 24
   static const double ls20 = 0.8;  // 4% от 20
-  static const double ls14 = 0.56; // 4% от 14
 
   @override
   void initState() {
@@ -54,7 +52,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Future<void> _prefillFromDb() async {
     final uid = supa.auth.currentUser?.id;
     if (uid == null) {
-      setState(() => _loadingDefaults = false);
       return;
     }
 
@@ -98,8 +95,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
             .order('created_at', ascending: false)
             .limit(1);
 
-        if (rows is List && rows.isNotEmpty) {
-          final m = rows.first as Map<String, dynamic>;
+        if (rows.isNotEmpty) {
+          final m = rows.first;
           final addr = _LastAddress(
             country: (m['country'] ?? '') as String,
             city:    (m['city'] ?? '') as String,
@@ -112,8 +109,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       }
     } catch (_) {
       // тихо — не ломаем UX
-    } finally {
-      if (mounted) setState(() => _loadingDefaults = false);
     }
   }
 
@@ -666,7 +661,6 @@ class _OrderItemTile extends StatelessWidget {
 
 /// Маска: +7 (XXX) XXX-XX-XX
 class RuPhoneTextInputFormatter extends TextInputFormatter {
-  static final _digits = RegExp(r'\d');
 
   /// Удобно иметь статический метод форматирования по "сырым" цифрам
   static String format(String rawDigits) {
@@ -676,7 +670,7 @@ class RuPhoneTextInputFormatter extends TextInputFormatter {
     String digits = d;
     if (digits.isEmpty) return '+7 ';
     if (digits.startsWith('8')) digits = '7${digits.substring(1)}';
-    if (!digits.startsWith('7')) digits = '7${digits}';
+    if (!digits.startsWith('7')) digits = '7$digits';
 
     final buf = StringBuffer('+7 ');
     // пропускаем первую "7" — она уже в префиксе

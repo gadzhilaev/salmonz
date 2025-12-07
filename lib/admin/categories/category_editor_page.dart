@@ -43,7 +43,8 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
           .eq('id', widget.existing!.id)
           .select(); // вернёт удалённые строки (если политика SELECT на delete разрешена)
 
-      if (deleted is List && deleted.isEmpty) {
+      if (deleted.isEmpty) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Не удалось удалить запись (RLS или ограничения БД)')),
         );
@@ -110,10 +111,12 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
       final publicUrl = supa.storage.from(_bucket).getPublicUrl(path);
       setState(() => _imgUrl = publicUrl);
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Изображение загружено')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка загрузки: $e')),
       );

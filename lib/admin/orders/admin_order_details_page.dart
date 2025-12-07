@@ -320,7 +320,7 @@ class _AdminOrderDetailsPageState extends State<AdminOrderDetailsPage> {
 /* ---- виджеты ---- */
 
 class _SmallLabel extends StatelessWidget {
-  const _SmallLabel(this.text, {super.key});
+  const _SmallLabel(this.text);
   final String text;
   @override
   Widget build(BuildContext context) {

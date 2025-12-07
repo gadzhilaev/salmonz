@@ -323,7 +323,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
 // маленький серый лейбл (13 px, Medium)
 class _SmallLabel extends StatelessWidget {
-  const _SmallLabel(this.text, {super.key});
+  const _SmallLabel(this.text);
   final String text;
 
   @override

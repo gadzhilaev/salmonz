@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';     // 👈 выбор фото/файла
-import 'dart:typed_data';
 import '../../utils/promo.dart';
 
 final supa = Supabase.instance.client;
@@ -22,7 +21,6 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
   static const double hLogo = 62;
 
   String? _imgUrl;              // публичный URL картинки (Storage)
-  String? _storagePath;         // путь файла в бакете (для возможного удаления)
 
   @override
   void initState() {
@@ -72,13 +70,14 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
 
       setState(() {
         _imgUrl = publicUrl;
-        _storagePath = path;
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Изображение загружено')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка загрузки: $e')),
       );
@@ -90,6 +89,7 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
     await _ensureAuth();
     final url = _imgUrl?.trim() ?? '';
     if (url.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Сначала выберите изображение')),
       );

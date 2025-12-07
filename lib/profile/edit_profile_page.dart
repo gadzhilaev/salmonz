@@ -78,7 +78,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (picked == null) return;
 
     setState(() => _uploading = true);
-    final snack = ScaffoldMessenger.of(context);
 
     try {
       final user = supa.auth.currentUser;
@@ -93,9 +92,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
       // сразу показываем новое фото
       setState(() => _img = publicUrl);
     } on StorageException catch (e) {
-      snack.showSnackBar(SnackBar(content: Text('Storage error: ${e.message}')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Storage error: ${e.message}')));
+      }
     } catch (e) {
-      snack.showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      }
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -122,6 +125,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }).eq('id', uid);
 
       // модалка "успешно сохранено"
+      if (!mounted) return;
       await showDialog(
         context: context,
         barrierDismissible: false,
@@ -523,55 +527,3 @@ class _SavedDialog extends StatelessWidget {
   }
 }
 
-/// Примитивный форматтер телефона: +7 (XXX) XXX-XX-XX
-class _PhoneFormatter extends TextInputFormatter {
-  static String normalize(String input) {
-    final digits = input.replaceAll(RegExp(r'\D'), '');
-    // приводим к формату России: если начинается с 8 — заменим на +7
-    if (digits.isEmpty) return '';
-    String d = digits;
-    if (d.startsWith('8')) d = '7${d.substring(1)}';
-    if (!d.startsWith('7')) d = '7$d';
-    // берём максимум 11 цифр
-    d = d.substring(0, d.length.clamp(0, 11));
-    return '+$d';
-  }
-
-  static String pretty(String input) {
-    final norm = normalize(input);
-    final digits = norm.replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) return '';
-    final b = StringBuffer('+7');
-    final tail = digits.substring(1); // без кода страны
-    if (tail.isNotEmpty) {
-      b.write(' ');
-      if (tail.length <= 3) {
-        b.write('(${tail}');
-      } else {
-        b.write('(${tail.substring(0, 3)}) ');
-        if (tail.length <= 6) {
-          b.write(tail.substring(3));
-        } else {
-          b.write('${tail.substring(3, 6)}-');
-          if (tail.length <= 8) {
-            b.write(tail.substring(6));
-          } else {
-            b.write('${tail.substring(6, 8)}-');
-            b.write(tail.substring(8));
-          }
-        }
-      }
-    }
-    return b.toString();
-  }
-
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    final prettyText = pretty(newValue.text);
-    return TextEditingValue(
-      text: prettyText,
-      selection: TextSelection.collapsed(offset: prettyText.length),
-    );
-  }
-}
