@@ -15,11 +15,6 @@
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License"/>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-lightgrey?style=flat-square" alt="Platform"/>
-  <img src="https://img.shields.io/badge/Status-Portfolio%20Project-orange?style=flat-square" alt="Status"/>
-</p>
-
 ---
 
 ## 📱 О проекте
@@ -192,9 +187,6 @@ flutter build appbundle --release
 
 # iOS
 flutter build ios --release
-
-# Web
-flutter build web --release
 ```
 
 ---
