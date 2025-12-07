@@ -323,8 +323,8 @@ class _ProductCard extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: btnBg,
                           disabledBackgroundColor:
-                          const Color(0xFFFF5E1C).withOpacity(0.4),
-                          disabledForegroundColor: Colors.white.withOpacity(0.8),
+                          const Color(0xFFFF5E1C).withValues(alpha: 0.4),
+                          disabledForegroundColor: Colors.white.withValues(alpha: 0.8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(40),
                           ),
@@ -408,10 +408,11 @@ class Product {
           final v = m['is_stock'];
           if (v is bool) return v;
           if (v is num) return v != 0;
-          if (v is String)
+          if (v is String) {
             return v.toLowerCase() == 'true' ||
                 v.toLowerCase() == 't' ||
                 v == '1';
+          }
           return true; // дефолт: в наличии
         }(),
       );

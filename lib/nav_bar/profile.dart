@@ -51,8 +51,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<_UserVm> _loadMe() async {
     final user = supa.auth.currentUser;
-    if (user == null)
+    if (user == null) {
       return const _UserVm(email: '', name: '', img: '', isAdmin: false, lang: 'ru');
+    }
 
     final row = await supa
         .from('user')
@@ -369,6 +370,8 @@ class _ProfilePageState extends State<ProfilePage> {
   void _openLanguageSheet() async {
     final me = await _future;
 
+    if (!mounted) return;
+
     // зафиксируем актуальное положение имени на экране прямо сейчас
     _captureNameBottom();
 
@@ -384,6 +387,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final double sheetHeight =
     (mq.size.height - anchorTop).clamp(300.0, mq.size.height);
 
+    if (!mounted) return;
     final chosen = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -404,6 +408,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _future = _loadMe();
       });
       // переснимем после перестроения (на случай изменения верстки)
+      if (!mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) => _captureNameBottom());
     }
   }
@@ -603,13 +608,10 @@ class _LanguageSheetState extends State<_LanguageSheet> {
   late String _selected = widget.initialLang;
 
   static const Color titleColor = Color(0xFF282828);
-  static const Color selectedColor = Color(0xFFFF5E1C);
-  static const Color unselectedColor = Color(0xFF26351E);
   static const double radius = 40;
 
   @override
   Widget build(BuildContext context) {
-    final h = MediaQuery.of(context).size.height;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 150),
       padding: MediaQuery.of(context).viewInsets,

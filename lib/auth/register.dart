@@ -91,8 +91,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    const hintColor = Color(0xB2FFFFFF);
-
     return Scaffold(
       backgroundColor: const Color(0xFFFF5E1C),
       body: SafeArea(
@@ -229,7 +227,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
 /// Подпись над полем
 class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text, {super.key});
+  const _FieldLabel(this.text);
   final String text;
 
   @override
@@ -256,7 +254,6 @@ class _FieldLabel extends StatelessWidget {
 /// Обычный инпут (как раньше)
 class _FilledInput extends StatelessWidget {
   const _FilledInput({
-    super.key,
     required this.hint,
     this.controller,
     this.keyboardType,
@@ -306,7 +303,6 @@ class _FilledInput extends StatelessWidget {
 /// Парольный инпут с кнопкой показать/скрыть
 class _PasswordInput extends StatefulWidget {
   const _PasswordInput({
-    super.key,
     required this.hint,
     required this.controller,
     this.textInputAction,

@@ -21,7 +21,7 @@ class RuPhoneFormatter {
     final buf = StringBuffer('+7');
 
     final body = digits.length > 1 ? digits.substring(1) : '';
-    if (body.isEmpty) return buf.toString() + ' ';
+    if (body.isEmpty) return '${buf.toString()} ';
 
     buf.write(' (');
     buf.write(body.substring(0, body.length.clamp(0, 3)));

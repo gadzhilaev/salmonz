@@ -18,8 +18,6 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
   static const arrowColor = Color(0xFFCDCDCD);
   static const titleDark = Color(0xFF26351E);
   static const secondary = Color(0xFF282828);
-  static const hintGray = Color(0xB2464646);
-  static const tileBg = Color(0xFFFAFAFA);
   static const double hLogo = 62;
   static const double ls24 = 0.96;
 
@@ -64,7 +62,9 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
 
     // 3) подтянуть картинки для всех продуктов из заказов
     final ids = <int>{};
-    for (final o in orders) ids.addAll(o.productIds);
+    for (final o in orders) {
+      ids.addAll(o.productIds);
+    }
     final map = <int, String>{};
     if (ids.isNotEmpty) {
       final prows = await supa

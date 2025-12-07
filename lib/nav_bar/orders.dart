@@ -21,12 +21,8 @@ class _OrdersPageState extends State<OrdersPage> {
 
   static const bg = Colors.white;
   static const titleDark = Color(0xFF26351E);
-  static const hintGray = Color(0xB2464646); // #464646B2
-  static const tileBg = Color(0xFFFAFAFA);
 
-  static const double hLogo = 62;
   static const double ls24 = 0.96; // 4% от 24
-  static const double ls20 = 0.8;  // 4% от 20
 
   @override
   void initState() {
