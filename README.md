@@ -1,18 +1,15 @@
-<p align="center">
-  <img src="assets/icon/logo_salmonz.png" alt="Salmonz Logo" width="200"/>
-</p>
-
-<h1 align="center">🍣 Salmonz</h1>
-
-<p align="center">
-  <b>Мобильное приложение для доставки японской кухни</b>
-</p>
+![SALMONZ - магазин доставки суши](assets/SALMONZ%20-%20магазин%20доставки%20суши.png)
+# SALMONZ — магазин доставки суши
 
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-3.9+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter"/>
   <img src="https://img.shields.io/badge/Dart-3.0+-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart"/>
   <img src="https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase"/>
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License"/>
+</p>
+
+<p align="center">
+  <b>Мобильное приложение для доставки японской кухни</b>
 </p>
 
 ---
