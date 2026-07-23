@@ -129,6 +129,53 @@ describeE2e('Salmonz live API e2e', () => {
     addressId = created.body.id;
   });
 
+  it('order quote delivery fee and no side effects', async () => {
+    const productsRes = await request(api)
+      .get('/api/v1/products?limit=20')
+      .expect(200);
+    const catalog = productsRes.body.data ?? productsRes.body.items ?? productsRes.body;
+    expect(catalog.length).toBeGreaterThan(0);
+    const product = catalog.find((p: { id: string }) => p.id === productId) ?? catalog[0];
+    productId = product.id;
+    const unitPrice = Number(product.price);
+    expect(unitPrice).toBeGreaterThan(0);
+
+    const smallQty = 1;
+    expect(unitPrice * smallQty).toBeLessThan(1500);
+
+    const beforeOrders = await request(api)
+      .get('/api/v1/orders')
+      .set('Authorization', `Bearer ${userAccess}`)
+      .expect(200);
+    const countBefore = beforeOrders.body.total ?? beforeOrders.body.data?.length ?? 0;
+
+    const smallQuote = await request(api)
+      .post('/api/v1/orders/quote')
+      .set('Authorization', `Bearer ${userAccess}`)
+      .send({ items: [{ productId, quantity: smallQty }] });
+    expect(smallQuote.status).toBeLessThan(300);
+    expect(smallQuote.body.deliveryFee).toBe('249.00');
+    expect(smallQuote.body.currency).toBe('RUB');
+    expect(smallQuote.body.freeDeliveryThreshold).toBe(1500);
+    expect(smallQuote.body.deliveryFeeAmount).toBe(249);
+
+    const freeQty = Math.ceil(1500 / unitPrice);
+    const freeQuote = await request(api)
+      .post('/api/v1/orders/quote')
+      .set('Authorization', `Bearer ${userAccess}`)
+      .send({ items: [{ productId, quantity: freeQty }] });
+    expect(freeQuote.status).toBeLessThan(300);
+    expect(Number(freeQuote.body.subtotal)).toBeGreaterThanOrEqual(1500);
+    expect(freeQuote.body.deliveryFee).toBe('0.00');
+
+    const afterOrders = await request(api)
+      .get('/api/v1/orders')
+      .set('Authorization', `Bearer ${userAccess}`)
+      .expect(200);
+    const countAfter = afterOrders.body.total ?? afterOrders.body.data?.length ?? 0;
+    expect(countAfter).toBe(countBefore);
+  });
+
   it('order server pricing + idempotency', async () => {
     const key = `idempotency-${suffix}`;
     const payload = {
