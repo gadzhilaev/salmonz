@@ -12,7 +12,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CreateOrderDto } from './dto/order.dto';
+import { CreateOrderDto, QuoteOrderDto } from './dto/order.dto';
 import { OrdersService } from './orders.service';
 
 @ApiTags('orders')
@@ -21,6 +21,11 @@ import { OrdersService } from './orders.service';
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly orders: OrdersService) {}
+
+  @Post('quote')
+  quote(@CurrentUser() user: AuthUser, @Body() dto: QuoteOrderDto) {
+    return this.orders.quote(user.id, dto);
+  }
 
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateOrderDto) {

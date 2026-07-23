@@ -27,6 +27,15 @@ export class CreateOrderItemDto {
   quantity!: number;
 }
 
+export class QuoteOrderDto {
+  @ApiProperty({ type: [CreateOrderItemDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderItemDto)
+  items!: CreateOrderItemDto[];
+}
+
 export class CreateOrderDto {
   @ApiProperty()
   @IsUUID()
