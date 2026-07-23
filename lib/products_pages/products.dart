@@ -267,6 +267,7 @@ class _ProductCard extends StatelessWidget {
                       width: 173,
                       height: 46,
                       child: ElevatedButton(
+                        key: const Key('addToCart'),
                         onPressed: inStock
                             ? () {
                                 Cart.instance.add(CartItem(

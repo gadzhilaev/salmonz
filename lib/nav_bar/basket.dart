@@ -118,6 +118,7 @@ class BasketPage extends StatelessWidget {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
+                          key: const Key('cartCheckoutButton'),
                           onPressed: cart.items.isEmpty ? null : () {
                             Navigator.push(
                               context,

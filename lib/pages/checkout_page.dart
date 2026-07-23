@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/money/money.dart';
 import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/core/theme/app_theme.dart';
 import 'package:salmonz/data/models/models.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/cart.dart';
@@ -22,10 +26,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool _sending = false;
   bool _loading = true;
 
-  static const bg = Color(0xFFFFFFFF);
-  static const arrowColor = Color(0xFFCDCDCD);
-  static const titleDark = Color(0xFF26351E);
-  static const orange = Color(0xFFFF5E1C);
+  OrderQuoteModel? _quote;
+  bool _quoteLoading = false;
+  String? _quoteError;
+  int _quoteGen = 0;
+  Timer? _quoteDebounce;
+
+  static const orange = AppTheme.orange;
   static const double hLogo = 62;
   static const double ls24 = 0.96;
   static const double ls20 = 0.8;
@@ -33,7 +40,65 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
+    Cart.instance.addListener(_onCartChanged);
     _prefill();
+    _scheduleQuote();
+  }
+
+  void _onCartChanged() {
+    if (!mounted) return;
+    setState(() {});
+    _scheduleQuote();
+  }
+
+  void _scheduleQuote() {
+    _quoteDebounce?.cancel();
+    _quoteDebounce = Timer(const Duration(milliseconds: 300), _fetchQuote);
+  }
+
+  Future<void> _fetchQuote() async {
+    final cart = Cart.instance;
+    if (cart.items.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _quote = null;
+        _quoteLoading = false;
+        _quoteError = null;
+      });
+      return;
+    }
+
+    final gen = ++_quoteGen;
+    setState(() {
+      _quoteLoading = true;
+      _quoteError = null;
+    });
+
+    try {
+      final quote = await AppServices.instance.orders.quote(
+        items: cart.items
+            .map((e) => (productId: e.id, quantity: e.qty))
+            .toList(),
+      );
+      if (!mounted || gen != _quoteGen) return;
+      setState(() {
+        _quote = quote;
+        _quoteLoading = false;
+        _quoteError = null;
+      });
+    } on ApiException catch (e) {
+      if (!mounted || gen != _quoteGen) return;
+      setState(() {
+        _quoteLoading = false;
+        _quoteError = e.message;
+      });
+    } catch (e) {
+      if (!mounted || gen != _quoteGen) return;
+      setState(() {
+        _quoteLoading = false;
+        _quoteError = 'Ошибка расчёта: $e';
+      });
+    }
   }
 
   Future<void> _prefill() async {
@@ -58,6 +123,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   void dispose() {
+    _quoteDebounce?.cancel();
+    Cart.instance.removeListener(_onCartChanged);
     _phoneCtr.dispose();
     _commentCtr.dispose();
     super.dispose();
@@ -76,6 +143,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Future<void> _placeOrder() async {
+    if (_sending) return;
+
     final cart = Cart.instance;
     final phone = _phoneCtr.text.trim();
     final comment = _commentCtr.text.trim();
@@ -93,11 +162,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _snack('Корзина пуста');
       return;
     }
+    if (_quoteError != null) {
+      _snack('Дождитесь успешного расчёта заказа');
+      return;
+    }
+    final unavailable = _quote?.unavailableItems ?? const [];
+    if (unavailable.isNotEmpty) {
+      _snack('В корзине есть недоступные товары');
+      return;
+    }
 
     setState(() => _sending = true);
     try {
       final digits = phone.replaceAll(RegExp(r'\D'), '');
-      await AppServices.instance.orders.create(
+      final order = await AppServices.instance.orders.create(
         addressId: _selected!.id,
         phone: '+$digits',
         comment: comment.isEmpty ? null : comment,
@@ -109,7 +187,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
       await Cart.instance.clear();
       if (!mounted) return;
-      _snack('Заказ успешно оформлен!');
+      _snack('Заказ успешно оформлен! Итого: ${order.total.formatRub()}');
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const OrdersPage()),
@@ -130,9 +208,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   Widget build(BuildContext context) {
     final cart = Cart.instance;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final titleColor = theme.brightness == Brightness.dark
+        ? cs.onSurface
+        : AppTheme.darkGreen;
+    final bodyColor = theme.brightness == Brightness.dark
+        ? cs.onSurface
+        : AppTheme.secondaryText;
+    final arrowColor = theme.brightness == Brightness.dark
+        ? cs.onSurface.withValues(alpha: 0.45)
+        : const Color(0xFFCDCDCD);
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -153,7 +242,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new,
+                          icon: Icon(Icons.arrow_back_ios_new,
                               size: 20, color: arrowColor),
                         ),
                       ),
@@ -177,7 +266,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         padding: EdgeInsets.zero,
                         children: [
                           const SizedBox(height: 24),
-                          const Text(
+                          Text(
                             'ОФОРМЛЕНИЕ ЗАКАЗА',
                             style: TextStyle(
                               fontFamily: 'Inter',
@@ -185,7 +274,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               fontSize: 24,
                               height: 1.0,
                               letterSpacing: ls24,
-                              color: titleDark,
+                              color: titleColor,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -205,23 +294,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                         _selected!.heading.isEmpty
                                             ? _selected!.city
                                             : _selected!.heading,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontFamily: 'Inter',
                                           fontWeight: FontWeight.w600,
                                           fontSize: 18,
                                           height: 1.3,
-                                          color: Color(0xFF282828),
+                                          color: bodyColor,
                                         ),
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
                                         _selected!.line,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontFamily: 'Inter',
                                           fontWeight: FontWeight.w400,
                                           fontSize: 16,
                                           height: 1.3,
-                                          color: Color(0xFF282828),
+                                          color: bodyColor,
                                         ),
                                       ),
                                       const SizedBox(height: 6),
@@ -267,7 +356,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             minHeight: 100,
                           ),
                           const SizedBox(height: 24),
-                          const Text(
+                          Text(
                             'ВАШ ЗАКАЗ',
                             style: TextStyle(
                               fontFamily: 'Inter',
@@ -275,7 +364,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               fontSize: 20,
                               height: 1.0,
                               letterSpacing: ls20,
-                              color: titleDark,
+                              color: titleColor,
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -284,45 +373,173 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             builder: (_, __) {
                               final items = cart.items;
                               return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   for (final it in items) ...[
-                                    _OrderItemTile(item: it),
+                                    _OrderItemTile(
+                                      item: it,
+                                      quoteLine: _quoteLineFor(it.id),
+                                    ),
                                     const SizedBox(height: 16),
                                   ],
-                                  const SizedBox(height: 24),
+                                  if (_quote != null &&
+                                      _quote!.unavailableItems.isNotEmpty) ...[
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: cs.errorContainer
+                                            .withValues(alpha: 0.35),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'Недоступно: ${_quote!.unavailableItems.map((e) => e.productName).join(', ')}',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 14,
+                                          color: cs.error,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  if (_quoteError != null) ...[
+                                    Text(
+                                      _quoteError!,
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 14,
+                                        color: cs.error,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: TextButton(
+                                        key: const Key('checkoutRetry'),
+                                        onPressed: _fetchQuote,
+                                        child: const Text('Повторить расчёт'),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                  if (_quoteLoading && _quote == null)
+                                    const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      child: Center(
+                                        child: SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        ),
+                                      ),
+                                    ),
+                                  if (_quote != null) ...[
+                                    _MoneyRow(
+                                      label: 'Товары',
+                                      value: _quote!.subtotal.formatRub(),
+                                      color: bodyColor,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _MoneyRow(
+                                      label: 'Доставка',
+                                      value: _quote!.deliveryFee.minorUnits == 0
+                                          ? 'Бесплатно'
+                                          : _quote!.deliveryFee.formatRub(),
+                                      color: bodyColor,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _freeDeliveryText(_quote!),
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 13,
+                                        color: bodyColor.withValues(alpha: 0.75),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  const SizedBox(height: 8),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'ИТОГО:',
                                         style: TextStyle(
                                           fontFamily: 'Inter',
                                           fontWeight: FontWeight.w700,
                                           fontSize: 24,
                                           letterSpacing: ls24,
-                                          color: titleDark,
+                                          color: titleColor,
                                         ),
                                       ),
                                       const SizedBox(width: 4),
-                                      Text(
-                                        cart.totalSum.formatRub(),
-                                        style: const TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 24,
-                                          color: Colors.black,
+                                      if (_quoteLoading && _quote == null)
+                                        Text(
+                                          'примерно ${cart.totalSum.formatRub()}',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 20,
+                                            color: bodyColor
+                                                .withValues(alpha: 0.7),
+                                          ),
+                                        )
+                                      else
+                                        Text(
+                                          key: const Key('quoteTotal'),
+                                          (_quote?.total ?? cart.totalSum)
+                                              .formatRub(),
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 24,
+                                            color: bodyColor,
+                                          ),
                                         ),
-                                      ),
+                                      if (_quoteLoading && _quote != null) ...[
+                                        const SizedBox(width: 8),
+                                        const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        ),
+                                      ],
                                     ],
                                   ),
+                                  if (_quote == null &&
+                                      !_quoteLoading &&
+                                      _quoteError == null &&
+                                      items.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'примерно ${cart.totalSum.formatRub()}',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 14,
+                                        color:
+                                            bodyColor.withValues(alpha: 0.65),
+                                      ),
+                                    ),
+                                  ],
                                   const SizedBox(height: 40),
                                   SizedBox(
                                     width: double.infinity,
                                     height: 56,
                                     child: ElevatedButton(
-                                      onPressed: _sending ? null : _placeOrder,
+                                      key: const Key('checkoutCreateOrder'),
+                                      onPressed: _sending ||
+                                              items.isEmpty ||
+                                              _quoteError != null
+                                          ? null
+                                          : _placeOrder,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: orange,
+                                        foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(40),
@@ -364,6 +581,66 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
     );
   }
+
+  OrderQuoteLineModel? _quoteLineFor(String productId) {
+    final quote = _quote;
+    if (quote == null) return null;
+    for (final line in quote.items) {
+      if (line.productId == productId) return line;
+    }
+    return null;
+  }
+
+  String _freeDeliveryText(OrderQuoteModel quote) {
+    final threshold = Money.fromRubles(quote.freeDeliveryThreshold);
+    if (quote.deliveryFee.minorUnits == 0) {
+      return 'Доставка бесплатна (порог ${threshold.formatRub()})';
+    }
+    final rem = threshold - quote.subtotal;
+    if (rem.minorUnits > 0) {
+      return 'Бесплатная доставка от ${threshold.formatRub()}. Осталось ${rem.formatRub()}';
+    }
+    return 'Бесплатная доставка от ${threshold.formatRub()}';
+  }
+}
+
+class _MoneyRow extends StatelessWidget {
+  const _MoneyRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
+            color: color,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _Label extends StatelessWidget {
@@ -372,17 +649,20 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final muted = Theme.of(context).brightness == Brightness.dark
+        ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
+        : const Color(0xB2464646);
     return Padding(
       padding: const EdgeInsets.only(left: 8),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500,
             fontSize: 13,
-            color: Color(0xB2464646),
+            color: muted,
           ),
         ),
       ),
@@ -409,6 +689,8 @@ class _OutlinedField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final textColor = cs.onSurface;
     return ConstrainedBox(
       constraints: BoxConstraints(minHeight: minHeight),
       child: TextField(
@@ -416,20 +698,20 @@ class _OutlinedField extends StatelessWidget {
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         maxLines: maxLines,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Inter',
           fontWeight: FontWeight.w500,
           fontSize: 14,
-          color: Colors.black,
+          color: textColor,
         ),
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.fromLTRB(20, 17, 20, 17),
           hintText: hint,
-          hintStyle: const TextStyle(
+          hintStyle: TextStyle(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500,
             fontSize: 14,
-            color: Colors.black54,
+            color: textColor.withValues(alpha: 0.45),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
@@ -446,59 +728,80 @@ class _OutlinedField extends StatelessWidget {
 }
 
 class _OrderItemTile extends StatelessWidget {
-  const _OrderItemTile({required this.item});
+  const _OrderItemTile({required this.item, this.quoteLine});
   final CartItem item;
+  final OrderQuoteLineModel? quoteLine;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            width: 120,
-            height: 80,
-            color: const Color(0xFFFAFAFA),
-            child: Image.network(
-              item.img,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(Icons.restaurant_menu_outlined),
+    final theme = Theme.of(context);
+    final titleColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurface
+        : const Color(0xFF26351E);
+    final bodyColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurface
+        : const Color(0xFF282828);
+    final tileBg = theme.brightness == Brightness.dark
+        ? theme.colorScheme.surfaceContainerHighest
+        : const Color(0xFFFAFAFA);
+    final unavailable = quoteLine != null && !quoteLine!.isAvailable;
+
+    return Opacity(
+      opacity: unavailable ? 0.55 : 1,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 120,
+              height: 80,
+              color: tileBg,
+              child: Image.network(
+                item.img,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.restaurant_menu_outlined),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.name.toUpperCase(),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                  height: 1.3,
-                  letterSpacing: 0.56,
-                  color: Color(0xFF26351E),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    height: 1.3,
+                    letterSpacing: 0.56,
+                    color: titleColor,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${item.qty} шт · ${item.subtotal.formatRub()}',
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
-                  fontSize: 14,
-                  color: Color(0xFF282828),
+                const SizedBox(height: 8),
+                Text(
+                  unavailable
+                      ? '${item.qty} шт · недоступно'
+                      : '${item.qty} шт · ${(quoteLine?.lineTotal ?? item.subtotal).formatRub()}',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14,
+                    color: unavailable
+                        ? Theme.of(context).colorScheme.error
+                        : bodyColor,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -582,14 +885,20 @@ class _AddressesSheetState extends State<_AddressesSheet> {
   @override
   Widget build(BuildContext context) {
     const orange = Color(0xFFFF5E1C);
+    final theme = Theme.of(context);
+    final sheetBg = theme.brightness == Brightness.dark
+        ? theme.colorScheme.surface
+        : Colors.white;
+    final titleColor = theme.colorScheme.onSurface;
+
     return AnimatedPadding(
       duration: const Duration(milliseconds: 150),
       padding: MediaQuery.of(context).viewInsets,
       child: Container(
         height: widget.desiredHeight,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: sheetBg,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(40),
             topRight: Radius.circular(40),
           ),
@@ -603,21 +912,22 @@ class _AddressesSheetState extends State<_AddressesSheet> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'ВЫБОР АДРЕСА',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w900,
                           fontSize: 24,
-                          color: Color(0xFF282828),
+                          color: titleColor,
                         ),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close,
-                          size: 20, color: Color(0xFFD6D6D6)),
+                      icon: Icon(Icons.close,
+                          size: 20,
+                          color: titleColor.withValues(alpha: 0.35)),
                     ),
                   ],
                 ),
@@ -650,13 +960,15 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                                   children: [
                                     Text(
                                       a.heading.isEmpty ? a.city : a.heading,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w600,
                                         fontSize: 18,
+                                        color: titleColor,
                                       ),
                                     ),
-                                    Text(a.line),
+                                    Text(a.line,
+                                        style: TextStyle(color: titleColor)),
                                   ],
                                 ),
                               ),
