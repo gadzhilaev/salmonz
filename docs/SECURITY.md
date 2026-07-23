@@ -33,3 +33,12 @@ This project is a **portfolio demo**. Treat defaults as development-only.
 - Restrict `CORS_ORIGINS` when exposing the API beyond localhost
 
 Report vulnerabilities via [SECURITY.md](../SECURITY.md).
+
+## Git history note (public release)
+
+A historical scan found a **likely project Supabase anon/publishable JWT** and `supabase.co` URL in early commits (`bbf8b85`, `98830d3`, `lib/main.dart`).
+
+- Current working tree no longer embeds that key (REST + dart-define only).
+- Before making the repository public: **revoke** the old Supabase key in the project dashboard, then decide on history cleanup (filter-repo / new orphan branch). Do **not** force-push casually.
+- Working-tree mentions of `supabase` remain only in tests that forbid reintroduction.
+
