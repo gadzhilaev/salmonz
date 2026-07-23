@@ -12,6 +12,12 @@ export default () => ({
     accessTtl: process.env.JWT_ACCESS_TTL ?? '15m',
     refreshTtl: process.env.JWT_REFRESH_TTL ?? '30d',
   },
+  storage: {
+    driver: process.env.STORAGE_DRIVER ?? 'local',
+    localUploadDir: process.env.LOCAL_UPLOAD_DIR ?? 'uploads',
+    publicMediaBaseUrl:
+      process.env.PUBLIC_MEDIA_BASE_URL ?? 'http://localhost:3000/media',
+  },
   s3: {
     endpoint: process.env.S3_ENDPOINT,
     region: process.env.S3_REGION ?? 'us-east-1',
