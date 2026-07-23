@@ -257,7 +257,7 @@ class _CategoryCard extends StatelessWidget {
                         imagePath,
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.broken_image),
+                            const Icon(Icons.restaurant_menu_outlined),
                       )
                     : Image.asset(imagePath, fit: BoxFit.contain),
               ),
@@ -330,12 +330,17 @@ class _PromosSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(radius),
                 child: ColoredBox(
                   color: tileBg,
-                  child: Image.network(
-                    visible[index].imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const Center(child: Icon(Icons.broken_image)),
-                  ),
+                  child: ((visible[index].imageUrl ?? '').isEmpty)
+                      ? const Center(
+                          child: Icon(Icons.restaurant_menu_outlined),
+                        )
+                      : Image.network(
+                          visible[index].imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(Icons.restaurant_menu_outlined),
+                          ),
+                        ),
                 ),
               ),
             ),

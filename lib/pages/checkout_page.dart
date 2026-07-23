@@ -463,7 +463,7 @@ class _OrderItemTile extends StatelessWidget {
             child: Image.network(
               item.img,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+              errorBuilder: (_, __, ___) => const Icon(Icons.restaurant_menu_outlined),
             ),
           ),
         ),
