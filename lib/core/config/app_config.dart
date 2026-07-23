@@ -4,17 +4,13 @@
 /// `--dart-define-from-file`. No secrets belong in source control.
 class AppConfig {
   const AppConfig({
-    required this.supabaseUrl,
-    required this.supabasePublishableKey,
+    required this.apiBaseUrl,
     this.appEnv = 'local',
     this.isDemo = true,
   });
 
-  /// Supabase project URL (local or demo cloud).
-  final String supabaseUrl;
-
-  /// Publishable (anon) key only — never the service-role / secret key.
-  final String supabasePublishableKey;
+  /// NestJS API origin (no trailing slash), e.g. `http://10.0.2.2:3000`.
+  final String apiBaseUrl;
 
   /// Logical environment label: `local`, `demo`, `prod`, etc.
   final String appEnv;
@@ -22,24 +18,24 @@ class AppConfig {
   /// When true, UI/docs may treat the backend as a disposable demo.
   final bool isDemo;
 
-  static const _urlDefine = 'SUPABASE_URL';
-  static const _keyDefine = 'SUPABASE_PUBLISHABLE_KEY';
+  /// Full REST prefix including version.
+  String get apiV1Base => '${apiBaseUrl.replaceAll(RegExp(r'/+$'), '')}/api/v1';
+
+  static const _urlDefine = 'API_BASE_URL';
   static const _envDefine = 'APP_ENV';
   static const _demoDefine = 'APP_DEMO';
 
   /// Reads configuration from compile-time environment defines.
   ///
   /// Throws [AppConfigException] when required values are missing.
-  /// Never embeds or falls back to a production URL/key.
+  /// Never embeds or falls back to a production URL.
   factory AppConfig.fromEnvironment() {
     const url = String.fromEnvironment(_urlDefine);
-    const key = String.fromEnvironment(_keyDefine);
     const appEnv = String.fromEnvironment(_envDefine, defaultValue: 'local');
     const isDemo = bool.fromEnvironment(_demoDefine, defaultValue: true);
 
     return AppConfig.fromValues(
-      supabaseUrl: url,
-      supabasePublishableKey: key,
+      apiBaseUrl: url,
       appEnv: appEnv,
       isDemo: isDemo,
     );
@@ -47,31 +43,21 @@ class AppConfig {
 
   /// Validates and builds config from explicit values (tests / tooling).
   factory AppConfig.fromValues({
-    required String supabaseUrl,
-    required String supabasePublishableKey,
+    required String apiBaseUrl,
     String appEnv = 'local',
     bool isDemo = true,
   }) {
-    final url = supabaseUrl.trim();
-    final key = supabasePublishableKey.trim();
+    final url = apiBaseUrl.trim();
 
     if (url.isEmpty) {
       throw const AppConfigException(
-        'Missing SUPABASE_URL. Pass --dart-define=SUPABASE_URL=... '
-        'or --dart-define-from-file=config/local.json',
-      );
-    }
-    if (key.isEmpty) {
-      throw const AppConfigException(
-        'Missing SUPABASE_PUBLISHABLE_KEY. Pass '
-        '--dart-define=SUPABASE_PUBLISHABLE_KEY=... '
+        'Missing API_BASE_URL. Pass --dart-define=API_BASE_URL=... '
         'or --dart-define-from-file=config/local.json',
       );
     }
 
     return AppConfig(
-      supabaseUrl: url,
-      supabasePublishableKey: key,
+      apiBaseUrl: url.replaceAll(RegExp(r'/+$'), ''),
       appEnv: appEnv.trim().isEmpty ? 'local' : appEnv.trim(),
       isDemo: isDemo,
     );

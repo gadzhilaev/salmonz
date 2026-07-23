@@ -1,6 +1,5 @@
 {
-  "SUPABASE_URL": "http://127.0.0.1:54321",
-  "SUPABASE_PUBLISHABLE_KEY": "replace-with-local-or-demo-publishable-anon-key",
+  "API_BASE_URL": "http://10.0.2.2:3000",
   "APP_ENV": "local",
   "APP_DEMO": "true"
 }

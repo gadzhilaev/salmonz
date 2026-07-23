@@ -1,22 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/data/models/models.dart';
+import 'package:uuid/uuid.dart';
 import '../widgets/cart.dart';
 import '../profile/addresses_page.dart';
 import '../nav_bar/orders.dart';
-
-final supa = Supabase.instance.client;
-
-// маленькая вью-модель для адреса
-class _LastAddress {
-  _LastAddress({required this.country, required this.city, required this.line});
-  final String country;
-  final String city;
-  final String line;
-
-  String get heading => [country, city].where((e) => e.trim().isNotEmpty).join(', ');
-  String get fullForInput => [country, city, line].where((e) => e.trim().isNotEmpty).join(', ');
-}
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -26,174 +16,96 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  _LastAddress? _lastAddr;     // последний адрес из БД
-  String? _lastAddrRaw;        // строка "как была в инпуте", чтобы сравнить при сохранении
-  final _addrCtr = TextEditingController();
+  AddressModel? _selected;
   final _phoneCtr = TextEditingController(text: '+7 ');
   final _commentCtr = TextEditingController();
   bool _sending = false;
+  bool _loading = true;
 
-  // цвета/константы как в макете
   static const bg = Color(0xFFFFFFFF);
   static const arrowColor = Color(0xFFCDCDCD);
   static const titleDark = Color(0xFF26351E);
   static const orange = Color(0xFFFF5E1C);
-
   static const double hLogo = 62;
-  static const double ls24 = 0.96; // 4% от 24
-  static const double ls20 = 0.8;  // 4% от 20
+  static const double ls24 = 0.96;
+  static const double ls20 = 0.8;
 
   @override
   void initState() {
     super.initState();
-    _prefillFromDb(); // 👈
+    _prefill();
   }
 
-  Future<void> _prefillFromDb() async {
-    final uid = supa.auth.currentUser?.id;
-    if (uid == null) {
-      return;
-    }
-
+  Future<void> _prefill() async {
     try {
-      // 1) телефон из user + формат сразу
-      final userRow = await supa
-          .from('user')
-          .select('phone')
-          .eq('id', uid)
-          .maybeSingle();
-
-      final dbPhone = (userRow?['phone'] as String?)?.trim();
-      if (dbPhone != null && dbPhone.isNotEmpty) {
-        _phoneCtr.text = RuPhoneTextInputFormatter.format(dbPhone);
+      final profile = await AppServices.instance.profile.getMe();
+      final phone = profile.phone?.trim();
+      if (phone != null && phone.isNotEmpty) {
+        _phoneCtr.text = RuPhoneTextInputFormatter.format(phone);
       }
-
-      // 2) СНАЧАЛА пробуем адрес из последнего заказа
-      final lastOrder = await supa
-          .from('orders')
-          .select('address, created_at')
-          .eq('user_id', uid)
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      String? addressFromOrder =
-      (lastOrder?['address'] as String?)?.trim();
-
-      if (addressFromOrder != null && addressFromOrder.isNotEmpty) {
-        // распарсим строку заказа в (страна, город, линия)
-        final parsed = _parseAddress(addressFromOrder);
-        _lastAddr = parsed;
-        _lastAddrRaw = parsed.fullForInput;
-        _addrCtr.text = parsed.fullForInput; // подставляем в инпут
-      } else {
-        // 3) иначе — последний добавленный адрес пользователя
-        final rows = await supa
-            .from('addresses')
-            .select('country, city, line, created_at')
-            .eq('user_id', uid)
-            .order('created_at', ascending: false)
-            .limit(1);
-
-        if (rows.isNotEmpty) {
-          final m = rows.first;
-          final addr = _LastAddress(
-            country: (m['country'] ?? '') as String,
-            city:    (m['city'] ?? '') as String,
-            line:    (m['line'] ?? '') as String,
-          );
-          _lastAddr = addr;
-          _lastAddrRaw = addr.fullForInput;
-          _addrCtr.text = addr.fullForInput;
-        }
+      final addrs = await AppServices.instance.addresses.list();
+      if (addrs.isNotEmpty) {
+        _selected = addrs.firstWhere(
+          (a) => a.isDefault,
+          orElse: () => addrs.first,
+        );
       }
     } catch (_) {
-      // тихо — не ломаем UX
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   void dispose() {
-    _addrCtr.dispose();
     _phoneCtr.dispose();
     _commentCtr.dispose();
     super.dispose();
   }
 
-  Future<void> _openAddressPickerSheet() async {
-    final uid = supa.auth.currentUser?.id;
-    if (uid == null) return;
-
-    final mq = MediaQuery.of(context);
-    // высоту можно взять как 70% экрана или как тебе нужно
-    final double desiredHeight = mq.size.height * 0.7;
-
-    final selected = await showModalBottomSheet<_LastAddress>(
+  Future<void> _pickAddress() async {
+    final selected = await showModalBottomSheet<AddressModel>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) {
-        return _AddressesSheet(desiredHeight: desiredHeight);
-      },
+      builder: (_) => _AddressesSheet(
+        desiredHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
     );
-
-    if (selected != null) {
-      // применяем выбранный адрес
-      setState(() {
-        _lastAddr = selected;
-        _lastAddrRaw = selected.fullForInput;
-        _addrCtr.text = selected.fullForInput;
-      });
-    }
+    if (selected != null) setState(() => _selected = selected);
   }
 
   Future<void> _placeOrder() async {
     final cart = Cart.instance;
-
-    final addressInput = _addrCtr.text.trim();
-    final phone   = _phoneCtr.text.trim();
+    final phone = _phoneCtr.text.trim();
     final comment = _commentCtr.text.trim();
 
-    if (addressInput.isEmpty) { _snack('Введите адрес доставки'); return; }
-    if (!phone.startsWith('+7') || phone.replaceAll(RegExp(r'\D'), '').length < 11) {
-      _snack('Введите телефон в формате +7 ...'); return;
+    if (_selected == null) {
+      _snack('Выберите адрес доставки');
+      return;
     }
-    if (cart.items.isEmpty) { _snack('Корзина пуста'); return; }
+    if (!phone.startsWith('+7') ||
+        phone.replaceAll(RegExp(r'\D'), '').length < 11) {
+      _snack('Введите телефон в формате +7 ...');
+      return;
+    }
+    if (cart.items.isEmpty) {
+      _snack('Корзина пуста');
+      return;
+    }
 
     setState(() => _sending = true);
     try {
-      final userId = supa.auth.currentUser?.id;
-
-      // 1) если адрес новый — сохраним в addresses
-      if (userId != null && addressInput.isNotEmpty && addressInput != (_lastAddrRaw ?? '')) {
-        final parsed = _parseAddress(addressInput);
-        await supa.from('addresses').insert({
-          'user_id': userId,
-          'country': parsed.country,
-          'city'   : parsed.city,
-          'line'   : parsed.line,
-        });
-        // обновим локальный "последний адрес"
-        _lastAddr = parsed;
-        _lastAddrRaw = parsed.fullForInput;
-      }
-
-      // 2) формируем заказ
-      final productIds = cart.items.map((e) => e.id).toList();
-      final qtyList    = cart.items.map((e) => e.qty).toList();
-      final priceList  = cart.items.map((e) => e.price).toList();
-      final summ       = cart.totalSum;
-
-      await supa.from('orders').insert({
-        'user_id'     : userId,
-        'product_list': productIds,
-        'value_list'  : qtyList,
-        'price_list'  : priceList,
-        'summ'        : summ,
-        'address'     : addressInput, // для истории заказа можно класть как одну строку
-        'phone'       : phone,
-        'comment'     : comment,
-      });
+      final digits = phone.replaceAll(RegExp(r'\D'), '');
+      await AppServices.instance.orders.create(
+        addressId: _selected!.id,
+        phone: '+$digits',
+        comment: comment.isEmpty ? null : comment,
+        items: cart.items
+            .map((e) => (productId: e.id, quantity: e.qty))
+            .toList(),
+        idempotencyKey: const Uuid().v4(),
+      );
 
       await Cart.instance.clear();
       if (!mounted) return;
@@ -201,31 +113,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const OrdersPage()),
-            (r) => false,
+        (r) => false,
       );
-    } on PostgrestException catch (e) {
-      _snack('Ошибка БД: ${e.message}');
+    } on ApiException catch (e) {
+      _snack(e.message);
     } catch (e) {
       _snack('Ошибка: $e');
     } finally {
       if (mounted) setState(() => _sending = false);
-    }
-  }
-
-  _LastAddress _parseAddress(String input) {
-    final parts = input.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    if (parts.length >= 3) {
-      final country = parts[0];
-      final city    = parts[1];
-      final line    = parts.sublist(2).join(', ');
-      return _LastAddress(country: country, city: city, line: line);
-    } else if (parts.length == 2) {
-      return _LastAddress(country: parts[0], city: parts[1], line: '');
-    } else if (parts.length == 1) {
-      // если ввели только улицу — подставим дефолтную страну
-      return _LastAddress(country: 'Россия', city: '', line: parts[0]);
-    } else {
-      return _LastAddress(country: 'Россия', city: '', line: '');
     }
   }
 
@@ -242,23 +137,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // appbar как в products.dart
               SizedBox(
                 height: hLogo + 26,
                 child: Stack(
                   alignment: Alignment.topCenter,
                   children: [
                     Positioned(
-                      left: 20, top: 26,
+                      left: 20,
+                      top: 26,
                       child: SizedBox(
-                        width: 24, height: 24,
+                        width: 24,
+                        height: 24,
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: arrowColor),
+                          icon: const Icon(Icons.arrow_back_ios_new,
+                              size: 20, color: arrowColor),
                         ),
                       ),
                     ),
@@ -266,237 +162,207 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       top: 4,
                       child: Image.asset(
                         'assets/icon/logo_salmonz_small.png',
-                        width: 80, height: 62, fit: BoxFit.contain,
+                        width: 80,
+                        height: 62,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ],
                 ),
               ),
-
-              // скролл блок
               Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    const SizedBox(height: 24),
-
-                    // ОФОРМЛЕНИЕ ЗАКАЗА
-                    Text(
-                      'ОФОРМЛЕНИЕ ЗАКАЗА',
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w900,
-                        fontSize: 24,
-                        height: 1.0,
-                        letterSpacing: ls24,
-                        color: titleDark,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    if (_lastAddr != null) ...[
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView(
+                        padding: EdgeInsets.zero,
                         children: [
-                          const Icon(Icons.home_outlined, size: 24, color: Color(0xFFFF5E1C)),
-                          const SizedBox(width: 9),
-                          Expanded(
-                            child: Column(
+                          const SizedBox(height: 24),
+                          const Text(
+                            'ОФОРМЛЕНИЕ ЗАКАЗА',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 24,
+                              height: 1.0,
+                              letterSpacing: ls24,
+                              color: titleDark,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (_selected != null) ...[
+                            Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  _lastAddr!.heading,
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 18,
-                                    height: 1.3,
-                                    letterSpacing: 0,
-                                    color: Color(0xFF282828),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  _lastAddr!.line,
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 16,
-                                    height: 1.3,
-                                    letterSpacing: 0,
-                                    color: Color(0xFF282828),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                // 👇 КНОПКА "ВЫБРАТЬ" как «Редактировать»
-                                InkWell(
-                                  onTap: _openAddressPickerSheet,
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 2),
-                                    child: Text(
-                                      'Выбрать',
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14,
-                                        height: 1.3,
-                                        letterSpacing: 0,
-                                        color: Color(0xFFFF5E1C),
+                                const Icon(Icons.home_outlined,
+                                    size: 24, color: orange),
+                                const SizedBox(width: 9),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _selected!.heading.isEmpty
+                                            ? _selected!.city
+                                            : _selected!.heading,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 18,
+                                          height: 1.3,
+                                          color: Color(0xFF282828),
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        _selected!.line,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 16,
+                                          height: 1.3,
+                                          color: Color(0xFF282828),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      InkWell(
+                                        onTap: _pickAddress,
+                                        child: const Text(
+                                          'Выбрать',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 14,
+                                            color: orange,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
+                          ] else ...[
+                            TextButton(
+                              onPressed: _pickAddress,
+                              child: const Text('Выбрать адрес доставки'),
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          const _Label('Номер телефона  *'),
+                          const SizedBox(height: 12),
+                          _OutlinedField(
+                            controller: _phoneCtr,
+                            hint: '+7 900 000 00 00',
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [RuPhoneTextInputFormatter()],
+                          ),
+                          const SizedBox(height: 10),
+                          const _Label('Комментарий к заказу'),
+                          const SizedBox(height: 12),
+                          _OutlinedField(
+                            controller: _commentCtr,
+                            hint: 'Введите комментарий',
+                            maxLines: 4,
+                            minHeight: 100,
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'ВАШ ЗАКАЗ',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 20,
+                              height: 1.0,
+                              letterSpacing: ls20,
+                              color: titleDark,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          AnimatedBuilder(
+                            animation: cart,
+                            builder: (_, __) {
+                              final items = cart.items;
+                              return Column(
+                                children: [
+                                  for (final it in items) ...[
+                                    _OrderItemTile(item: it),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  const SizedBox(height: 24),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text(
+                                        'ИТОГО:',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 24,
+                                          letterSpacing: ls24,
+                                          color: titleDark,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        cart.totalSum.formatRub(),
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 24,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 40),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 56,
+                                    child: ElevatedButton(
+                                      onPressed: _sending ? null : _placeOrder,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: orange,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(40),
+                                        ),
+                                      ),
+                                      child: _sending
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child:
+                                                  CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'ЗАКАЗАТЬ',
+                                              style: TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12,
+                                                letterSpacing: 0.48,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Адрес
-                    const _Label('Адрес доставки (улица, дом, квартира) *'),
-                    const SizedBox(height: 12),
-                    _OutlinedField(
-                      controller: _addrCtr,
-                      hint: 'Введите адрес доставки',
-                      keyboardType: TextInputType.streetAddress,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Телефон
-                    const _Label('Номер телефона  *'),
-                    const SizedBox(height: 12),
-                    _OutlinedField(
-                      controller: _phoneCtr,
-                      hint: '+7 900 000 00 00',
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        RuPhoneTextInputFormatter(),
-                      ],
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Комментарий
-                    const _Label('Комментарий к заказу'),
-                    const SizedBox(height: 12),
-                    _OutlinedField(
-                      controller: _commentCtr,
-                      hint: 'Введите комментарий',
-                      maxLines: 4,
-                      minHeight: 100,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Ваш заказ
-                    Text(
-                      'ВАШ ЗАКАЗ',
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w900,
-                        fontSize: 20,
-                        height: 1.0,
-                        letterSpacing: ls20,
-                        color: titleDark,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // список товаров
-                    AnimatedBuilder(
-                      animation: cart,
-                      builder: (_, __) {
-                        final items = cart.items;
-                        return Column(
-                          children: [
-                            for (final it in items) ...[
-                              _OrderItemTile(item: it),
-                              const SizedBox(height: 16),
-                            ],
-                            const SizedBox(height: 24),
-                            // ИТОГО
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'ИТОГО:',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 24,
-                                    height: 1.0,
-                                    letterSpacing: ls24,
-                                    color: titleDark,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${_fmt(cart.totalSum)} ₽',
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 24,
-                                    height: 1.0,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 40),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: _sending ? null : _placeOrder,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: orange,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(40),
-                                  ),
-                                ),
-                                child: _sending
-                                    ? const SizedBox(
-                                  width: 20, height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                                    : const Text(
-                                  'ЗАКАЗАТЬ',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                    height: 1.0,
-                                    letterSpacing: 0.48, // 4%
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  static String _fmt(double v) {
-    final isInt = v == v.roundToDouble();
-    return isInt ? v.toInt().toString() : v.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
   }
 }
 
@@ -507,7 +373,7 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8), // 12 + 8 = 20
+      padding: const EdgeInsets.only(left: 8),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
@@ -516,15 +382,14 @@ class _Label extends StatelessWidget {
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500,
             fontSize: 13,
-            height: 1.0,
-            letterSpacing: 0,
-            color: Color(0xB2464646), // #464646B2
+            color: Color(0xB2464646),
           ),
         ),
       ),
     );
   }
 }
+
 class _OutlinedField extends StatelessWidget {
   const _OutlinedField({
     required this.controller,
@@ -555,7 +420,6 @@ class _OutlinedField extends StatelessWidget {
           fontFamily: 'Inter',
           fontWeight: FontWeight.w500,
           fontSize: 14,
-          height: 1.0,
           color: Colors.black,
         ),
         decoration: InputDecoration(
@@ -565,7 +429,6 @@ class _OutlinedField extends StatelessWidget {
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500,
             fontSize: 14,
-            height: 1.0,
             color: Colors.black54,
           ),
           enabledBorder: OutlineInputBorder(
@@ -586,10 +449,6 @@ class _OrderItemTile extends StatelessWidget {
   const _OrderItemTile({required this.item});
   final CartItem item;
 
-  static const titleDark = Color(0xFF26351E);
-  static const gray2828 = Color(0xFF282828);
-  static const tileBg = Color(0xFFFAFAFA);
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -598,9 +457,14 @@ class _OrderItemTile extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            width: 120, height: 80, color: tileBg,
-            child: Image.network(item.img, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+            width: 120,
+            height: 80,
+            color: const Color(0xFFFAFAFA),
+            child: Image.network(
+              item.img,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -610,41 +474,26 @@ class _OrderItemTile extends StatelessWidget {
             children: [
               Text(
                 item.name.toUpperCase(),
-                maxLines: 2, overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w900,
                   fontSize: 14,
                   height: 1.3,
                   letterSpacing: 0.56,
-                  color: titleDark,
+                  color: Color(0xFF26351E),
                 ),
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(
-                    '${item.amount} шт × ${item.qty}',
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w400,
-                      fontSize: 14,
-                      height: 22/14,
-                      color: gray2828,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    '${_fmt(item.subtotal)} ₽',
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      height: 1.0,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
+              Text(
+                '${item.qty} шт · ${item.subtotal.formatRub()}',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 14,
+                  color: Color(0xFF282828),
+                ),
               ),
             ],
           ),
@@ -652,69 +501,45 @@ class _OrderItemTile extends StatelessWidget {
       ],
     );
   }
-
-  static String _fmt(double v) {
-    final isInt = v == v.roundToDouble();
-    return isInt ? v.toInt().toString() : v.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
-  }
 }
 
-/// Маска: +7 (XXX) XXX-XX-XX
 class RuPhoneTextInputFormatter extends TextInputFormatter {
-
-  /// Удобно иметь статический метод форматирования по "сырым" цифрам
   static String format(String rawDigits) {
-    // оставляем только цифры
     final d = rawDigits.replaceAll(RegExp(r'\D'), '');
-    // ожидаем 11 цифр, где первая — 7 (или 8 -> приведём к 7)
     String digits = d;
     if (digits.isEmpty) return '+7 ';
     if (digits.startsWith('8')) digits = '7${digits.substring(1)}';
     if (!digits.startsWith('7')) digits = '7$digits';
 
     final buf = StringBuffer('+7 ');
-    // пропускаем первую "7" — она уже в префиксе
     final body = digits.length > 1 ? digits.substring(1) : '';
 
-    // (XXX)
     if (body.isNotEmpty) {
       buf.write('(');
       buf.write(body.substring(0, body.length.clamp(0, 3)));
       if (body.length >= 3) buf.write(') ');
     }
-
-    // XXX
     if (body.length > 3) {
       buf.write(body.substring(3, body.length.clamp(3, 6)));
       if (body.length >= 6) buf.write('-');
     }
-
-    // XX
     if (body.length > 6) {
       buf.write(body.substring(6, body.length.clamp(6, 8)));
       if (body.length >= 8) buf.write('-');
     }
-
-    // XX
     if (body.length > 8) {
       buf.write(body.substring(8, body.length.clamp(8, 10)));
     }
-
     return buf.toString();
   }
 
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
-    // берём только цифры из того, что прислал пользователь
     final onlyDigits = newValue.text.replaceAll(RegExp(r'\D'), '');
-
-    // ограничим максимумом 11 цифр (7 + 10)
-    final limited = onlyDigits.length > 11 ? onlyDigits.substring(0, 11) : onlyDigits;
-
+    final limited =
+        onlyDigits.length > 11 ? onlyDigits.substring(0, 11) : onlyDigits;
     final formatted = format(limited);
-
-    // курсор — в конец форматированной строки
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
@@ -731,7 +556,7 @@ class _AddressesSheet extends StatefulWidget {
 }
 
 class _AddressesSheetState extends State<_AddressesSheet> {
-  List<_LastAddress> _items = [];
+  List<AddressModel> _items = [];
   bool _loading = true;
 
   @override
@@ -741,27 +566,8 @@ class _AddressesSheetState extends State<_AddressesSheet> {
   }
 
   Future<void> _load() async {
-    final uid = supa.auth.currentUser?.id;
-    if (uid == null) {
-      setState(() => _loading = false);
-      return;
-    }
     try {
-      final res = await supa
-          .from('addresses')
-          .select('country,city,line,created_at')
-          .eq('user_id', uid)
-          .order('created_at', ascending: false);
-
-      final list = (res as List).map((e) {
-        final m = e as Map<String, dynamic>;
-        return _LastAddress(
-          country: (m['country'] ?? '') as String,
-          city: (m['city'] ?? '') as String,
-          line: (m['line'] ?? '') as String,
-        );
-      }).toList();
-
+      final list = await AppServices.instance.addresses.list();
       if (mounted) {
         setState(() {
           _items = list;
@@ -775,9 +581,7 @@ class _AddressesSheetState extends State<_AddressesSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const titleColor = Color(0xFF282828);
     const orange = Color(0xFFFF5E1C);
-
     return AnimatedPadding(
       duration: const Duration(milliseconds: 150),
       padding: MediaQuery.of(context).viewInsets,
@@ -789,13 +593,6 @@ class _AddressesSheetState extends State<_AddressesSheet> {
             topLeft: Radius.circular(40),
             topRight: Radius.circular(40),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x0D000000),
-              offset: Offset(3, -12),
-              blurRadius: 20,
-            )
-          ],
         ),
         child: SafeArea(
           top: false,
@@ -813,35 +610,24 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w900,
                           fontSize: 24,
-                          height: 23/24,
-                          color: titleColor,
+                          color: Color(0xFF282828),
                         ),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, size: 20, color: Color(0xFFD6D6D6)),
-                      splashRadius: 22,
+                      icon: const Icon(Icons.close,
+                          size: 20, color: Color(0xFFD6D6D6)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-
                 if (_loading)
-                  const Expanded(child: Center(child: CircularProgressIndicator()))
+                  const Expanded(
+                      child: Center(child: CircularProgressIndicator()))
                 else if (_items.isEmpty)
                   const Expanded(
-                    child: Center(
-                      child: Text(
-                        'Адресов пока нет',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: Color(0xFF282828),
-                        ),
-                      ),
-                    ),
+                    child: Center(child: Text('Адресов пока нет')),
                   )
                 else
                   Expanded(
@@ -851,38 +637,26 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                       itemBuilder: (_, i) {
                         final a = _items[i];
                         return InkWell(
-                          onTap: () => Navigator.pop(context, a), // выбрать
-                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => Navigator.pop(context, a),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.home_outlined, size: 24, color: orange),
+                              const Icon(Icons.home_outlined,
+                                  size: 24, color: orange),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      a.heading,
+                                      a.heading.isEmpty ? a.city : a.heading,
                                       style: const TextStyle(
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w600,
                                         fontSize: 18,
-                                        height: 1.3,
-                                        color: Color(0xFF282828),
                                       ),
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      a.line,
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 16,
-                                        height: 1.3,
-                                        color: Color(0xFF282828),
-                                      ),
-                                    ),
+                                    Text(a.line),
                                   ],
                                 ),
                               ),
@@ -892,35 +666,30 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                       },
                     ),
                   ),
-
                 const SizedBox(height: 20),
-
-                // Можно ещё добавить кнопку "УПРАВЛЯТЬ АДРЕСАМИ" -> экран адресов
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
                     onPressed: () async {
-                      // откроем экран адресов; после возврата перезагрузим список
                       await Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const AddressesPage()),
+                        MaterialPageRoute(
+                            builder: (_) => const AddressesPage()),
                       );
-                      await _load(); // refresh список в шите
+                      await _load();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orange,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-                      padding: const EdgeInsets.symmetric(vertical: 22),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(40)),
                     ),
                     child: const Text(
                       'УПРАВЛЯТЬ АДРЕСАМИ',
-                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
-                        height: 1.0,
                         letterSpacing: 0.48,
                         color: Colors.white,
                       ),

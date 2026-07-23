@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'login.dart';
+import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/nav_bar/main_screen.dart';
-
-final supa = Supabase.instance.client;
+import 'login.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({
@@ -52,38 +51,26 @@ class _RegisterPageState extends State<RegisterPage> {
       _showSnack('Пароли не совпадают');
       return;
     }
+    if (pass.length < 8) {
+      _showSnack('Пароль должен быть не короче 8 символов');
+      return;
+    }
 
     setState(() => isLoading = true);
     try {
-      final res = await supa.auth.signUp(
+      await AppServices.instance.auth.register(
         email: email,
         password: pass,
-        data: {'name': name},
+        name: name,
       );
 
-      final user = res.user;
-      if (user == null) {
-        _showSnack('Не удалось создать пользователя');
-        setState(() => isLoading = false);
-        return;
-      }
-
-      // Profile row is created by DB trigger on auth.users (idempotent).
-      // Do not insert into "user" from the client.
-
       if (!mounted) return;
-
-      if (res.session == null) {
-        _showSnack('Аккаунт создан. Подтвердите e-mail, затем войдите.');
-        return;
-      }
-
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const SuccessPage()),
         (route) => false,
       );
-    } on AuthException catch (e) {
+    } on ApiException catch (e) {
       _showSnack(e.message);
     } catch (e) {
       _showSnack('Ошибка: $e');
@@ -113,7 +100,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(height: widget.topPadding),
-
                       Center(
                         child: Image.asset(
                           'assets/icon/logo_salmonz.png',
@@ -122,9 +108,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           fit: BoxFit.contain,
                         ),
                       ),
-
                       const SizedBox(height: 48),
-
                       const _FieldLabel('Имя'),
                       const SizedBox(height: 8),
                       _FilledInput(
@@ -132,9 +116,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         hint: 'Иван',
                         textInputAction: TextInputAction.next,
                       ),
-
                       const SizedBox(height: 24),
-
                       const _FieldLabel('Электронная почта'),
                       const SizedBox(height: 8),
                       _FilledInput(
@@ -143,9 +125,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                       ),
-
                       const SizedBox(height: 24),
-
                       const _FieldLabel('Пароль'),
                       const SizedBox(height: 8),
                       _PasswordInput(
@@ -153,9 +133,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         hint: 'Введите пароль',
                         textInputAction: TextInputAction.next,
                       ),
-
                       const SizedBox(height: 24),
-
                       const _FieldLabel('Повторите пароль'),
                       const SizedBox(height: 8),
                       _PasswordInput(
@@ -163,7 +141,6 @@ class _RegisterPageState extends State<RegisterPage> {
                         hint: 'Повторите пароль',
                         textInputAction: TextInputAction.done,
                       ),
-
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
@@ -193,7 +170,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                 ),
                         ),
                       ),
-
                       const SizedBox(height: 32),
                       Center(
                         child: GestureDetector(
@@ -221,7 +197,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -235,7 +210,6 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
-/// Подпись над полем
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.text);
   final String text;
@@ -247,7 +221,7 @@ class _FieldLabel extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(left: 8),
         child: Text(
-          text, // <-- используем параметр
+          text,
           style: const TextStyle(
             fontFamily: 'Inter',
             fontSize: 13,
@@ -261,7 +235,6 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
-/// Обычный инпут (как раньше)
 class _FilledInput extends StatelessWidget {
   const _FilledInput({
     required this.hint,
@@ -316,7 +289,6 @@ class _FilledInput extends StatelessWidget {
   }
 }
 
-/// Парольный инпут с кнопкой показать/скрыть
 class _PasswordInput extends StatefulWidget {
   const _PasswordInput({
     required this.hint,
@@ -371,8 +343,6 @@ class _PasswordInputState extends State<_PasswordInput> {
             height: 1.0,
             color: hintColor,
           ),
-
-          // кнопка на всю высоту поля
           suffixIconConstraints: const BoxConstraints.tightFor(
             width: 48,
             height: 48,
@@ -384,9 +354,7 @@ class _PasswordInputState extends State<_PasswordInput> {
               onTap: () => setState(() => _obscure = !_obscure),
               child: Center(
                 child: Icon(
-                  _obscure
-                      ? Icons.visibility
-                      : Icons.visibility_off, // 👈 вот тут разница
+                  _obscure ? Icons.visibility : Icons.visibility_off,
                   size: 20,
                   color: hintColor,
                 ),
