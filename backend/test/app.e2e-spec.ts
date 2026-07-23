@@ -8,7 +8,8 @@ import { randomUUID } from 'crypto';
 
 const enabled = process.env.RUN_E2E === '1';
 const describeE2e = enabled ? describe : describe.skip;
-const api = process.env.API_URL ?? 'http://localhost:3000';
+// Prefer IPv4: on Windows `localhost` can resolve to ::1 and fail while Nest listens on 127.0.0.1.
+const api = process.env.API_URL ?? 'http://127.0.0.1:3000';
 
 describeE2e('Salmonz live API e2e', () => {
   const suffix = randomUUID().slice(0, 8);
