@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salmonz/core/theme/app_theme.dart';
 
-/// Smoke test that does not initialize Supabase or hit a network.
+/// Smoke test that does not hit the network.
 void main() {
-  testWidgets('MaterialApp boots without Supabase', (tester) async {
+  testWidgets('MaterialApp boots with Salmonz themes', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: Center(child: Text('Salmonz config OK'))),
+      MaterialApp(
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.system,
+        home: const Scaffold(body: Center(child: Text('Salmonz config OK'))),
       ),
     );
 

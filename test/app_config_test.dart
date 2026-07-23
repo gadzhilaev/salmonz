@@ -3,76 +3,46 @@ import 'package:salmonz/core/config/app_config.dart';
 
 void main() {
   group('AppConfig', () {
-    test('accepts valid values', () {
+    test('accepts valid API_BASE_URL', () {
       final config = AppConfig.fromValues(
-        supabaseUrl: 'http://127.0.0.1:54321',
-        supabasePublishableKey: 'test-publishable-key',
+        apiBaseUrl: 'http://10.0.2.2:3000',
         appEnv: 'local',
         isDemo: true,
       );
 
-      expect(config.supabaseUrl, 'http://127.0.0.1:54321');
-      expect(config.supabasePublishableKey, 'test-publishable-key');
+      expect(config.apiBaseUrl, 'http://10.0.2.2:3000');
+      expect(config.apiV1Base, 'http://10.0.2.2:3000/api/v1');
       expect(config.appEnv, 'local');
       expect(config.isDemo, isTrue);
     });
 
-    test('throws clear error when URL is empty', () {
+    test('throws clear error when API_BASE_URL is empty', () {
       expect(
-        () => AppConfig.fromValues(
-          supabaseUrl: '   ',
-          supabasePublishableKey: 'test-publishable-key',
-        ),
+        () => AppConfig.fromValues(apiBaseUrl: '   '),
         throwsA(
           isA<AppConfigException>().having(
             (e) => e.message,
             'message',
-            contains('SUPABASE_URL'),
+            contains('API_BASE_URL'),
           ),
         ),
       );
     });
 
-    test('throws clear error when publishable key is empty', () {
-      expect(
-        () => AppConfig.fromValues(
-          supabaseUrl: 'http://127.0.0.1:54321',
-          supabasePublishableKey: '',
-        ),
-        throwsA(
-          isA<AppConfigException>().having(
-            (e) => e.message,
-            'message',
-            contains('SUPABASE_PUBLISHABLE_KEY'),
-          ),
-        ),
-      );
-    });
-
-    test('error message does not include key material', () {
-      const secretish = 'super-secret-publishable-value-xyz';
-      try {
-        AppConfig.fromValues(
-          supabaseUrl: '',
-          supabasePublishableKey: secretish,
-        );
-        fail('expected AppConfigException');
-      } on AppConfigException catch (e) {
-        expect(e.toString().contains(secretish), isFalse);
-        expect(e.message.contains(secretish), isFalse);
-      }
+    test('strips trailing slash from base URL', () {
+      final config = AppConfig.fromValues(apiBaseUrl: 'http://127.0.0.1:3000/');
+      expect(config.apiBaseUrl, 'http://127.0.0.1:3000');
+      expect(config.apiV1Base, 'http://127.0.0.1:3000/api/v1');
     });
 
     test('does not fall back to a hardcoded production host', () {
       expect(
-        () =>
-            AppConfig.fromValues(supabaseUrl: '', supabasePublishableKey: 'k'),
+        () => AppConfig.fromValues(apiBaseUrl: ''),
         throwsA(isA<AppConfigException>()),
       );
 
-      // Ensure factory path has no silent default URL baked in.
       try {
-        AppConfig.fromValues(supabaseUrl: '', supabasePublishableKey: 'k');
+        AppConfig.fromValues(apiBaseUrl: '');
       } on AppConfigException catch (e) {
         expect(e.message.toLowerCase(), isNot(contains('supabase.co')));
         expect(e.message, isNot(contains('vwerkkbccwosrnkozgza')));

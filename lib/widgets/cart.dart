@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/money/money.dart';
+
 class CartItem {
   CartItem({
     required this.id,
@@ -13,45 +15,49 @@ class CartItem {
     this.qty = 1,
   });
 
-  final int id;
+  final String id;
   final String name;
   final String img;
-  final double price;
+  final Money price;
   final int gramm;
   final int amount;
   int qty;
 
-  double get subtotal => price * qty;
+  Money get subtotal => price * qty;
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'img': img,
-    'price': price,
-    'gramm': gramm,
-    'amount': amount,
-    'qty': qty,
-  };
+        'id': id,
+        'name': name,
+        'img': img,
+        'price': price.asDouble,
+        'gramm': gramm,
+        'amount': amount,
+        'qty': qty,
+      };
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-    id: json['id'],
-    name: json['name'],
-    img: json['img'],
-    price: (json['price'] as num).toDouble(),
-    gramm: json['gramm'],
-    amount: json['amount'],
-    qty: json['qty'],
-  );
+        id: json['id'].toString(),
+        name: json['name'] as String,
+        img: json['img'] as String,
+        price: Money.parse(json['price']),
+        gramm: (json['gramm'] as num?)?.toInt() ?? 0,
+        amount: (json['amount'] as num?)?.toInt() ?? 1,
+        qty: (json['qty'] as num?)?.toInt() ?? 1,
+      );
 }
 
 class Cart extends ChangeNotifier {
   Cart._();
   static final Cart instance = Cart._();
 
-  final Map<int, CartItem> _items = {};
+  final Map<String, CartItem> _items = {};
 
   List<CartItem> get items => _items.values.toList(growable: false);
-  double get totalSum => _items.values.fold(0.0, (s, e) => s + e.subtotal);
+  Money get totalSum =>
+      _items.values.fold(Money.zero, (s, e) => s + e.subtotal);
+
+  // Convenience for UI that still wants a double.
+  double get totalSumDouble => totalSum.asDouble;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -61,7 +67,7 @@ class Cart extends ChangeNotifier {
       _items
         ..clear()
         ..addEntries(decoded.map((e) {
-          final item = CartItem.fromJson(e);
+          final item = CartItem.fromJson(Map<String, dynamic>.from(e as Map));
           return MapEntry(item.id, item);
         }));
       notifyListeners();
@@ -85,7 +91,7 @@ class Cart extends ChangeNotifier {
     notifyListeners();
   }
 
-  void inc(int id) {
+  void inc(String id) {
     final it = _items[id];
     if (it == null) return;
     it.qty += 1;
@@ -93,7 +99,7 @@ class Cart extends ChangeNotifier {
     notifyListeners();
   }
 
-  void dec(int id) {
+  void dec(String id) {
     final it = _items[id];
     if (it == null) return;
     if (it.qty > 1) {
@@ -105,7 +111,7 @@ class Cart extends ChangeNotifier {
     notifyListeners();
   }
 
-  void remove(int id) {
+  void remove(String id) {
     _items.remove(id);
     _save();
     notifyListeners();
