@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/theme/theme_controller.dart';
 import '../profile/legal/legal_text_page.dart';
 import '../profile/legal/legal_texts.dart';
 import '../profile/edit_profile_page.dart';
@@ -136,6 +137,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               IconButton(
+                                key: const Key('logoutButton'),
                                 onPressed: _logout,
                                 icon: const Icon(Icons.logout_outlined,
                                     size: 24, color: orange),
@@ -220,6 +222,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
                           const SizedBox(height: 24),
 
+                          _ThemeModeTile(
+                            key: const Key('themeToggle'),
+                          ),
+                          const SizedBox(height: 8),
                           _ProfileTile(
                             icon: Icons.account_circle_outlined,
                             text: 'Редактировать профиль',
@@ -301,6 +307,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 8),
                           if (me.isAdmin)
                             _ProfileTile(
+                              key: const Key('adminPanelEntry'),
                               icon: Icons.person_pin_circle_outlined,
                               text: 'Админ панель',
                               onTap: () {
@@ -403,8 +410,57 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
+class _ThemeModeTile extends StatelessWidget {
+  const _ThemeModeTile({super.key});
+
+  static const orange = Color(0xFFFF5E1C);
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () => controller.cycle(),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            height: 48,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: orange, width: 1),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                const Icon(Icons.brightness_6_outlined, size: 24, color: orange),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Тема: ${controller.labelRu()}',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      height: 1.0,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _ProfileTile extends StatelessWidget {
   const _ProfileTile({
+    super.key,
     required this.icon,
     required this.text,
     this.onTap,
@@ -418,6 +474,7 @@ class _ProfileTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = Theme.of(context).colorScheme.onSurface;
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
@@ -436,12 +493,12 @@ class _ProfileTile extends StatelessWidget {
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w400,
                   fontSize: 14,
                   height: 1.0,
-                  color: Colors.black,
+                  color: textColor,
                 ),
               ),
             ),
