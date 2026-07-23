@@ -59,9 +59,19 @@ Query params: `page` (default 1), `limit` (default 20, max 100).
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
-| POST | `/orders` | Bearer | Server-priced; idempotencyKey |
+| POST | `/orders/quote` | Bearer | Authoritative cart pricing (no DB write); Decimal strings |
+| POST | `/orders` | Bearer | Server-priced; idempotencyKey; recalculates (quote is not a price lock) |
 | GET | `/orders` | Bearer | |
 | GET | `/orders/:id` | Bearer | |
+
+### Order quote
+
+`POST /orders/quote` recalculates the same money rules as create (`calcOrderMoney`):
+
+- prices only from PostgreSQL;
+- unavailable products returned with `isAvailable: false` and excluded from totals;
+- `deliveryFee` is `0` when `subtotal >= freeDeliveryThreshold` (1500), otherwise `deliveryFeeAmount` (249);
+- response money fields are strings with two decimals (e.g. `"249.00"`).
 
 Create body: `addressId`, `phone`, `comment?`, `items[{productId,quantity}]`, `idempotencyKey`.
 
