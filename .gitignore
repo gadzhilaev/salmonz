@@ -68,3 +68,16 @@ GoogleService-Info.plist
 supabase/.branches
 supabase/.temp
 supabase/.env
+
+# NestJS backend
+backend/node_modules/
+backend/dist/
+backend/coverage/
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/generated/prisma/
+backend/.agents/
+backend/.claude/
+backend/.windsurf/
+backend/skills-lock.json
