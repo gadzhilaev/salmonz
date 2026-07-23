@@ -150,6 +150,7 @@ class ProductPage extends StatelessWidget {
                           width: 173,
                           height: 46,
                           child: ElevatedButton(
+                            key: const Key('addToCart'),
                             onPressed: () {
                               Cart.instance.add(CartItem(
                                 id: product.id,

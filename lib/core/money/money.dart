@@ -58,6 +58,8 @@ class Money {
 
   Money operator +(Money other) => Money._(minorUnits + other.minorUnits);
 
+  Money operator -(Money other) => Money._(minorUnits - other.minorUnits);
+
   Money operator *(int qty) => Money._(minorUnits * qty);
 
   @override

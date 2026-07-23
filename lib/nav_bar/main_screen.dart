@@ -143,6 +143,7 @@ class _SuccessPageState extends State<SuccessPage> {
                                     width: tileW,
                                     height: 160,
                                     child: InkWell(
+                                      key: const Key('homeCategory'),
                                       borderRadius: BorderRadius.circular(12),
                                       onTap: () => Navigator.push(
                                         context,

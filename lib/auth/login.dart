@@ -97,6 +97,7 @@ class _LoginState extends State<Login> {
                 height: 48,
                 width: double.infinity,
                 child: TextField(
+                  key: const Key('loginEmail'),
                   controller: emailCtr,
                   style: const TextStyle(
                     fontFamily: 'Inter',
@@ -134,6 +135,7 @@ class _LoginState extends State<Login> {
                 height: 48,
                 width: double.infinity,
                 child: TextField(
+                  key: const Key('loginPassword'),
                   controller: passCtr,
                   obscureText: _obscurePass,
                   obscuringCharacter: '•',
@@ -192,6 +194,7 @@ class _LoginState extends State<Login> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
+                  key: const Key('loginSubmit'),
                   onPressed: isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,

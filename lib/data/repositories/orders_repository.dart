@@ -6,6 +6,20 @@ class OrdersRepository {
 
   final ApiClient _api;
 
+  Future<OrderQuoteModel> quote({
+    required List<({String productId, int quantity})> items,
+  }) async {
+    final res = await _api.post(
+      '/orders/quote',
+      data: {
+        'items': items
+            .map((e) => {'productId': e.productId, 'quantity': e.quantity})
+            .toList(),
+      },
+    );
+    return OrderQuoteModel.fromJson(asMap(res.data));
+  }
+
   Future<OrderModel> create({
     required String addressId,
     required String phone,

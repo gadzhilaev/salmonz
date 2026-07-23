@@ -261,6 +261,68 @@ class AddressModel {
       );
 }
 
+class OrderQuoteLineModel {
+  const OrderQuoteLineModel({
+    required this.productId,
+    required this.productName,
+    required this.unitPrice,
+    required this.quantity,
+    required this.lineTotal,
+    required this.isAvailable,
+  });
+
+  final String productId;
+  final String productName;
+  final Money unitPrice;
+  final int quantity;
+  final Money lineTotal;
+  final bool isAvailable;
+
+  factory OrderQuoteLineModel.fromJson(Map<String, dynamic> json) =>
+      OrderQuoteLineModel(
+        productId: asString(json['productId']) ?? '',
+        productName: asString(json['productName']) ?? '',
+        unitPrice: asMoney(json['unitPrice']),
+        quantity: asInt(json['quantity'], fallback: 1),
+        lineTotal: asMoney(json['lineTotal']),
+        isAvailable: asBool(json['isAvailable'], fallback: true),
+      );
+}
+
+class OrderQuoteModel {
+  const OrderQuoteModel({
+    required this.items,
+    required this.subtotal,
+    required this.deliveryFee,
+    required this.total,
+    required this.currency,
+    required this.freeDeliveryThreshold,
+    required this.deliveryFeeAmount,
+  });
+
+  final List<OrderQuoteLineModel> items;
+  final Money subtotal;
+  final Money deliveryFee;
+  final Money total;
+  final String currency;
+  final int freeDeliveryThreshold;
+  final int deliveryFeeAmount;
+
+  List<OrderQuoteLineModel> get unavailableItems =>
+      items.where((e) => !e.isAvailable).toList(growable: false);
+
+  factory OrderQuoteModel.fromJson(Map<String, dynamic> json) =>
+      OrderQuoteModel(
+        items: asMapList(json['items']).map(OrderQuoteLineModel.fromJson).toList(),
+        subtotal: asMoney(json['subtotal']),
+        deliveryFee: asMoney(json['deliveryFee']),
+        total: asMoney(json['total']),
+        currency: asString(json['currency']) ?? 'RUB',
+        freeDeliveryThreshold: asInt(json['freeDeliveryThreshold'], fallback: 1500),
+        deliveryFeeAmount: asInt(json['deliveryFeeAmount'], fallback: 249),
+      );
+}
+
 class OrderItemModel {
   const OrderItemModel({
     required this.id,
