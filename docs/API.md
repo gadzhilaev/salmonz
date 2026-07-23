@@ -6,6 +6,19 @@ OpenAPI export: `docs/openapi.json` (via `npm run openapi:export` in `backend/`)
 
 Authenticate with `Authorization: Bearer <accessToken>` where noted.
 
+## Pagination
+
+List endpoints return `{ data, meta }` (not `items`):
+
+```json
+{
+  "data": [],
+  "meta": { "page": 1, "limit": 20, "total": 0, "totalPages": 0 }
+}
+```
+
+Query params: `page` (default 1), `limit` (default 20, max 100).
+
 ## Auth
 
 | Method | Path | Auth | Notes |
