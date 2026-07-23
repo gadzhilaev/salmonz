@@ -64,11 +64,6 @@ key.properties
 google-services.json
 GoogleService-Info.plist
 
-# Supabase local runtime
-supabase/.branches
-supabase/.temp
-supabase/.env
-
 # NestJS backend
 backend/node_modules/
 backend/dist/
