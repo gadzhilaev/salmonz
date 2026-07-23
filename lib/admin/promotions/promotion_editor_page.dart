@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:image_picker/image_picker.dart';     // 👈 выбор фото/файла
+import 'package:image_picker/image_picker.dart'; // 👈 выбор фото/файла
 import '../../utils/promo.dart';
 
 final supa = Supabase.instance.client;
@@ -20,50 +20,53 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
 
   static const double hLogo = 62;
 
-  String? _imgUrl;              // публичный URL картинки (Storage)
+  String? _imgUrl; // публичный URL картинки (Storage)
 
   @override
   void initState() {
     super.initState();
     _imgUrl = widget.existing?.img;
-    _ensureAuth();
   }
 
-  Future<void> _ensureAuth() async {
+  Future<void> _requireSession() async {
     if (supa.auth.currentSession == null) {
-      try {
-        await supa.auth.signInAnonymously(); // потребуется актуальная supabase_flutter
-      } catch (_) {
-        // fallback: ничего
-      }
+      throw StateError('Нужна авторизация администратора');
     }
   }
 
   // === ВЫБОР ФАЙЛА + ЗАЛИВКА В STORAGE ===
   Future<void> _pickAndUpload() async {
-    await _ensureAuth();
+    await _requireSession();
     try {
       final picker = ImagePicker();
-      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 95);
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 95,
+      );
       if (picked == null) return;
 
-      final bytes = await picked.readAsBytes();          // Uint8List
-      final fileName = picked.name;                      // напр. IMG_1234.jpg
+      final bytes = await picked.readAsBytes(); // Uint8List
+      final fileName = picked.name; // напр. IMG_1234.jpg
       final ext = fileName.split('.').last.toLowerCase();
-      final safeExt = (ext == 'jpg' || ext == 'jpeg' || ext == 'png' || ext == 'gif') ? ext : 'jpg';
+      final safeExt =
+          (ext == 'jpg' || ext == 'jpeg' || ext == 'png' || ext == 'gif')
+          ? ext
+          : 'jpg';
 
       // уникальный путь в бакете promotions
       final path = 'promo_${DateTime.now().millisecondsSinceEpoch}.$safeExt';
 
       // upload to storage
-      await supa.storage.from('promotions').uploadBinary(
-        path,
-        bytes,
-        fileOptions: FileOptions(
-          contentType: 'image/$safeExt',
-          upsert: true,
-        ),
-      );
+      await supa.storage
+          .from('promotions')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(
+              contentType: 'image/$safeExt',
+              upsert: true,
+            ),
+          );
 
       // public url
       final publicUrl = supa.storage.from('promotions').getPublicUrl(path);
@@ -73,20 +76,20 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
       });
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Изображение загружено')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Изображение загружено')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка загрузки: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка загрузки: $e')));
     }
   }
 
   // === СОХРАНЕНИЕ В ТАБЛИЦУ promotions ===
   Future<void> _save() async {
-    await _ensureAuth();
+    await _requireSession();
     final url = _imgUrl?.trim() ?? '';
     if (url.isEmpty) {
       if (!mounted) return;
@@ -99,21 +102,24 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
       if (widget.existing == null) {
         await supa.from('promotions').insert({'img': url});
       } else {
-        await supa.from('promotions').update({'img': url}).eq('id', widget.existing!.id);
+        await supa
+            .from('promotions')
+            .update({'img': url})
+            .eq('id', widget.existing!.id);
       }
       if (!mounted) return;
       Navigator.pop(context, true); // вернуться к списку — Stream обновит экран
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка сохранения: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
     }
   }
 
   // === УДАЛЕНИЕ ЗАПИСИ ИЗ ТАБЛИЦЫ ===
   Future<void> _delete() async {
-    await _ensureAuth();
+    await _requireSession();
     if (widget.existing == null) return;
     try {
       await supa.from('promotions').delete().eq('id', widget.existing!.id);
@@ -125,9 +131,9 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
       Navigator.pop(context, true); // назад: стрим в списке сам обновится
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка удаления: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка удаления: $e')));
     }
   }
 
@@ -150,14 +156,20 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
                   alignment: Alignment.topCenter,
                   children: [
                     Positioned(
-                      left: 20, top: 26,
+                      left: 20,
+                      top: 26,
                       child: SizedBox(
-                        width: 24, height: 24,
+                        width: 24,
+                        height: 24,
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: arrowColor),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ),
@@ -165,7 +177,9 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
                       top: 4,
                       child: Image.asset(
                         'assets/icon/logo_salmonz_small.png',
-                        width: 80, height: 62, fit: BoxFit.contain,
+                        width: 80,
+                        height: 62,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ],
@@ -188,10 +202,11 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
                           child: _imgUrl == null || _imgUrl!.isEmpty
                               ? _EmptyPicker(onPick: _pickAndUpload)
                               : Image.network(
-                            _imgUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _EmptyPicker(onPick: _pickAndUpload),
-                          ),
+                                  _imgUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      _EmptyPicker(onPick: _pickAndUpload),
+                                ),
                         ),
                       ),
 
@@ -200,7 +215,8 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
                         right: 24,
                         bottom: 24,
                         child: SizedBox(
-                          width: 60, height: 60,
+                          width: 60,
+                          height: 60,
                           child: RawMaterialButton(
                             onPressed: isEdit ? _delete : _pickAndUpload,
                             fillColor: orange,
@@ -230,7 +246,9 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
                     onPressed: _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orange,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(40),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 22),
                       elevation: 0,
                     ),
@@ -294,7 +312,7 @@ class _EmptyPicker extends StatelessWidget {
               fontFamily: 'Inter',
               fontWeight: FontWeight.w400,
               fontSize: 12,
-              height: 14/12,
+              height: 14 / 12,
               letterSpacing: 0.25,
               color: Color(0xFF989EA2),
             ),

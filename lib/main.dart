@@ -1,30 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'auth/login.dart' hide supa;
+import 'core/config/app_config.dart';
+import 'core/supabase/supa.dart';
+import 'nav_bar/main_screen.dart' hide supa;
 import 'widgets/cart.dart';
-import 'auth/login.dart';
-import 'nav_bar/main_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  final config = AppConfig.fromEnvironment();
+
   await Supabase.initialize(
-    url: 'https://vwerkkbccwosrnkozgza.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3ZXJra2JjY3dvc3Jua296Z3phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1MzMyMjUsImV4cCI6MjA3MzEwOTIyNX0.m8KJzRtS00JAR_nZJAVOAkt-nwiBrOrQV3Qa5G2osnY',
+    url: config.supabaseUrl,
+    anonKey: config.supabasePublishableKey,
   );
-  // загружаем корзину
+
   await Cart.instance.load();
 
-  runApp(const MyApp());
+  runApp(MyApp(isDemo: config.isDemo));
 }
 
-final supa = Supabase.instance.client;
-
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.isDemo = true});
+
+  final bool isDemo;
 
   @override
   Widget build(BuildContext context) {
-    // проверяем, сохранена ли сессия
     final session = supa.auth.currentSession;
 
     return MaterialApp(
