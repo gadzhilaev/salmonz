@@ -1,10 +1,8 @@
 # Salmonz NestJS Backend
 
-Primary API for Salmonz. The Flutter app will migrate from Supabase to this NestJS service.
+Primary API for Salmonz. The Flutter client talks to this NestJS service over REST (`/api/v1`).
 
-## Legacy note
-
-The `supabase/` directory is **transitional / legacy**. Prefer this NestJS backend (`backend/`) for new work. Do not treat Supabase migrations or RLS as the long-term source of truth once the Nest cutover is complete.
+For running API + Flutter locally, see `docs/LOCAL_DEVELOPMENT.md`.
 
 ## Stack
 

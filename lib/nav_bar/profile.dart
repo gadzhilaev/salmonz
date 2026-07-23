@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:salmonz/core/di/app_services.dart';
 import '../profile/legal/legal_text_page.dart';
 import '../profile/legal/legal_texts.dart';
 import '../profile/edit_profile_page.dart';
@@ -11,8 +11,6 @@ import '../profile/addresses_page.dart';
 import '../auth/login.dart';
 import '../profile/support_page.dart';
 import '../admin/admin_panel_page.dart';
-
-final supa = Supabase.instance.client;
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -50,29 +48,18 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<_UserVm> _loadMe() async {
-    final user = supa.auth.currentUser;
-    if (user == null) {
+    try {
+      final user = await AppServices.instance.profile.getMe();
+      return _UserVm(
+        email: user.email,
+        name: user.name,
+        img: user.avatarUrl ?? '',
+        isAdmin: user.isAdmin,
+        lang: 'ru',
+      );
+    } catch (_) {
       return const _UserVm(email: '', name: '', img: '', isAdmin: false, lang: 'ru');
     }
-
-    final row = await supa
-        .from('user')
-        .select('name, img, email, is_admin, lang')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    final raw = row?['is_admin'];
-    final isAdmin = (raw == true) ||
-        (raw is num && raw != 0) ||
-        (raw is String &&
-            (raw.toLowerCase() == 't' || raw.toLowerCase() == 'true'));
-    return _UserVm(
-      email: (row?['email'] as String?) ?? (user.email ?? ''),
-      name: (row?['name'] as String?) ?? '',
-      img: (row?['img'] as String?) ?? '',
-      isAdmin: isAdmin,
-      lang: (row?['lang'] as String?) ?? 'ru',
-    );
   }
 
   void _logout() async {
@@ -82,7 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (_) => const _LogoutConfirmDialog(),
     );
     if (ok == true) {
-      await supa.auth.signOut();
+      await AppServices.instance.auth.logout();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const Login()),
@@ -399,15 +386,17 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (chosen != null && chosen != me.lang) {
-      final uid = supa.auth.currentUser?.id;
-      if (uid != null) {
-        await supa.from('user').update({'lang': chosen}).eq('id', uid);
-      }
+      // Language preference is client-only (API has no lang field yet).
       if (!mounted) return;
       setState(() {
-        _future = _loadMe();
+        _future = Future.value(_UserVm(
+          email: me.email,
+          name: me.name,
+          img: me.img,
+          isAdmin: me.isAdmin,
+          lang: chosen,
+        ));
       });
-      // переснимем после перестроения (на случай изменения верстки)
       if (!mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) => _captureNameBottom());
     }

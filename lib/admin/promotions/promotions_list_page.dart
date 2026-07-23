@@ -1,199 +1,204 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../utils/promo.dart';
-import 'promotion_editor_page.dart';
-
-final supa = Supabase.instance.client;
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/data/models/models.dart';
 
 class PromotionsListPage extends StatefulWidget {
   const PromotionsListPage({super.key});
-
   @override
   State<PromotionsListPage> createState() => _PromotionsListPageState();
 }
 
 class _PromotionsListPageState extends State<PromotionsListPage> {
-  static const bg = Color(0xFFFFFFFF);
-  static const arrowColor = Color(0xFFCDCDCD);
-  static const titleDark = Color(0xFF26351E);
-  static const tileBg = Color(0xFFFAFAFA);
+  late Future<List<PromotionModel>> _future;
 
-  static const double hLogo = 62;
-  static const double ls24 = 0.96;
-
-  // ключ, чтобы пересоздавать подписку на стрим
-  int _streamKey = 0;
-
-  Stream<List<Promo>> _buildStream() {
-    return supa
-        .from('promotions')
-        .stream(primaryKey: ['id'])
-        .order('id', ascending: true)
-        .map((rows) => rows
-        .map<Promo>((m) => Promo(
-      id: (m['id'] as num).toInt(),
-      img: (m['img'] ?? '') as String,
-    ))
-        .where((p) => p.img.isNotEmpty)
-        .toList());
+  @override
+  void initState() {
+    super.initState();
+    _future = AppServices.instance.admin.listPromotions(limit: 100);
   }
 
-  Future<void> _refresh() async {
-    // пересоздаём стрим: StreamBuilder получит новый key и переподпишется
-    setState(() => _streamKey++);
-    await Future<void>.delayed(const Duration(milliseconds: 250));
+  Future<void> _reload() async {
+    setState(() {
+      _future = AppServices.instance.admin.listPromotions(limit: 100);
+    });
+    await _future;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // APPBAR
-              SizedBox(
-                height: hLogo + 26,
-                child: Stack(
-                  alignment: Alignment.topCenter,
-                  children: [
-                    Positioned(
-                      left: 20, top: 26,
-                      child: SizedBox(
-                        width: 24, height: 24,
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          splashRadius: 20,
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: arrowColor),
-                        ),
+      appBar: AppBar(title: const Text('Акции')),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFFFF5E1C),
+        onPressed: () async {
+          final ok = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(builder: (_) => const PromotionEditorPage()),
+          );
+          if (ok == true) await _reload();
+        },
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _reload,
+        child: FutureBuilder<List<PromotionModel>>(
+          future: _future,
+          builder: (context, snap) {
+            if (!snap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final items = snap.data!;
+            return ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (_, i) {
+                final promo = items[i];
+                return ListTile(
+                  leading: (promo.imageUrl ?? '').isEmpty
+                      ? null
+                      : Image.network(promo.imageUrl!,
+                          width: 48, height: 48, fit: BoxFit.cover),
+                  title: Text(promo.title),
+                  onTap: () async {
+                    final ok = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            PromotionEditorPage(existing: promo),
                       ),
-                    ),
-                    Positioned(
-                      top: 4,
-                      child: Image.asset(
-                        'assets/icon/logo_salmonz_small.png',
-                        width: 80, height: 62, fit: BoxFit.contain,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              const Text(
-                'СПИСОК АКЦИЙ',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w900,
-                  fontSize: 24,
-                  height: 1.0,
-                  letterSpacing: ls24,
-                  color: titleDark,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Контент + pull-to-refresh
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _refresh,
-                  child: StreamBuilder<List<Promo>>(
-                    key: ValueKey(_streamKey),
-                    stream: _buildStream(),
-                    builder: (context, snap) {
-                      if (!snap.hasData) {
-                        return ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            SizedBox(height: 160),
-                            Center(child: CircularProgressIndicator()),
-                          ],
-                        );
-                      }
-                      final promos = snap.data!;
-                      if (promos.isEmpty) {
-                        return ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            SizedBox(height: 160),
-                            Center(child: Text('Акций пока нет')),
-                          ],
-                        );
-                      }
-
-                      return ListView.separated(
-                        padding: EdgeInsets.zero,
-                        itemCount: promos.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 28),
-                        itemBuilder: (context, i) {
-                          final p = promos[i];
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () async {
-                              // ждём результат редактора и при необходимости обновляем
-                              final changed = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PromotionEditorPage(existing: p),
-                                ),
-                              );
-                              if (changed == true && mounted) _refresh();
-                            },
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 554,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  color: tileBg, // #FAFAFA
-                                  child: Image.network(
-                                    p.img,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                    const Center(child: Icon(Icons.broken_image)),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
+                    );
+                    if (ok == true) await _reload();
+                  },
+                );
+              },
+            );
+          },
         ),
       ),
+    );
+  }
+}
 
-      // FAB «плюс» для добавления новой акции
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(right: 24, bottom: 40),
-        child: SizedBox(
-          width: 60, height: 60,
-          child: RawMaterialButton(
-            onPressed: () async {
-              final changed = await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(builder: (_) => const PromotionEditorPage()),
-              );
-              if (changed == true && mounted) _refresh();
-            },
-            fillColor: const Color(0xFFFF5E1C),
-            shape: const CircleBorder(),
-            elevation: 0,
-            child: const Icon(Icons.add, size: 24, color: Color(0xFFE8EAED)),
-          ),
-        ),
+class PromotionEditorPage extends StatefulWidget {
+  const PromotionEditorPage({super.key, this.existing});
+  final PromotionModel? existing;
+
+  @override
+  State<PromotionEditorPage> createState() => _PromotionEditorPageState();
+}
+
+class _PromotionEditorPageState extends State<PromotionEditorPage> {
+  final _title = TextEditingController();
+  final _desc = TextEditingController();
+  String? _imageKey;
+  String? _imageUrl;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    if (e != null) {
+      _title.text = e.title;
+      _desc.text = e.description ?? '';
+      _imageKey = e.imageKey;
+      _imageUrl = e.imageUrl;
+    }
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _desc.dispose();
+    super.dispose();
+  }
+
+  Future<void> _upload() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+    final up = await AppServices.instance.admin.uploadPromotionImage(
+      filePath: picked.path,
+      filename: p.basename(picked.path),
+    );
+    setState(() {
+      _imageKey = up.key;
+      _imageUrl = up.url;
+    });
+  }
+
+  Future<void> _save() async {
+    if ((_imageKey ?? '').isEmpty || _title.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нужны заголовок и изображение')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final body = {
+        'title': _title.text.trim(),
+        'description': _desc.text.trim(),
+        'imageKey': _imageKey,
+        'isActive': true,
+      };
+      if (widget.existing == null) {
+        await AppServices.instance.admin.createPromotion(body);
+      } else {
+        await AppServices.instance.admin
+            .updatePromotion(widget.existing!.id, body);
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    if (widget.existing == null) return;
+    await AppServices.instance.admin.deletePromotion(widget.existing!.id);
+    if (!mounted) return;
+    Navigator.pop(context, true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.existing == null ? 'Новая акция' : 'Акция'),
+        actions: [
+          if (widget.existing != null)
+            IconButton(onPressed: _delete, icon: const Icon(Icons.delete)),
+        ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          TextField(
+              controller: _title,
+              decoration: const InputDecoration(labelText: 'Заголовок')),
+          TextField(
+              controller: _desc,
+              decoration: const InputDecoration(labelText: 'Описание'),
+              maxLines: 3),
+          if ((_imageUrl ?? '').isNotEmpty)
+            Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
+          TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
+          ElevatedButton(
+            onPressed: _saving ? null : _save,
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5E1C)),
+            child: const Text('СОХРАНИТЬ',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,29 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-final supa = Supabase.instance.client;
-
-/// Модель адреса
-class UserAddress {
-  final int id;
-  final String country;
-  final String city;
-  final String line;
-
-  const UserAddress({
-    required this.id,
-    required this.country,
-    required this.city,
-    required this.line,
-  });
-
-  factory UserAddress.fromMap(Map<String, dynamic> m) => UserAddress(
-    id: (m['id'] as num).toInt(),
-    country: (m['country'] ?? '') as String,
-    city: (m['city'] ?? '') as String,
-    line: (m['line'] ?? '') as String,
-  );
-}
+import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/data/models/models.dart';
 
 class AddressesPage extends StatefulWidget {
   const AddressesPage({super.key});
@@ -40,35 +18,59 @@ class _AddressesPageState extends State<AddressesPage> {
   static const double hLogo = 62;
   static const double ls24 = 0.96;
 
-  Stream<List<UserAddress>> _stream() {
-    final uid = supa.auth.currentUser?.id;
-    if (uid == null) {
-      return const Stream<List<UserAddress>>.empty();
-    }
-    return supa
-        .from('addresses')
-        .stream(primaryKey: ['id'])
-        .eq('user_id', uid)
-        .order('id', ascending: true)
-        .map((rows) => rows
-        .map((e) => UserAddress.fromMap(e))
-        .toList());
+  late Future<List<AddressModel>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = AppServices.instance.addresses.list();
+  }
+
+  Future<void> _reload() async {
+    setState(() => _future = AppServices.instance.addresses.list());
+    await _future;
   }
 
   Future<void> _add() async {
-    await Navigator.push<bool>(
+    final ok = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const _AddressFormPage()),
     );
-    // Ничего не делаем: StreamBuilder сам получит обновления realtime.
+    if (ok == true) await _reload();
   }
 
-  Future<void> _edit(UserAddress a) async {
-    await Navigator.push<bool>(
+  Future<void> _edit(AddressModel a) async {
+    final ok = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => _AddressFormPage(address: a)),
     );
-    // Тоже ничего не нужно — список обновит Stream.
+    if (ok == true) await _reload();
+  }
+
+  Future<void> _delete(AddressModel a) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Удалить адрес?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Отмена')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Удалить')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await AppServices.instance.addresses.delete(a.id);
+      await _reload();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 
   @override
@@ -79,9 +81,7 @@ class _AddressesPageState extends State<AddressesPage> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // app bar как в products.dart
               SizedBox(
                 height: hLogo + 26,
                 child: Stack(
@@ -114,18 +114,16 @@ class _AddressesPageState extends State<AddressesPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
-
               Expanded(
-                child: StreamBuilder<List<UserAddress>>(
-                  stream: _stream(),
+                child: FutureBuilder<List<AddressModel>>(
+                  future: _future,
                   builder: (context, snap) {
-                    if (!snap.hasData) {
+                    if (!snap.hasData &&
+                        snap.connectionState != ConnectionState.done) {
                       return const Center(child: CircularProgressIndicator());
                     }
                     final items = snap.data ?? [];
-
                     return ListView(
                       padding: EdgeInsets.zero,
                       children: [
@@ -137,14 +135,12 @@ class _AddressesPageState extends State<AddressesPage> {
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w900,
                               fontSize: 24,
-                              height: 1.0,
                               letterSpacing: ls24,
                               color: titleColor,
                             ),
                           ),
                         ),
                         const SizedBox(height: 24),
-
                         if (items.isEmpty)
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 12),
@@ -153,8 +149,6 @@ class _AddressesPageState extends State<AddressesPage> {
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                height: 1.4,
                                 color: textDark,
                               ),
                             ),
@@ -164,20 +158,18 @@ class _AddressesPageState extends State<AddressesPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Column(
                               children: [
-                                for (int i = 0; i < items.length; i++) ...[
+                                for (final a in items) ...[
                                   _AddressTile(
-                                    address: items[i],
-                                    onEdit: () => _edit(items[i]),
+                                    address: a,
+                                    onEdit: () => _edit(a),
+                                    onDelete: () => _delete(a),
                                   ),
-                                  if (i != items.length - 1)
-                                    const SizedBox(height: 20),
+                                  const SizedBox(height: 20),
                                 ],
                               ],
                             ),
                           ),
-
                         const SizedBox(height: 40),
-
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: SizedBox(
@@ -190,18 +182,13 @@ class _AddressesPageState extends State<AddressesPage> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(40),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 22,
-                                ),
                               ),
                               child: const Text(
                                 'ДОБАВИТЬ',
-                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
-                                  height: 1.0,
                                   letterSpacing: 0.48,
                                   color: Colors.white,
                                 ),
@@ -209,8 +196,6 @@ class _AddressesPageState extends State<AddressesPage> {
                             ),
                           ),
                         ),
-
-                        const SizedBox(height: 16),
                       ],
                     );
                   },
@@ -228,10 +213,12 @@ class _AddressTile extends StatelessWidget {
   const _AddressTile({
     required this.address,
     required this.onEdit,
+    required this.onDelete,
   });
 
-  final UserAddress address;
+  final AddressModel address;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   static const orange = Color(0xFFFF5E1C);
   static const textDark = Color(0xFF282828);
@@ -241,24 +228,18 @@ class _AddressTile extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(
-          width: 24,
-          height: 24,
-          child: Icon(Icons.home_outlined, size: 24, color: orange),
-        ),
+        const Icon(Icons.home_outlined, size: 24, color: orange),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${address.country}, ${address.city}',
+                address.heading.isEmpty ? address.city : address.heading,
                 style: const TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
-                  height: 1.3,
-                  letterSpacing: 0,
                   color: textDark,
                 ),
               ),
@@ -267,31 +248,39 @@ class _AddressTile extends StatelessWidget {
                 address.line,
                 style: const TextStyle(
                   fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
                   fontSize: 16,
-                  height: 1.3,
-                  letterSpacing: 0,
                   color: textDark,
                 ),
               ),
               const SizedBox(height: 6),
-              InkWell(
-                onTap: onEdit,
-                borderRadius: BorderRadius.circular(6),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 2),
-                  child: Text(
-                    'Редактировать',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                      height: 1.3,
-                      letterSpacing: 0,
-                      color: orange,
+              Row(
+                children: [
+                  InkWell(
+                    onTap: onEdit,
+                    child: const Text(
+                      'Редактировать',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: orange,
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  InkWell(
+                    onTap: onDelete,
+                    child: const Text(
+                      'Удалить',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -303,7 +292,7 @@ class _AddressTile extends StatelessWidget {
 
 class _AddressFormPage extends StatefulWidget {
   const _AddressFormPage({this.address});
-  final UserAddress? address;
+  final AddressModel? address;
 
   @override
   State<_AddressFormPage> createState() => _AddressFormPageState();
@@ -317,70 +306,76 @@ class _AddressFormPageState extends State<_AddressFormPage> {
   static const double hLogo = 62;
   static const double ls24 = 0.96;
 
-  final _countryC = TextEditingController();
   final _cityC = TextEditingController();
-  final _lineC = TextEditingController();
+  final _streetC = TextEditingController();
+  final _houseC = TextEditingController();
+  final _aptC = TextEditingController();
+  final _titleC = TextEditingController();
 
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.address != null) {
-      _countryC.text = widget.address!.country;
-      _cityC.text = widget.address!.city;
-      _lineC.text = widget.address!.line;
+    final a = widget.address;
+    if (a != null) {
+      _cityC.text = a.city;
+      _streetC.text = a.street;
+      _houseC.text = a.house;
+      _aptC.text = a.apartment ?? '';
+      _titleC.text = a.title ?? '';
     }
   }
 
   @override
   void dispose() {
-    _countryC.dispose();
     _cityC.dispose();
-    _lineC.dispose();
+    _streetC.dispose();
+    _houseC.dispose();
+    _aptC.dispose();
+    _titleC.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     if (_saving) return;
-    setState(() => _saving = true);
-    final uid = supa.auth.currentUser?.id;
-    if (uid == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Не авторизован')));
-      }
-      setState(() => _saving = false);
+    final city = _cityC.text.trim();
+    final street = _streetC.text.trim();
+    final house = _houseC.text.trim();
+    if (city.isEmpty || street.isEmpty || house.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Укажите город, улицу и дом')),
+      );
       return;
     }
 
+    setState(() => _saving = true);
     try {
+      final repo = AppServices.instance.addresses;
       if (widget.address == null) {
-        await supa
-            .from('addresses')
-            .insert({
-          'user_id': uid,
-          'country': _countryC.text.trim(),
-          'city': _cityC.text.trim(),
-          'line': _lineC.text.trim(),
-        })
-            .select()
-            .single();
+        await repo.create(
+          title: _titleC.text.trim().isEmpty ? null : _titleC.text.trim(),
+          city: city,
+          street: street,
+          house: house,
+          apartment: _aptC.text.trim().isEmpty ? null : _aptC.text.trim(),
+        );
       } else {
-        await supa
-            .from('addresses')
-            .update({
-          'country': _countryC.text.trim(),
-          'city': _cityC.text.trim(),
-          'line': _lineC.text.trim(),
-        })
-            .eq('id', widget.address!.id)
-            .eq('user_id', uid)
-            .select()
-            .single();
+        await repo.update(
+          widget.address!.id,
+          title: _titleC.text.trim().isEmpty ? null : _titleC.text.trim(),
+          city: city,
+          street: street,
+          house: house,
+          apartment: _aptC.text.trim().isEmpty ? null : _aptC.text.trim(),
+        );
       }
       if (!mounted) return;
       Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -397,10 +392,8 @@ class _AddressFormPageState extends State<_AddressFormPage> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
             children: [
-              // APP BAR как в products.dart
               SizedBox(
                 height: hLogo + 26,
                 child: Stack(
@@ -409,19 +402,11 @@ class _AddressFormPageState extends State<_AddressFormPage> {
                     Positioned(
                       left: 20,
                       top: 26,
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          splashRadius: 20,
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new,
-                            size: 20,
-                            color: arrowColor,
-                          ),
-                        ),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_ios_new,
+                            size: 20, color: arrowColor),
                       ),
                     ),
                     Positioned(
@@ -430,173 +415,89 @@ class _AddressFormPageState extends State<_AddressFormPage> {
                         'assets/icon/logo_salmonz_small.png',
                         width: 80,
                         height: 62,
-                        fit: BoxFit.contain,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    'АДРЕС',
+              const Text(
+                'АДРЕС',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                  letterSpacing: ls24,
+                  color: titleColor,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _field('Название (необяз.)', _titleC),
+              _field('Город', _cityC),
+              _field('Улица', _streetC),
+              _field('Дом', _houseC),
+              _field('Квартира', _aptC),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: orange,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(40),
+                    ),
+                  ),
+                  child: const Text(
+                    'СОХРАНИТЬ',
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      fontWeight: FontWeight.w900,
-                      fontSize: 24,
-                      height: 1.0,
-                      letterSpacing: ls24,
-                      color: titleColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      letterSpacing: 0.48,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    _Label('Страна'),
-                    SizedBox(height: 8),
-                  ],
-                ),
-              ),
-              _RoundedField(controller: _countryC),
-              const SizedBox(height: 16),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    _Label('Город'),
-                    SizedBox(height: 8),
-                  ],
-                ),
-              ),
-              _RoundedField(controller: _cityC),
-              const SizedBox(height: 16),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    _Label('Адрес'),
-                    SizedBox(height: 8),
-                  ],
-                ),
-              ),
-              _RoundedField(controller: _lineC, maxLines: 3),
-
-              const SizedBox(height: 24),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _saving ? null : _save,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: orange,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(40),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 22),
-                    ),
-                    child: const Text(
-                      'СОХРАНИТЬ',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        height: 1.0,
-                        letterSpacing: 0.48,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w500,
-        fontSize: 13,
-        height: 1.0,
-        color: Color(0xB2464646),
-      ),
-    );
-  }
-}
-
-class _RoundedField extends StatelessWidget {
-  const _RoundedField({
-    required this.controller,
-    this.maxLines = 1,
-  });
-
-  final TextEditingController controller;
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _field(String label, TextEditingController c) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: SizedBox(
-        height: maxLines == 1 ? 48 : null,
-        child: TextField(
-          controller: controller,
-          maxLines: maxLines,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w400,
-            fontSize: 14,
-            height: 1.0,
-            color: Colors.black,
-          ),
-          decoration: InputDecoration(
-            isDense: true,
-            contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10000),
-              borderSide:
-              const BorderSide(color: Color(0xFFFF5E1C), width: 1),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+                color: Color(0xB2464646),
+              )),
+          const SizedBox(height: 8),
+          TextField(
+            controller: c,
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10000),
+                borderSide:
+                    const BorderSide(color: Color(0xFFFF5E1C), width: 1),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10000),
+                borderSide:
+                    const BorderSide(color: Color(0xFFFF5E1C), width: 1.5),
+              ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10000),
-              borderSide:
-              const BorderSide(color: Color(0xFFFF5E1C), width: 1.5),
-            ),
           ),
-        ),
+        ],
       ),
     );
   }

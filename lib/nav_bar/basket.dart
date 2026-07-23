@@ -102,7 +102,7 @@ class BasketPage extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${_priceFmt(cart.totalSum)} ₽',
+                            cart.totalSum.formatRub(),
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
@@ -181,10 +181,6 @@ class BasketPage extends StatelessWidget {
     );
   }
 
-  static String _priceFmt(double v) {
-    final isInt = v == v.roundToDouble();
-    return isInt ? v.toInt().toString() : v.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
-  }
 }
 
 class _BasketTile extends StatelessWidget {
@@ -256,7 +252,7 @@ class _BasketTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        '${_priceFmt(item.subtotal)} ₽',
+                        item.subtotal.formatRub(),
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
@@ -319,10 +315,6 @@ class _BasketTile extends StatelessWidget {
     );
   }
 
-  static String _priceFmt(double v) {
-    final isInt = v == v.roundToDouble();
-    return isInt ? v.toInt().toString() : v.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
-  }
 }
 
 class _SquareBtn extends StatelessWidget {
