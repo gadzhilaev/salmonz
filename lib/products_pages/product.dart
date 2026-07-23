@@ -81,13 +81,13 @@ class ProductPage extends StatelessWidget {
                             Positioned.fill(
                               child: img.isEmpty
                                   ? const Center(
-                                      child: Icon(Icons.broken_image))
+                                      child: Icon(Icons.restaurant_menu_outlined))
                                   : Image.network(
                                       img,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) =>
                                           const Center(
-                                              child: Icon(Icons.broken_image)),
+                                              child: Icon(Icons.restaurant_menu_outlined)),
                                     ),
                             ),
                           ],

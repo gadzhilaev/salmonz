@@ -71,11 +71,16 @@ class _LoginState extends State<Login> {
     return Scaffold(
       backgroundColor: const Color(0xFFFF5E1C),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
               SizedBox(height: widget.topPadding),
               Center(
                 child: Image.asset(
@@ -246,7 +251,10 @@ class _LoginState extends State<Login> {
                 ),
               ),
             ],
-          ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
