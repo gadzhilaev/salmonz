@@ -43,3 +43,28 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# --- Secrets & local config (keep examples tracked) ---
+.env
+.env.*
+!.env.example
+config/local.json
+config/*.local.json
+!config/local.example.json
+
+# Android signing
+key.properties
+**/android/key.properties
+*.jks
+*.keystore
+
+# Cloud / service accounts
+*service-account*.json
+*-firebase-adminsdk*.json
+google-services.json
+GoogleService-Info.plist
+
+# Supabase local runtime
+supabase/.branches
+supabase/.temp
+supabase/.env

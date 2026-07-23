@@ -21,14 +21,14 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
   static const double hLogo = 62;
 
   final _titleCtrl = TextEditingController();
-  final _typeCtrl  = TextEditingController();
-  final _posCtrl   = TextEditingController();
+  final _typeCtrl = TextEditingController();
+  final _posCtrl = TextEditingController();
 
   String? _imgUrl;
 
-  Future<void> _ensureAuth() async {
+  Future<void> _requireSession() async {
     if (supa.auth.currentSession == null) {
-      try { await supa.auth.signInAnonymously(); } catch (_) {}
+      throw StateError('Нужна авторизация администратора');
     }
   }
 
@@ -36,6 +36,7 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
     if (widget.existing == null) return;
 
     try {
+      await _requireSession();
       // 1) Удаляем строку и проверяем, что затронута хотя бы 1 запись
       final deleted = await supa
           .from('categories')
@@ -46,7 +47,9 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
       if (deleted.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось удалить запись (RLS или ограничения БД)')),
+          const SnackBar(
+            content: Text('Не удалось удалить запись (RLS или ограничения БД)'),
+          ),
         );
         return;
       }
@@ -57,28 +60,29 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
       final idx = url.indexOf(prefix);
       if (idx != -1) {
         final path = url.substring(idx + prefix.length);
-        try { await supa.storage.from(_bucket).remove([path]); } catch (_) {}
+        try {
+          await supa.storage.from(_bucket).remove([path]);
+        } catch (_) {}
       }
 
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка удаления: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка удаления: $e')));
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _ensureAuth();
     if (widget.existing != null) {
       _titleCtrl.text = widget.existing!.title;
-      _typeCtrl.text  = widget.existing!.type;
-      _posCtrl.text   = widget.existing!.position.toString();
-      _imgUrl         = widget.existing!.img;   // <—
+      _typeCtrl.text = widget.existing!.type;
+      _posCtrl.text = widget.existing!.position.toString();
+      _imgUrl = widget.existing!.img; // <—
     }
   }
 
@@ -92,73 +96,87 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
 
   Future<void> _pickAndUpload() async {
     try {
+      await _requireSession();
       final picker = ImagePicker();
-      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 95);
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 95,
+      );
       if (picked == null) return;
 
       final bytes = await picked.readAsBytes();
       final ext = picked.name.split('.').last.toLowerCase();
-      final safeExt = (['jpg','jpeg','png','gif'].contains(ext)) ? ext : 'jpg';
+      final safeExt = (['jpg', 'jpeg', 'png', 'gif'].contains(ext))
+          ? ext
+          : 'jpg';
       final path = 'cat_${DateTime.now().millisecondsSinceEpoch}.$safeExt';
 
       // используем bucket 'categories' (создайте его в Supabase Storage)
-      await supa.storage.from(_bucket).uploadBinary(
-        path,
-        bytes,
-        fileOptions: FileOptions(contentType: 'image/$safeExt', upsert: true),
-      );
+      await supa.storage
+          .from(_bucket)
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(
+              contentType: 'image/$safeExt',
+              upsert: true,
+            ),
+          );
 
       final publicUrl = supa.storage.from(_bucket).getPublicUrl(path);
       setState(() => _imgUrl = publicUrl);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Изображение загружено')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Изображение загружено')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка загрузки: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка загрузки: $e')));
     }
   }
 
   Future<void> _save() async {
     final title = _titleCtrl.text.trim();
-    final type  = _typeCtrl.text.trim();
-    final pos   = int.tryParse(_posCtrl.text.trim()) ?? 0;
-    final img   = _imgUrl ?? '';
+    final type = _typeCtrl.text.trim();
+    final pos = int.tryParse(_posCtrl.text.trim()) ?? 0;
+    final img = _imgUrl ?? '';
 
     if (title.isEmpty || type.isEmpty || img.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Заполните название, английское название и загрузите картинку')),
+        const SnackBar(
+          content: Text(
+            'Заполните название, английское название и загрузите картинку',
+          ),
+        ),
       );
       return;
     }
 
     try {
+      await _requireSession();
       if (widget.existing == null) {
         await supa.from('categories').insert({
           'title': title,
-          'type':  type,
-          'img':   img,
+          'type': type,
+          'img': img,
           'position': pos,
         });
       } else {
-        await supa.from('categories').update({
-          'title': title,
-          'type':  type,
-          'img':   img,
-          'position': pos,
-        }).eq('id', widget.existing!.id);
+        await supa
+            .from('categories')
+            .update({'title': title, 'type': type, 'img': img, 'position': pos})
+            .eq('id', widget.existing!.id);
       }
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка сохранения: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
     }
   }
 
@@ -181,14 +199,20 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
                   alignment: Alignment.topCenter,
                   children: [
                     Positioned(
-                      left: 20, top: 26,
+                      left: 20,
+                      top: 26,
                       child: SizedBox(
-                        width: 24, height: 24,
+                        width: 24,
+                        height: 24,
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: arrowColor),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ),
@@ -196,7 +220,9 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
                       top: 4,
                       child: Image.asset(
                         'assets/icon/logo_salmonz_small.png',
-                        width: 80, height: 62, fit: BoxFit.contain,
+                        width: 80,
+                        height: 62,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ],
@@ -221,19 +247,23 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
                           child: (_imgUrl == null || _imgUrl!.isEmpty)
                               ? const _EmptyPickerCategory()
                               : Image.network(
-                            _imgUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const _EmptyPickerCategory(),
-                          ),
+                                  _imgUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const _EmptyPickerCategory(),
+                                ),
                         ),
                         // внутренняя круглая кнопка — теперь точно "внутри" контейнера
                         Positioned(
                           right: 12,
                           bottom: 12,
                           child: SizedBox(
-                            width: 60, height: 60,
+                            width: 60,
+                            height: 60,
                             child: RawMaterialButton(
-                              onPressed: isEdit ? _deleteCategory : _pickAndUpload,
+                              onPressed: isEdit
+                                  ? _deleteCategory
+                                  : _pickAndUpload,
                               fillColor: orange,
                               shape: const CircleBorder(),
                               elevation: 0,
@@ -320,7 +350,9 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
                     onPressed: _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orange,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(40),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 22),
                       elevation: 0,
                     ),
@@ -351,11 +383,7 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
 /* ---------------------------------- helpers ---------------------------------- */
 
 class _RoundedField extends StatelessWidget {
-  const _RoundedField({
-    required this.controller,
-    this.hint,
-    this.keyboardType,
-  });
+  const _RoundedField({required this.controller, this.hint, this.keyboardType});
 
   final TextEditingController controller;
   final String? hint;
@@ -432,7 +460,7 @@ class _EmptyPickerCategory extends StatelessWidget {
               fontFamily: 'Inter',
               fontWeight: FontWeight.w400,
               fontSize: 12,
-              height: 14/12,
+              height: 14 / 12,
               letterSpacing: 0.25,
               color: Color(0xFF989EA2),
             ),

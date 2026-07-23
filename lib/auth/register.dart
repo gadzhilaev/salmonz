@@ -22,9 +22,9 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final nameCtr  = TextEditingController();
+  final nameCtr = TextEditingController();
   final emailCtr = TextEditingController();
-  final passCtr  = TextEditingController();
+  final passCtr = TextEditingController();
   final pass2Ctr = TextEditingController();
 
   bool isLoading = false;
@@ -39,15 +39,19 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _register() async {
-    final name  = nameCtr.text.trim();
+    final name = nameCtr.text.trim();
     final email = emailCtr.text.trim();
-    final pass  = passCtr.text;
+    final pass = passCtr.text;
     final pass2 = pass2Ctr.text;
 
     if (name.isEmpty || email.isEmpty || pass.isEmpty || pass2.isEmpty) {
-      _showSnack('Заполни все поля'); return;
+      _showSnack('Заполни все поля');
+      return;
     }
-    if (pass != pass2) { _showSnack('Пароли не совпадают'); return; }
+    if (pass != pass2) {
+      _showSnack('Пароли не совпадают');
+      return;
+    }
 
     setState(() => isLoading = true);
     try {
@@ -64,17 +68,20 @@ class _RegisterPageState extends State<RegisterPage> {
         return;
       }
 
-      await supa.from('user').insert({
-        'id': user.id,
-        'name': name,
-        'email': email,
-      });
+      // Profile row is created by DB trigger on auth.users (idempotent).
+      // Do not insert into "user" from the client.
 
       if (!mounted) return;
+
+      if (res.session == null) {
+        _showSnack('Аккаунт создан. Подтвердите e-mail, затем войдите.');
+        return;
+      }
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const SuccessPage()),
-            (route) => false,
+        (route) => false,
       );
     } on AuthException catch (e) {
       _showSnack(e.message);
@@ -174,13 +181,16 @@ class _RegisterPageState extends State<RegisterPage> {
                           child: isLoading
                               ? const CircularProgressIndicator()
                               : const Text(
-                            'ЗАРЕГИСТРИРОВАТЬСЯ',
-                            style: TextStyle(
-                              fontFamily: 'Inter', fontSize: 12,
-                              fontWeight: FontWeight.w600, height: 1.0,
-                              letterSpacing: 0.48, color: Color(0xFFA83100),
-                            ),
-                          ),
+                                  'ЗАРЕГИСТРИРОВАТЬСЯ',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.0,
+                                    letterSpacing: 0.48,
+                                    color: Color(0xFFA83100),
+                                  ),
+                                ),
                         ),
                       ),
 
@@ -277,8 +287,11 @@ class _FilledInput extends StatelessWidget {
         keyboardType: keyboardType,
         textInputAction: textInputAction,
         style: const TextStyle(
-          fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-          height: 1.0, color: Colors.white,
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.0,
+          color: Colors.white,
         ),
         cursorColor: Colors.white,
         decoration: InputDecoration(
@@ -291,8 +304,11 @@ class _FilledInput extends StatelessWidget {
           ),
           hintText: hint,
           hintStyle: const TextStyle(
-            fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-            height: 1.0, color: hintColor,
+            fontFamily: 'Inter',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.0,
+            color: hintColor,
           ),
         ),
       ),
@@ -332,8 +348,11 @@ class _PasswordInputState extends State<_PasswordInput> {
         obscuringCharacter: '•',
         textInputAction: widget.textInputAction,
         style: const TextStyle(
-          fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-          height: 1.0, color: Colors.white,
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.0,
+          color: Colors.white,
         ),
         cursorColor: Colors.white,
         decoration: InputDecoration(
@@ -346,13 +365,17 @@ class _PasswordInputState extends State<_PasswordInput> {
           ),
           hintText: widget.hint,
           hintStyle: const TextStyle(
-            fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-            height: 1.0, color: hintColor,
+            fontFamily: 'Inter',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.0,
+            color: hintColor,
           ),
 
           // кнопка на всю высоту поля
           suffixIconConstraints: const BoxConstraints.tightFor(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
           ),
           suffixIcon: Material(
             type: MaterialType.transparency,
@@ -361,7 +384,9 @@ class _PasswordInputState extends State<_PasswordInput> {
               onTap: () => setState(() => _obscure = !_obscure),
               child: Center(
                 child: Icon(
-                  _obscure ? Icons.visibility : Icons.visibility_off, // 👈 вот тут разница
+                  _obscure
+                      ? Icons.visibility
+                      : Icons.visibility_off, // 👈 вот тут разница
                   size: 20,
                   color: hintColor,
                 ),
