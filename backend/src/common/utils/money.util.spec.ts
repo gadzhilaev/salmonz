@@ -3,10 +3,16 @@ import {
   calcLineTotal,
   calcOrderMoney,
   DELIVERY_FEE_AMOUNT,
+  formatMoneyString,
   FREE_DELIVERY_THRESHOLD,
 } from './money.util';
 
 describe('money.util', () => {
+  it('formats money as fixed 2-decimal string', () => {
+    expect(formatMoneyString(858)).toBe('858.00');
+    expect(formatMoneyString(249)).toBe('249.00');
+  });
+
   it('calculates line totals', () => {
     expect(calcLineTotal(199.5, 2)).toBe(399);
   });

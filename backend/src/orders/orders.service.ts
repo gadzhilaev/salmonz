@@ -12,14 +12,57 @@ import {
   paginationSkip,
 } from '../common/dto/pagination.dto';
 import { moneyToNumber } from '../common/utils/decimal.util';
-import { calcOrderMoney } from '../common/utils/money.util';
+import {
+  calcLineTotal,
+  calcOrderMoney,
+  DELIVERY_FEE_AMOUNT,
+  formatMoneyString,
+  FREE_DELIVERY_THRESHOLD,
+  roundMoney,
+} from '../common/utils/money.util';
 import { canTransitionOrderStatus } from '../common/utils/order-status.util';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateOrderDto } from './dto/order.dto';
+import { CreateOrderDto, CreateOrderItemDto, QuoteOrderDto } from './dto/order.dto';
+
+type PricedLine = {
+  productId: string;
+  productName: string;
+  unitPrice: number;
+  quantity: number;
+  isAvailable: boolean;
+};
 
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async quote(_userId: string, dto: QuoteOrderDto) {
+    const priced = await this.buildPricedLines(dto.items);
+    const available = priced.filter((line) => line.isAvailable);
+    const money =
+      available.length > 0
+        ? calcOrderMoney(available)
+        : { subtotal: 0, deliveryFee: 0, total: 0, lines: [] };
+
+    return {
+      items: priced.map((line) => ({
+        productId: line.productId,
+        productName: line.productName,
+        unitPrice: formatMoneyString(roundMoney(line.unitPrice)),
+        quantity: line.quantity,
+        lineTotal: formatMoneyString(
+          calcLineTotal(line.unitPrice, line.quantity),
+        ),
+        isAvailable: line.isAvailable,
+      })),
+      subtotal: formatMoneyString(money.subtotal),
+      deliveryFee: formatMoneyString(money.deliveryFee),
+      total: formatMoneyString(money.total),
+      currency: 'RUB',
+      freeDeliveryThreshold: FREE_DELIVERY_THRESHOLD,
+      deliveryFeeAmount: DELIVERY_FEE_AMOUNT,
+    };
+  }
 
   async create(userId: string, dto: CreateOrderDto) {
     const existing = await this.prisma.order.findUnique({
@@ -42,33 +85,15 @@ export class OrdersService {
       throw new BadRequestException('Invalid address');
     }
 
-    const productIds = [...new Set(dto.items.map((i) => i.productId))];
-    const products = await this.prisma.product.findMany({
-      where: { id: { in: productIds } },
-    });
-    if (products.length !== productIds.length) {
-      throw new BadRequestException('One or more products not found');
-    }
-
-    const unavailable = products.filter((p) => !p.isAvailable);
+    const priced = await this.buildPricedLines(dto.items);
+    const unavailable = priced.filter((line) => !line.isAvailable);
     if (unavailable.length) {
       throw new BadRequestException(
-        `Unavailable products: ${unavailable.map((p) => p.name).join(', ')}`,
+        `Unavailable products: ${unavailable.map((p) => p.productName).join(', ')}`,
       );
     }
 
-    const productMap = new Map(products.map((p) => [p.id, p]));
-    const lineInputs = dto.items.map((item) => {
-      const product = productMap.get(item.productId)!;
-      return {
-        productId: product.id,
-        productNameSnapshot: product.name,
-        unitPrice: moneyToNumber(product.price),
-        quantity: item.quantity,
-      };
-    });
-
-    const money = calcOrderMoney(lineInputs);
+    const money = calcOrderMoney(priced);
     const publicNumber = await this.nextPublicNumber();
 
     const addressSnapshot = {
@@ -96,9 +121,9 @@ export class OrdersService {
           total: money.total,
           idempotencyKey: dto.idempotencyKey,
           items: {
-            create: lineInputs.map((line, idx) => ({
+            create: priced.map((line, idx) => ({
               productId: line.productId,
-              productNameSnapshot: line.productNameSnapshot,
+              productNameSnapshot: line.productName,
               unitPrice: money.lines[idx].unitPrice,
               quantity: money.lines[idx].quantity,
               lineTotal: money.lines[idx].lineTotal,
@@ -211,6 +236,30 @@ export class OrdersService {
       include: { items: true },
     });
     return this.serializeOrder(updated);
+  }
+
+  private async buildPricedLines(
+    items: CreateOrderItemDto[],
+  ): Promise<PricedLine[]> {
+    const productIds = [...new Set(items.map((i) => i.productId))];
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+    });
+    if (products.length !== productIds.length) {
+      throw new BadRequestException('One or more products not found');
+    }
+
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    return items.map((item) => {
+      const product = productMap.get(item.productId)!;
+      return {
+        productId: product.id,
+        productName: product.name,
+        unitPrice: moneyToNumber(product.price),
+        quantity: item.quantity,
+        isAvailable: product.isAvailable,
+      };
+    });
   }
 
   private serializeOrder(order: {
