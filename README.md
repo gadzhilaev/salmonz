@@ -18,8 +18,7 @@
 
 **Salmonz** — это современное кроссплатформенное приложение для службы доставки японской кухни. Проект создан как демонстрация навыков разработки мобильных приложений на Flutter с полноценным бэкендом на Supabase.
 
-> ⚠️ **Важно**: Это портфолио-проект. Все ключи API и подключения к базе данных оставлены открытыми намеренно для демонстрации работоспособности приложения. В реальном проекте они должны храниться в защищённых переменных окружения.
-
+> ⚠️ **Важно**: Это портфолио-проект. Для запуска нужен локальный или отдельный demo Supabase; см. `docs/LOCAL_BACKEND.md` и `docs/SECURITY_REMEDIATION.md`. Publishable/anon key допустим в клиенте только вместе с RLS.
 ---
 
 ## ✨ Функциональность
@@ -169,8 +168,11 @@ cd salmonz
 # 2. Установка зависимостей
 flutter pub get
 
-# 3. Запуск приложения
-flutter run
+# 3. Локальный/demo backend + config (см. docs/LOCAL_BACKEND.md)
+# cp config/local.example.json config/local.json
+
+# 4. Запуск
+flutter run --dart-define-from-file=config/local.json
 ```
 
 ### Сборка релиза
@@ -219,23 +221,18 @@ flutter build ios --release
 
 ## 🔐 Конфигурация Supabase
 
-> ⚠️ **Внимание**: Ключи ниже оставлены открытыми для демонстрации. В продакшене используйте переменные окружения!
+> URL и publishable (anon) key **не хранятся** в исходниках. Передавайте их через `--dart-define` / `--dart-define-from-file`.
+>
+> Подробности: [`docs/LOCAL_BACKEND.md`](docs/LOCAL_BACKEND.md), remediation: [`docs/SECURITY_REMEDIATION.md`](docs/SECURITY_REMEDIATION.md).
 
-```dart
-// lib/main.dart
-await Supabase.initialize(
-  url: 'https://vwerkkbccwosrnkozgza.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-);
+Пример (значения подставьте свои локальные/demo):
+
+```bash
+cp config/local.example.json config/local.json
+flutter run --dart-define-from-file=config/local.json
 ```
 
-Для своего проекта создайте файл `.env`:
-
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_anon_key
-```
-
+**Никогда** не помещайте service-role / secret key в Flutter-клиент.
 ---
 
 ## 📦 Зависимости
@@ -244,7 +241,7 @@ SUPABASE_ANON_KEY=your_anon_key
 dependencies:
   flutter: sdk
   supabase_flutter: ^2.5.7    # Backend & Auth
-  shared_preferences: ^2.2.2   # Локальное хранение
+  shared_preferences: ^2.5.3   # Локальное хранение
   image_picker: ^1.0.7         # Выбор изображений
   cupertino_icons: ^1.0.8      # iOS иконки
 

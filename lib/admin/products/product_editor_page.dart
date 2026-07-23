@@ -31,29 +31,33 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
 
   List<_Cat> _cats = [];
 
-  Future<void> _ensureAuth() async {
+  Future<void> _requireSession() async {
     if (supa.auth.currentSession == null) {
-      try {
-        await supa.auth.signInAnonymously();
-      } catch (_) {}
+      throw StateError('Нужна авторизация администратора');
     }
   }
 
   Future<void> _loadCats() async {
-    final res = await supa.from('categories').select('type,title').order('position');
+    final res = await supa
+        .from('categories')
+        .select('type,title')
+        .order('position');
 
     String cap(String s) =>
         s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
 
     final byKey = <String, _Cat>{};
     for (final e in (res as List)) {
-      final rawType  = (e['type']  ?? '').toString().trim();
+      final rawType = (e['type'] ?? '').toString().trim();
       final rawTitle = (e['title'] ?? '').toString();
       final key = rawType.toLowerCase();
-      byKey.putIfAbsent(key, () => _Cat(
-        type: rawType,      // значение в БД (как есть, но без пробелов по краям)
-        title: cap(rawTitle),
-      ));
+      byKey.putIfAbsent(
+        key,
+        () => _Cat(
+          type: rawType, // значение в БД (как есть, но без пробелов по краям)
+          title: cap(rawTitle),
+        ),
+      );
     }
     final cats = byKey.values.toList();
 
@@ -61,7 +65,7 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
     if (_type != null && _type!.trim().isNotEmpty) {
       final keyWanted = _type!.trim().toLowerCase();
       final match = cats.firstWhere(
-            (c) => c.type.toLowerCase() == keyWanted,
+        (c) => c.type.toLowerCase() == keyWanted,
         orElse: () => _Cat(type: '', title: ''),
       );
       fixedType = match.type.isEmpty ? null : match.type;
@@ -76,7 +80,6 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
   @override
   void initState() {
     super.initState();
-    _ensureAuth();
     _loadCats();
     final e = widget.existing;
     if (e != null) {
@@ -103,29 +106,39 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
 
   Future<void> _pickAndUpload() async {
     try {
-      final picked = await ImagePicker()
-          .pickImage(source: ImageSource.gallery, imageQuality: 95);
+      await _requireSession();
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 95,
+      );
       if (picked == null) return;
       final bytes = await picked.readAsBytes();
       final ext = picked.name.split('.').last.toLowerCase();
-      final safeExt =
-          (['jpg', 'jpeg', 'png', 'gif'].contains(ext)) ? ext : 'jpg';
+      final safeExt = (['jpg', 'jpeg', 'png', 'gif'].contains(ext))
+          ? ext
+          : 'jpg';
       final path = 'prod_${DateTime.now().millisecondsSinceEpoch}.$safeExt';
-      await supa.storage.from(_bucket).uploadBinary(
+      await supa.storage
+          .from(_bucket)
+          .uploadBinary(
             path,
             bytes,
-            fileOptions:
-                FileOptions(contentType: 'image/$safeExt', upsert: true),
+            fileOptions: FileOptions(
+              contentType: 'image/$safeExt',
+              upsert: true,
+            ),
           );
       final url = supa.storage.from(_bucket).getPublicUrl(path);
       setState(() => _imgUrl = url);
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Изображение загружено')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Изображение загружено')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Ошибка загрузки: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка загрузки: $e')));
     }
   }
 
@@ -133,6 +146,7 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
     final e = widget.existing;
     if (e == null) return;
     try {
+      await _requireSession();
       await supa.from('products').delete().eq('id', e.id);
       // попытаться удалить файл
       final url = e.img as String;
@@ -148,8 +162,9 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Ошибка удаления: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка удаления: $e')));
     }
   }
 
@@ -166,8 +181,8 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
     if (name.isEmpty || img.isEmpty || type.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content:
-                Text('Заполните название, категорию и загрузите картинку')),
+          content: Text('Заполните название, категорию и загрузите картинку'),
+        ),
       );
       return;
     }
@@ -184,11 +199,14 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
     };
 
     try {
+      await _requireSession();
       final res = (widget.existing == null)
           ? await supa.from('products').insert(payload).select()
-          : await supa.from('products').update(payload)
-          .eq('id', widget.existing.id)
-          .select();
+          : await supa
+                .from('products')
+                .update(payload)
+                .eq('id', widget.existing.id)
+                .select();
 
       if (res.isNotEmpty) {
         if (!mounted) return;
@@ -197,7 +215,9 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
         // ничего не вернулось — значит ничего не изменили (RLS/eq не совпал)
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось сохранить (проверьте права RLS и ID)')),
+          const SnackBar(
+            content: Text('Не удалось сохранить (проверьте права RLS и ID)'),
+          ),
         );
       }
     } on PostgrestException catch (e) {
@@ -207,9 +227,9 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка сохранения: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
     }
   }
 
@@ -217,188 +237,219 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
     return Scaffold(
-        backgroundColor: bg,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // --- appbar как было ---
-                SizedBox(
-                  height: hLogo + 26,
-                  child: Stack(
-                    alignment: Alignment.topCenter,
-                    children: [
-                      Positioned(
-                        left: 20,
-                        top: 26,
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            splashRadius: 20,
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.arrow_back_ios_new,
-                                size: 20, color: arrowColor),
+      backgroundColor: bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- appbar как было ---
+              SizedBox(
+                height: hLogo + 26,
+                child: Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    Positioned(
+                      left: 20,
+                      top: 26,
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          splashRadius: 20,
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
                           ),
                         ),
                       ),
-                      Positioned(
-                        top: 4,
-                        child: Image.asset('assets/icon/logo_salmonz_small.png',
-                            width: 80, height: 62, fit: BoxFit.contain),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 👇 ВЕСЬ НИЖНИЙ КОНТЕНТ — ПРОКРУЧИВАЕМЫЙ
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.only(
-                      top: 24,
-                      bottom: MediaQuery.of(context).viewInsets.bottom +
-                          24, // чтобы не упиралось в клавиатуру
                     ),
-                    children: [
-                      // --- картинка + плюс/удалить ---
-                      SizedBox(
-                        width: double.infinity,
-                        height: 260,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Container(color: const Color(0xFFF1F1F1)),
-                              if (_imgUrl == null || _imgUrl!.isEmpty)
-                                const _UploadHint(
-                                    text: 'ЗАГРУЗИТЕ  КАРТИНКУ ТОВАРА')
-                              else
-                                Image.network(_imgUrl!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        const _UploadHint(
-                                            text:
-                                                'ЗАГРУЗИТЕ  КАРТИНКУ ТОВАРА')),
-                              Positioned(
-                                right: 12,
-                                bottom: 12,
-                                child: SizedBox(
-                                  width: 60,
-                                  height: 60,
-                                  child: RawMaterialButton(
-                                    onPressed: isEdit
-                                        ? _deleteProduct
-                                        : _pickAndUpload,
-                                    fillColor: orange,
-                                    shape: const CircleBorder(),
-                                    elevation: 0,
-                                    child: Icon(
-                                        isEdit ? Icons.delete : Icons.add,
-                                        size: 24,
-                                        color: const Color(0xFFE8EAED)),
+                    Positioned(
+                      top: 4,
+                      child: Image.asset(
+                        'assets/icon/logo_salmonz_small.png',
+                        width: 80,
+                        height: 62,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 👇 ВЕСЬ НИЖНИЙ КОНТЕНТ — ПРОКРУЧИВАЕМЫЙ
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.only(
+                    top: 24,
+                    bottom:
+                        MediaQuery.of(context).viewInsets.bottom +
+                        24, // чтобы не упиралось в клавиатуру
+                  ),
+                  children: [
+                    // --- картинка + плюс/удалить ---
+                    SizedBox(
+                      width: double.infinity,
+                      height: 260,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Container(color: const Color(0xFFF1F1F1)),
+                            if (_imgUrl == null || _imgUrl!.isEmpty)
+                              const _UploadHint(
+                                text: 'ЗАГРУЗИТЕ  КАРТИНКУ ТОВАРА',
+                              )
+                            else
+                              Image.network(
+                                _imgUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const _UploadHint(
+                                  text: 'ЗАГРУЗИТЕ  КАРТИНКУ ТОВАРА',
+                                ),
+                              ),
+                            Positioned(
+                              right: 12,
+                              bottom: 12,
+                              child: SizedBox(
+                                width: 60,
+                                height: 60,
+                                child: RawMaterialButton(
+                                  onPressed: isEdit
+                                      ? _deleteProduct
+                                      : _pickAndUpload,
+                                  fillColor: orange,
+                                  shape: const CircleBorder(),
+                                  elevation: 0,
+                                  child: Icon(
+                                    isEdit ? Icons.delete : Icons.add,
+                                    size: 24,
+                                    color: const Color(0xFFE8EAED),
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // --- поля ---
-                      const _FieldLabel('Название'),
-                      _RoundedField(
-                          controller: _nameCtrl, hint: 'Введите название'),
-                      const SizedBox(height: 16),
-
-                      const _FieldLabel('Колво грамм'),
-                      _RoundedField(
-                          controller: _grammCtrl,
-                          hint: 'Например: 270',
-                          keyboardType: TextInputType.number),
-                      const SizedBox(height: 16),
-
-                      const _FieldLabel('Колво штук'),
-                      _RoundedField(
-                          controller: _amountCtrl,
-                          hint: 'Например: 8',
-                          keyboardType: TextInputType.number),
-                      const SizedBox(height: 16),
-
-                      const _FieldLabel('Состав'),
-                      _RoundedField(
-                          controller: _descCtrl, hint: 'Описание/состав'),
-                      const SizedBox(height: 16),
-
-                      const _FieldLabel('Цена'),
-                      _RoundedField(
-                          controller: _priceCtrl,
-                          hint: 'Например: 399',
-                          keyboardType: TextInputType.number),
-                      const SizedBox(height: 16),
-
-                      const _FieldLabel('Категория'),
-                      _DropdownField<String>(
-                        value: _type,
-                        hint: 'Выберите категорию',
-                        trailingArrow: true,
-                        items: _cats
-                            .map((c) => DropdownMenuItem(
-                                value: c.type, child: Text(c.title)))
-                            .toList(),
-                        onChanged: (v) => setState(() => _type = v),
-                      ),
-                      const SizedBox(height: 16),
-
-                      const _FieldLabel('Наличие'),
-                      _DropdownField<bool>(
-                        value: _inStock,
-                        hint: 'Выберите наличие',
-                        trailingArrow: true,
-                        items: const [
-                          DropdownMenuItem(
-                              value: true, child: Text('Есть в наличии')),
-                          DropdownMenuItem(
-                              value: false, child: Text('Нет в наличии')),
-                        ],
-                        onChanged: (v) => setState(() => _inStock = v ?? true),
-                      ),
-                      const SizedBox(height: 16),
-
-                      Center(
-                        child: SizedBox(
-                          width: 353,
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: _save,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: orange,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(40)),
-                              padding: const EdgeInsets.symmetric(vertical: 22),
-                              elevation: 0,
                             ),
-                            child: const Text('СОХРАНИТЬ',
-                                style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                    color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // --- поля ---
+                    const _FieldLabel('Название'),
+                    _RoundedField(
+                      controller: _nameCtrl,
+                      hint: 'Введите название',
+                    ),
+                    const SizedBox(height: 16),
+
+                    const _FieldLabel('Колво грамм'),
+                    _RoundedField(
+                      controller: _grammCtrl,
+                      hint: 'Например: 270',
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+
+                    const _FieldLabel('Колво штук'),
+                    _RoundedField(
+                      controller: _amountCtrl,
+                      hint: 'Например: 8',
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+
+                    const _FieldLabel('Состав'),
+                    _RoundedField(
+                      controller: _descCtrl,
+                      hint: 'Описание/состав',
+                    ),
+                    const SizedBox(height: 16),
+
+                    const _FieldLabel('Цена'),
+                    _RoundedField(
+                      controller: _priceCtrl,
+                      hint: 'Например: 399',
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+
+                    const _FieldLabel('Категория'),
+                    _DropdownField<String>(
+                      value: _type,
+                      hint: 'Выберите категорию',
+                      trailingArrow: true,
+                      items: _cats
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c.type,
+                              child: Text(c.title),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _type = v),
+                    ),
+                    const SizedBox(height: 16),
+
+                    const _FieldLabel('Наличие'),
+                    _DropdownField<bool>(
+                      value: _inStock,
+                      hint: 'Выберите наличие',
+                      trailingArrow: true,
+                      items: const [
+                        DropdownMenuItem(
+                          value: true,
+                          child: Text('Есть в наличии'),
+                        ),
+                        DropdownMenuItem(
+                          value: false,
+                          child: Text('Нет в наличии'),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => _inStock = v ?? true),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Center(
+                      child: SizedBox(
+                        width: 353,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: orange,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(40),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 22),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'СОХРАНИТЬ',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 }
 
@@ -414,21 +465,33 @@ class _UploadHint extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 51),
-          Image.asset('assets/promotions/Vector.png',
-              width: 80, height: 80, fit: BoxFit.contain),
+          Image.asset(
+            'assets/promotions/Vector.png',
+            width: 80,
+            height: 80,
+            fit: BoxFit.contain,
+          ),
           const SizedBox(height: 14),
-          Text(text,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                  color: Colors.black)),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              color: Colors.black,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('Формат: JPG, GIF, PNG.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontFamily: 'Inter', fontSize: 12, color: Color(0xFF989EA2))),
+          const Text(
+            'Формат: JPG, GIF, PNG.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              color: Color(0xFF989EA2),
+            ),
+          ),
         ],
       ),
     );
@@ -490,7 +553,10 @@ class _RoundedField extends StatelessWidget {
             ),
           ),
           style: const TextStyle(
-              fontFamily: 'Inter', fontSize: 14, color: Colors.black),
+            fontFamily: 'Inter',
+            fontSize: 14,
+            color: Colors.black,
+          ),
         ),
       ),
     );
@@ -561,7 +627,7 @@ class _DropdownField<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final match = items.cast<DropdownMenuItem<T>?>().firstWhere(
-          (e) => e?.value == value,
+      (e) => e?.value == value,
       orElse: () => null,
     );
     final currentLabel = match?.child ?? Text(hint);

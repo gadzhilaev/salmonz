@@ -1,4 +1,4 @@
-package com.example.salmonz
+package ru.gadzhilaev.salmonz
 
 import io.flutter.embedding.android.FlutterActivity
 
