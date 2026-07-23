@@ -198,12 +198,12 @@ class _ProductCard extends StatelessWidget {
                     child: Opacity(
                       opacity: inStock ? 1.0 : 0.3,
                       child: imageUrl.isEmpty
-                          ? const Center(child: Icon(Icons.broken_image))
+                          ? const Center(child: Icon(Icons.restaurant_menu_outlined))
                           : Image.network(
                               imageUrl,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) =>
-                                  const Center(child: Icon(Icons.broken_image)),
+                                  const Center(child: Icon(Icons.restaurant_menu_outlined)),
                             ),
                     ),
                   ),
