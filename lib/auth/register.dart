@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'login.dart';
+import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/nav_bar/main_screen.dart';
-
-final supa = Supabase.instance.client;
+import 'login.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({
@@ -22,9 +21,9 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final nameCtr  = TextEditingController();
+  final nameCtr = TextEditingController();
   final emailCtr = TextEditingController();
-  final passCtr  = TextEditingController();
+  final passCtr = TextEditingController();
   final pass2Ctr = TextEditingController();
 
   bool isLoading = false;
@@ -39,44 +38,39 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _register() async {
-    final name  = nameCtr.text.trim();
+    final name = nameCtr.text.trim();
     final email = emailCtr.text.trim();
-    final pass  = passCtr.text;
+    final pass = passCtr.text;
     final pass2 = pass2Ctr.text;
 
     if (name.isEmpty || email.isEmpty || pass.isEmpty || pass2.isEmpty) {
-      _showSnack('Заполни все поля'); return;
+      _showSnack('Заполни все поля');
+      return;
     }
-    if (pass != pass2) { _showSnack('Пароли не совпадают'); return; }
+    if (pass != pass2) {
+      _showSnack('Пароли не совпадают');
+      return;
+    }
+    if (pass.length < 8) {
+      _showSnack('Пароль должен быть не короче 8 символов');
+      return;
+    }
 
     setState(() => isLoading = true);
     try {
-      final res = await supa.auth.signUp(
+      await AppServices.instance.auth.register(
         email: email,
         password: pass,
-        data: {'name': name},
+        name: name,
       );
-
-      final user = res.user;
-      if (user == null) {
-        _showSnack('Не удалось создать пользователя');
-        setState(() => isLoading = false);
-        return;
-      }
-
-      await supa.from('user').insert({
-        'id': user.id,
-        'name': name,
-        'email': email,
-      });
 
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const SuccessPage()),
-            (route) => false,
+        (route) => false,
       );
-    } on AuthException catch (e) {
+    } on ApiException catch (e) {
       _showSnack(e.message);
     } catch (e) {
       _showSnack('Ошибка: $e');
@@ -106,7 +100,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(height: widget.topPadding),
-
                       Center(
                         child: Image.asset(
                           'assets/icon/logo_salmonz.png',
@@ -115,9 +108,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           fit: BoxFit.contain,
                         ),
                       ),
-
                       const SizedBox(height: 48),
-
                       const _FieldLabel('Имя'),
                       const SizedBox(height: 8),
                       _FilledInput(
@@ -125,9 +116,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         hint: 'Иван',
                         textInputAction: TextInputAction.next,
                       ),
-
                       const SizedBox(height: 24),
-
                       const _FieldLabel('Электронная почта'),
                       const SizedBox(height: 8),
                       _FilledInput(
@@ -136,9 +125,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                       ),
-
                       const SizedBox(height: 24),
-
                       const _FieldLabel('Пароль'),
                       const SizedBox(height: 8),
                       _PasswordInput(
@@ -146,9 +133,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         hint: 'Введите пароль',
                         textInputAction: TextInputAction.next,
                       ),
-
                       const SizedBox(height: 24),
-
                       const _FieldLabel('Повторите пароль'),
                       const SizedBox(height: 8),
                       _PasswordInput(
@@ -156,7 +141,6 @@ class _RegisterPageState extends State<RegisterPage> {
                         hint: 'Повторите пароль',
                         textInputAction: TextInputAction.done,
                       ),
-
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
@@ -174,16 +158,18 @@ class _RegisterPageState extends State<RegisterPage> {
                           child: isLoading
                               ? const CircularProgressIndicator()
                               : const Text(
-                            'ЗАРЕГИСТРИРОВАТЬСЯ',
-                            style: TextStyle(
-                              fontFamily: 'Inter', fontSize: 12,
-                              fontWeight: FontWeight.w600, height: 1.0,
-                              letterSpacing: 0.48, color: Color(0xFFA83100),
-                            ),
-                          ),
+                                  'ЗАРЕГИСТРИРОВАТЬСЯ',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.0,
+                                    letterSpacing: 0.48,
+                                    color: Color(0xFFA83100),
+                                  ),
+                                ),
                         ),
                       ),
-
                       const SizedBox(height: 32),
                       Center(
                         child: GestureDetector(
@@ -211,7 +197,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -225,7 +210,6 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
-/// Подпись над полем
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.text);
   final String text;
@@ -237,7 +221,7 @@ class _FieldLabel extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(left: 8),
         child: Text(
-          text, // <-- используем параметр
+          text,
           style: const TextStyle(
             fontFamily: 'Inter',
             fontSize: 13,
@@ -251,7 +235,6 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
-/// Обычный инпут (как раньше)
 class _FilledInput extends StatelessWidget {
   const _FilledInput({
     required this.hint,
@@ -277,8 +260,11 @@ class _FilledInput extends StatelessWidget {
         keyboardType: keyboardType,
         textInputAction: textInputAction,
         style: const TextStyle(
-          fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-          height: 1.0, color: Colors.white,
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.0,
+          color: Colors.white,
         ),
         cursorColor: Colors.white,
         decoration: InputDecoration(
@@ -291,8 +277,11 @@ class _FilledInput extends StatelessWidget {
           ),
           hintText: hint,
           hintStyle: const TextStyle(
-            fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-            height: 1.0, color: hintColor,
+            fontFamily: 'Inter',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.0,
+            color: hintColor,
           ),
         ),
       ),
@@ -300,7 +289,6 @@ class _FilledInput extends StatelessWidget {
   }
 }
 
-/// Парольный инпут с кнопкой показать/скрыть
 class _PasswordInput extends StatefulWidget {
   const _PasswordInput({
     required this.hint,
@@ -332,8 +320,11 @@ class _PasswordInputState extends State<_PasswordInput> {
         obscuringCharacter: '•',
         textInputAction: widget.textInputAction,
         style: const TextStyle(
-          fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-          height: 1.0, color: Colors.white,
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.0,
+          color: Colors.white,
         ),
         cursorColor: Colors.white,
         decoration: InputDecoration(
@@ -346,13 +337,15 @@ class _PasswordInputState extends State<_PasswordInput> {
           ),
           hintText: widget.hint,
           hintStyle: const TextStyle(
-            fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-            height: 1.0, color: hintColor,
+            fontFamily: 'Inter',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.0,
+            color: hintColor,
           ),
-
-          // кнопка на всю высоту поля
           suffixIconConstraints: const BoxConstraints.tightFor(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
           ),
           suffixIcon: Material(
             type: MaterialType.transparency,
@@ -361,7 +354,7 @@ class _PasswordInputState extends State<_PasswordInput> {
               onTap: () => setState(() => _obscure = !_obscure),
               child: Center(
                 child: Icon(
-                  _obscure ? Icons.visibility : Icons.visibility_off, // 👈 вот тут разница
+                  _obscure ? Icons.visibility : Icons.visibility_off,
                   size: 20,
                   color: hintColor,
                 ),

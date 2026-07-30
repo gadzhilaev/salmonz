@@ -1,22 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/money/money.dart';
+import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/core/theme/app_theme.dart';
+import 'package:salmonz/data/models/models.dart';
+import 'package:uuid/uuid.dart';
 import '../widgets/cart.dart';
 import '../profile/addresses_page.dart';
 import '../nav_bar/orders.dart';
-
-final supa = Supabase.instance.client;
-
-// маленькая вью-модель для адреса
-class _LastAddress {
-  _LastAddress({required this.country, required this.city, required this.line});
-  final String country;
-  final String city;
-  final String line;
-
-  String get heading => [country, city].where((e) => e.trim().isNotEmpty).join(', ');
-  String get fullForInput => [country, city, line].where((e) => e.trim().isNotEmpty).join(', ');
-}
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -26,206 +20,185 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  _LastAddress? _lastAddr;     // последний адрес из БД
-  String? _lastAddrRaw;        // строка "как была в инпуте", чтобы сравнить при сохранении
-  final _addrCtr = TextEditingController();
+  AddressModel? _selected;
   final _phoneCtr = TextEditingController(text: '+7 ');
   final _commentCtr = TextEditingController();
   bool _sending = false;
+  bool _loading = true;
 
-  // цвета/константы как в макете
-  static const bg = Color(0xFFFFFFFF);
-  static const arrowColor = Color(0xFFCDCDCD);
-  static const titleDark = Color(0xFF26351E);
-  static const orange = Color(0xFFFF5E1C);
+  OrderQuoteModel? _quote;
+  bool _quoteLoading = false;
+  String? _quoteError;
+  int _quoteGen = 0;
+  Timer? _quoteDebounce;
 
+  static const orange = AppTheme.orange;
   static const double hLogo = 62;
-  static const double ls24 = 0.96; // 4% от 24
-  static const double ls20 = 0.8;  // 4% от 20
+  static const double ls24 = 0.96;
+  static const double ls20 = 0.8;
 
   @override
   void initState() {
     super.initState();
-    _prefillFromDb(); // 👈
+    Cart.instance.addListener(_onCartChanged);
+    _prefill();
+    _scheduleQuote();
   }
 
-  Future<void> _prefillFromDb() async {
-    final uid = supa.auth.currentUser?.id;
-    if (uid == null) {
+  void _onCartChanged() {
+    if (!mounted) return;
+    setState(() {});
+    _scheduleQuote();
+  }
+
+  void _scheduleQuote() {
+    _quoteDebounce?.cancel();
+    _quoteDebounce = Timer(const Duration(milliseconds: 300), _fetchQuote);
+  }
+
+  Future<void> _fetchQuote() async {
+    final cart = Cart.instance;
+    if (cart.items.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _quote = null;
+        _quoteLoading = false;
+        _quoteError = null;
+      });
       return;
     }
 
+    final gen = ++_quoteGen;
+    setState(() {
+      _quoteLoading = true;
+      _quoteError = null;
+    });
+
     try {
-      // 1) телефон из user + формат сразу
-      final userRow = await supa
-          .from('user')
-          .select('phone')
-          .eq('id', uid)
-          .maybeSingle();
+      final quote = await AppServices.instance.orders.quote(
+        items: cart.items
+            .map((e) => (productId: e.id, quantity: e.qty))
+            .toList(),
+      );
+      if (!mounted || gen != _quoteGen) return;
+      setState(() {
+        _quote = quote;
+        _quoteLoading = false;
+        _quoteError = null;
+      });
+    } on ApiException catch (e) {
+      if (!mounted || gen != _quoteGen) return;
+      setState(() {
+        _quoteLoading = false;
+        _quoteError = e.message;
+      });
+    } catch (e) {
+      if (!mounted || gen != _quoteGen) return;
+      setState(() {
+        _quoteLoading = false;
+        _quoteError = 'Ошибка расчёта: $e';
+      });
+    }
+  }
 
-      final dbPhone = (userRow?['phone'] as String?)?.trim();
-      if (dbPhone != null && dbPhone.isNotEmpty) {
-        _phoneCtr.text = RuPhoneTextInputFormatter.format(dbPhone);
+  Future<void> _prefill() async {
+    try {
+      final profile = await AppServices.instance.profile.getMe();
+      final phone = profile.phone?.trim();
+      if (phone != null && phone.isNotEmpty) {
+        _phoneCtr.text = RuPhoneTextInputFormatter.format(phone);
       }
-
-      // 2) СНАЧАЛА пробуем адрес из последнего заказа
-      final lastOrder = await supa
-          .from('orders')
-          .select('address, created_at')
-          .eq('user_id', uid)
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      String? addressFromOrder =
-      (lastOrder?['address'] as String?)?.trim();
-
-      if (addressFromOrder != null && addressFromOrder.isNotEmpty) {
-        // распарсим строку заказа в (страна, город, линия)
-        final parsed = _parseAddress(addressFromOrder);
-        _lastAddr = parsed;
-        _lastAddrRaw = parsed.fullForInput;
-        _addrCtr.text = parsed.fullForInput; // подставляем в инпут
-      } else {
-        // 3) иначе — последний добавленный адрес пользователя
-        final rows = await supa
-            .from('addresses')
-            .select('country, city, line, created_at')
-            .eq('user_id', uid)
-            .order('created_at', ascending: false)
-            .limit(1);
-
-        if (rows.isNotEmpty) {
-          final m = rows.first;
-          final addr = _LastAddress(
-            country: (m['country'] ?? '') as String,
-            city:    (m['city'] ?? '') as String,
-            line:    (m['line'] ?? '') as String,
-          );
-          _lastAddr = addr;
-          _lastAddrRaw = addr.fullForInput;
-          _addrCtr.text = addr.fullForInput;
-        }
+      final addrs = await AppServices.instance.addresses.list();
+      if (addrs.isNotEmpty) {
+        _selected = addrs.firstWhere(
+          (a) => a.isDefault,
+          orElse: () => addrs.first,
+        );
       }
     } catch (_) {
-      // тихо — не ломаем UX
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   void dispose() {
-    _addrCtr.dispose();
+    _quoteDebounce?.cancel();
+    Cart.instance.removeListener(_onCartChanged);
     _phoneCtr.dispose();
     _commentCtr.dispose();
     super.dispose();
   }
 
-  Future<void> _openAddressPickerSheet() async {
-    final uid = supa.auth.currentUser?.id;
-    if (uid == null) return;
-
-    final mq = MediaQuery.of(context);
-    // высоту можно взять как 70% экрана или как тебе нужно
-    final double desiredHeight = mq.size.height * 0.7;
-
-    final selected = await showModalBottomSheet<_LastAddress>(
+  Future<void> _pickAddress() async {
+    final selected = await showModalBottomSheet<AddressModel>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) {
-        return _AddressesSheet(desiredHeight: desiredHeight);
-      },
+      builder: (_) => _AddressesSheet(
+        desiredHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
     );
-
-    if (selected != null) {
-      // применяем выбранный адрес
-      setState(() {
-        _lastAddr = selected;
-        _lastAddrRaw = selected.fullForInput;
-        _addrCtr.text = selected.fullForInput;
-      });
-    }
+    if (selected != null) setState(() => _selected = selected);
   }
 
   Future<void> _placeOrder() async {
-    final cart = Cart.instance;
+    if (_sending) return;
 
-    final addressInput = _addrCtr.text.trim();
-    final phone   = _phoneCtr.text.trim();
+    final cart = Cart.instance;
+    final phone = _phoneCtr.text.trim();
     final comment = _commentCtr.text.trim();
 
-    if (addressInput.isEmpty) { _snack('Введите адрес доставки'); return; }
-    if (!phone.startsWith('+7') || phone.replaceAll(RegExp(r'\D'), '').length < 11) {
-      _snack('Введите телефон в формате +7 ...'); return;
+    if (_selected == null) {
+      _snack('Выберите адрес доставки');
+      return;
     }
-    if (cart.items.isEmpty) { _snack('Корзина пуста'); return; }
+    if (!phone.startsWith('+7') ||
+        phone.replaceAll(RegExp(r'\D'), '').length < 11) {
+      _snack('Введите телефон в формате +7 ...');
+      return;
+    }
+    if (cart.items.isEmpty) {
+      _snack('Корзина пуста');
+      return;
+    }
+    if (_quoteError != null) {
+      _snack('Дождитесь успешного расчёта заказа');
+      return;
+    }
+    final unavailable = _quote?.unavailableItems ?? const [];
+    if (unavailable.isNotEmpty) {
+      _snack('В корзине есть недоступные товары');
+      return;
+    }
 
     setState(() => _sending = true);
     try {
-      final userId = supa.auth.currentUser?.id;
-
-      // 1) если адрес новый — сохраним в addresses
-      if (userId != null && addressInput.isNotEmpty && addressInput != (_lastAddrRaw ?? '')) {
-        final parsed = _parseAddress(addressInput);
-        await supa.from('addresses').insert({
-          'user_id': userId,
-          'country': parsed.country,
-          'city'   : parsed.city,
-          'line'   : parsed.line,
-        });
-        // обновим локальный "последний адрес"
-        _lastAddr = parsed;
-        _lastAddrRaw = parsed.fullForInput;
-      }
-
-      // 2) формируем заказ
-      final productIds = cart.items.map((e) => e.id).toList();
-      final qtyList    = cart.items.map((e) => e.qty).toList();
-      final priceList  = cart.items.map((e) => e.price).toList();
-      final summ       = cart.totalSum;
-
-      await supa.from('orders').insert({
-        'user_id'     : userId,
-        'product_list': productIds,
-        'value_list'  : qtyList,
-        'price_list'  : priceList,
-        'summ'        : summ,
-        'address'     : addressInput, // для истории заказа можно класть как одну строку
-        'phone'       : phone,
-        'comment'     : comment,
-      });
+      final digits = phone.replaceAll(RegExp(r'\D'), '');
+      final order = await AppServices.instance.orders.create(
+        addressId: _selected!.id,
+        phone: '+$digits',
+        comment: comment.isEmpty ? null : comment,
+        items: cart.items
+            .map((e) => (productId: e.id, quantity: e.qty))
+            .toList(),
+        idempotencyKey: const Uuid().v4(),
+      );
 
       await Cart.instance.clear();
       if (!mounted) return;
-      _snack('Заказ успешно оформлен!');
+      _snack('Заказ успешно оформлен! Итого: ${order.total.formatRub()}');
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const OrdersPage()),
-            (r) => false,
+        (r) => false,
       );
-    } on PostgrestException catch (e) {
-      _snack('Ошибка БД: ${e.message}');
+    } on ApiException catch (e) {
+      _snack(e.message);
     } catch (e) {
       _snack('Ошибка: $e');
     } finally {
       if (mounted) setState(() => _sending = false);
-    }
-  }
-
-  _LastAddress _parseAddress(String input) {
-    final parts = input.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    if (parts.length >= 3) {
-      final country = parts[0];
-      final city    = parts[1];
-      final line    = parts.sublist(2).join(', ');
-      return _LastAddress(country: country, city: city, line: line);
-    } else if (parts.length == 2) {
-      return _LastAddress(country: parts[0], city: parts[1], line: '');
-    } else if (parts.length == 1) {
-      // если ввели только улицу — подставим дефолтную страну
-      return _LastAddress(country: 'Россия', city: '', line: parts[0]);
-    } else {
-      return _LastAddress(country: 'Россия', city: '', line: '');
     }
   }
 
@@ -235,30 +208,42 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   Widget build(BuildContext context) {
     final cart = Cart.instance;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final titleColor = theme.brightness == Brightness.dark
+        ? cs.onSurface
+        : AppTheme.darkGreen;
+    final bodyColor = theme.brightness == Brightness.dark
+        ? cs.onSurface
+        : AppTheme.secondaryText;
+    final arrowColor = theme.brightness == Brightness.dark
+        ? cs.onSurface.withValues(alpha: 0.45)
+        : const Color(0xFFCDCDCD);
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // appbar как в products.dart
               SizedBox(
                 height: hLogo + 26,
                 child: Stack(
                   alignment: Alignment.topCenter,
                   children: [
                     Positioned(
-                      left: 20, top: 26,
+                      left: 20,
+                      top: 26,
                       child: SizedBox(
-                        width: 24, height: 24,
+                        width: 24,
+                        height: 24,
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: arrowColor),
+                          icon: Icon(Icons.arrow_back_ios_new,
+                              size: 20, color: arrowColor),
                         ),
                       ),
                     ),
@@ -266,226 +251,329 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       top: 4,
                       child: Image.asset(
                         'assets/icon/logo_salmonz_small.png',
-                        width: 80, height: 62, fit: BoxFit.contain,
+                        width: 80,
+                        height: 62,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ],
                 ),
               ),
-
-              // скролл блок
               Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    const SizedBox(height: 24),
-
-                    // ОФОРМЛЕНИЕ ЗАКАЗА
-                    Text(
-                      'ОФОРМЛЕНИЕ ЗАКАЗА',
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w900,
-                        fontSize: 24,
-                        height: 1.0,
-                        letterSpacing: ls24,
-                        color: titleDark,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    if (_lastAddr != null) ...[
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView(
+                        padding: EdgeInsets.zero,
                         children: [
-                          const Icon(Icons.home_outlined, size: 24, color: Color(0xFFFF5E1C)),
-                          const SizedBox(width: 9),
-                          Expanded(
-                            child: Column(
+                          const SizedBox(height: 24),
+                          Text(
+                            'ОФОРМЛЕНИЕ ЗАКАЗА',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 24,
+                              height: 1.0,
+                              letterSpacing: ls24,
+                              color: titleColor,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (_selected != null) ...[
+                            Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  _lastAddr!.heading,
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 18,
-                                    height: 1.3,
-                                    letterSpacing: 0,
-                                    color: Color(0xFF282828),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  _lastAddr!.line,
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 16,
-                                    height: 1.3,
-                                    letterSpacing: 0,
-                                    color: Color(0xFF282828),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                // 👇 КНОПКА "ВЫБРАТЬ" как «Редактировать»
-                                InkWell(
-                                  onTap: _openAddressPickerSheet,
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 2),
-                                    child: Text(
-                                      'Выбрать',
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14,
-                                        height: 1.3,
-                                        letterSpacing: 0,
-                                        color: Color(0xFFFF5E1C),
+                                const Icon(Icons.home_outlined,
+                                    size: 24, color: orange),
+                                const SizedBox(width: 9),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _selected!.heading.isEmpty
+                                            ? _selected!.city
+                                            : _selected!.heading,
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 18,
+                                          height: 1.3,
+                                          color: bodyColor,
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        _selected!.line,
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 16,
+                                          height: 1.3,
+                                          color: bodyColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      InkWell(
+                                        onTap: _pickAddress,
+                                        child: const Text(
+                                          'Выбрать',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 14,
+                                            color: orange,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
+                          ] else ...[
+                            TextButton(
+                              onPressed: _pickAddress,
+                              child: const Text('Выбрать адрес доставки'),
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          const _Label('Номер телефона  *'),
+                          const SizedBox(height: 12),
+                          _OutlinedField(
+                            controller: _phoneCtr,
+                            hint: '+7 900 000 00 00',
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [RuPhoneTextInputFormatter()],
+                          ),
+                          const SizedBox(height: 10),
+                          const _Label('Комментарий к заказу'),
+                          const SizedBox(height: 12),
+                          _OutlinedField(
+                            controller: _commentCtr,
+                            hint: 'Введите комментарий',
+                            maxLines: 4,
+                            minHeight: 100,
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'ВАШ ЗАКАЗ',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 20,
+                              height: 1.0,
+                              letterSpacing: ls20,
+                              color: titleColor,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          AnimatedBuilder(
+                            animation: cart,
+                            builder: (_, __) {
+                              final items = cart.items;
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  for (final it in items) ...[
+                                    _OrderItemTile(
+                                      item: it,
+                                      quoteLine: _quoteLineFor(it.id),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  if (_quote != null &&
+                                      _quote!.unavailableItems.isNotEmpty) ...[
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: cs.errorContainer
+                                            .withValues(alpha: 0.35),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'Недоступно: ${_quote!.unavailableItems.map((e) => e.productName).join(', ')}',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 14,
+                                          color: cs.error,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  if (_quoteError != null) ...[
+                                    Text(
+                                      _quoteError!,
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 14,
+                                        color: cs.error,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: TextButton(
+                                        key: const Key('checkoutRetry'),
+                                        onPressed: _fetchQuote,
+                                        child: const Text('Повторить расчёт'),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                  if (_quoteLoading && _quote == null)
+                                    const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      child: Center(
+                                        child: SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        ),
+                                      ),
+                                    ),
+                                  if (_quote != null) ...[
+                                    _MoneyRow(
+                                      label: 'Товары',
+                                      value: _quote!.subtotal.formatRub(),
+                                      color: bodyColor,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _MoneyRow(
+                                      label: 'Доставка',
+                                      value: _quote!.deliveryFee.minorUnits == 0
+                                          ? 'Бесплатно'
+                                          : _quote!.deliveryFee.formatRub(),
+                                      color: bodyColor,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _freeDeliveryText(_quote!),
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 13,
+                                        color: bodyColor.withValues(alpha: 0.75),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'ИТОГО:',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 24,
+                                          letterSpacing: ls24,
+                                          color: titleColor,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      if (_quoteLoading && _quote == null)
+                                        Text(
+                                          'примерно ${cart.totalSum.formatRub()}',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 20,
+                                            color: bodyColor
+                                                .withValues(alpha: 0.7),
+                                          ),
+                                        )
+                                      else
+                                        Text(
+                                          key: const Key('quoteTotal'),
+                                          (_quote?.total ?? cart.totalSum)
+                                              .formatRub(),
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 24,
+                                            color: bodyColor,
+                                          ),
+                                        ),
+                                      if (_quoteLoading && _quote != null) ...[
+                                        const SizedBox(width: 8),
+                                        const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  if (_quote == null &&
+                                      !_quoteLoading &&
+                                      _quoteError == null &&
+                                      items.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'примерно ${cart.totalSum.formatRub()}',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 14,
+                                        color:
+                                            bodyColor.withValues(alpha: 0.65),
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 40),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 56,
+                                    child: ElevatedButton(
+                                      key: const Key('checkoutCreateOrder'),
+                                      onPressed: _sending ||
+                                              items.isEmpty ||
+                                              _quoteError != null
+                                          ? null
+                                          : _placeOrder,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: orange,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(40),
+                                        ),
+                                      ),
+                                      child: _sending
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child:
+                                                  CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'ЗАКАЗАТЬ',
+                                              style: TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12,
+                                                letterSpacing: 0.48,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Адрес
-                    const _Label('Адрес доставки (улица, дом, квартира) *'),
-                    const SizedBox(height: 12),
-                    _OutlinedField(
-                      controller: _addrCtr,
-                      hint: 'Введите адрес доставки',
-                      keyboardType: TextInputType.streetAddress,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Телефон
-                    const _Label('Номер телефона  *'),
-                    const SizedBox(height: 12),
-                    _OutlinedField(
-                      controller: _phoneCtr,
-                      hint: '+7 900 000 00 00',
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        RuPhoneTextInputFormatter(),
-                      ],
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Комментарий
-                    const _Label('Комментарий к заказу'),
-                    const SizedBox(height: 12),
-                    _OutlinedField(
-                      controller: _commentCtr,
-                      hint: 'Введите комментарий',
-                      maxLines: 4,
-                      minHeight: 100,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Ваш заказ
-                    Text(
-                      'ВАШ ЗАКАЗ',
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w900,
-                        fontSize: 20,
-                        height: 1.0,
-                        letterSpacing: ls20,
-                        color: titleDark,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // список товаров
-                    AnimatedBuilder(
-                      animation: cart,
-                      builder: (_, __) {
-                        final items = cart.items;
-                        return Column(
-                          children: [
-                            for (final it in items) ...[
-                              _OrderItemTile(item: it),
-                              const SizedBox(height: 16),
-                            ],
-                            const SizedBox(height: 24),
-                            // ИТОГО
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'ИТОГО:',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 24,
-                                    height: 1.0,
-                                    letterSpacing: ls24,
-                                    color: titleDark,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${_fmt(cart.totalSum)} ₽',
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 24,
-                                    height: 1.0,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 40),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: _sending ? null : _placeOrder,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: orange,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(40),
-                                  ),
-                                ),
-                                child: _sending
-                                    ? const SizedBox(
-                                  width: 20, height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                                    : const Text(
-                                  'ЗАКАЗАТЬ',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                    height: 1.0,
-                                    letterSpacing: 0.48, // 4%
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
@@ -494,9 +582,64 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  static String _fmt(double v) {
-    final isInt = v == v.roundToDouble();
-    return isInt ? v.toInt().toString() : v.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
+  OrderQuoteLineModel? _quoteLineFor(String productId) {
+    final quote = _quote;
+    if (quote == null) return null;
+    for (final line in quote.items) {
+      if (line.productId == productId) return line;
+    }
+    return null;
+  }
+
+  String _freeDeliveryText(OrderQuoteModel quote) {
+    final threshold = Money.fromRubles(quote.freeDeliveryThreshold);
+    if (quote.deliveryFee.minorUnits == 0) {
+      return 'Доставка бесплатна (порог ${threshold.formatRub()})';
+    }
+    final rem = threshold - quote.subtotal;
+    if (rem.minorUnits > 0) {
+      return 'Бесплатная доставка от ${threshold.formatRub()}. Осталось ${rem.formatRub()}';
+    }
+    return 'Бесплатная доставка от ${threshold.formatRub()}';
+  }
+}
+
+class _MoneyRow extends StatelessWidget {
+  const _MoneyRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
+            color: color,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
+            color: color,
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -506,25 +649,27 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final muted = Theme.of(context).brightness == Brightness.dark
+        ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
+        : const Color(0xB2464646);
     return Padding(
-      padding: const EdgeInsets.only(left: 8), // 12 + 8 = 20
+      padding: const EdgeInsets.only(left: 8),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500,
             fontSize: 13,
-            height: 1.0,
-            letterSpacing: 0,
-            color: Color(0xB2464646), // #464646B2
+            color: muted,
           ),
         ),
       ),
     );
   }
 }
+
 class _OutlinedField extends StatelessWidget {
   const _OutlinedField({
     required this.controller,
@@ -544,6 +689,8 @@ class _OutlinedField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final textColor = cs.onSurface;
     return ConstrainedBox(
       constraints: BoxConstraints(minHeight: minHeight),
       child: TextField(
@@ -551,22 +698,20 @@ class _OutlinedField extends StatelessWidget {
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         maxLines: maxLines,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Inter',
           fontWeight: FontWeight.w500,
           fontSize: 14,
-          height: 1.0,
-          color: Colors.black,
+          color: textColor,
         ),
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.fromLTRB(20, 17, 20, 17),
           hintText: hint,
-          hintStyle: const TextStyle(
+          hintStyle: TextStyle(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500,
             fontSize: 14,
-            height: 1.0,
-            color: Colors.black54,
+            color: textColor.withValues(alpha: 0.45),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
@@ -583,138 +728,121 @@ class _OutlinedField extends StatelessWidget {
 }
 
 class _OrderItemTile extends StatelessWidget {
-  const _OrderItemTile({required this.item});
+  const _OrderItemTile({required this.item, this.quoteLine});
   final CartItem item;
-
-  static const titleDark = Color(0xFF26351E);
-  static const gray2828 = Color(0xFF282828);
-  static const tileBg = Color(0xFFFAFAFA);
+  final OrderQuoteLineModel? quoteLine;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            width: 120, height: 80, color: tileBg,
-            child: Image.network(item.img, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.name.toUpperCase(),
-                maxLines: 2, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                  height: 1.3,
-                  letterSpacing: 0.56,
-                  color: titleDark,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(
-                    '${item.amount} шт × ${item.qty}',
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w400,
-                      fontSize: 14,
-                      height: 22/14,
-                      color: gray2828,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    '${_fmt(item.subtotal)} ₽',
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      height: 1.0,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+    final theme = Theme.of(context);
+    final titleColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurface
+        : const Color(0xFF26351E);
+    final bodyColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurface
+        : const Color(0xFF282828);
+    final tileBg = theme.brightness == Brightness.dark
+        ? theme.colorScheme.surfaceContainerHighest
+        : const Color(0xFFFAFAFA);
+    final unavailable = quoteLine != null && !quoteLine!.isAvailable;
 
-  static String _fmt(double v) {
-    final isInt = v == v.roundToDouble();
-    return isInt ? v.toInt().toString() : v.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
+    return Opacity(
+      opacity: unavailable ? 0.55 : 1,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 120,
+              height: 80,
+              color: tileBg,
+              child: Image.network(
+                item.img,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.restaurant_menu_outlined),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    height: 1.3,
+                    letterSpacing: 0.56,
+                    color: titleColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  unavailable
+                      ? '${item.qty} шт · недоступно'
+                      : '${item.qty} шт · ${(quoteLine?.lineTotal ?? item.subtotal).formatRub()}',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14,
+                    color: unavailable
+                        ? Theme.of(context).colorScheme.error
+                        : bodyColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-/// Маска: +7 (XXX) XXX-XX-XX
 class RuPhoneTextInputFormatter extends TextInputFormatter {
-
-  /// Удобно иметь статический метод форматирования по "сырым" цифрам
   static String format(String rawDigits) {
-    // оставляем только цифры
     final d = rawDigits.replaceAll(RegExp(r'\D'), '');
-    // ожидаем 11 цифр, где первая — 7 (или 8 -> приведём к 7)
     String digits = d;
     if (digits.isEmpty) return '+7 ';
     if (digits.startsWith('8')) digits = '7${digits.substring(1)}';
     if (!digits.startsWith('7')) digits = '7$digits';
 
     final buf = StringBuffer('+7 ');
-    // пропускаем первую "7" — она уже в префиксе
     final body = digits.length > 1 ? digits.substring(1) : '';
 
-    // (XXX)
     if (body.isNotEmpty) {
       buf.write('(');
       buf.write(body.substring(0, body.length.clamp(0, 3)));
       if (body.length >= 3) buf.write(') ');
     }
-
-    // XXX
     if (body.length > 3) {
       buf.write(body.substring(3, body.length.clamp(3, 6)));
       if (body.length >= 6) buf.write('-');
     }
-
-    // XX
     if (body.length > 6) {
       buf.write(body.substring(6, body.length.clamp(6, 8)));
       if (body.length >= 8) buf.write('-');
     }
-
-    // XX
     if (body.length > 8) {
       buf.write(body.substring(8, body.length.clamp(8, 10)));
     }
-
     return buf.toString();
   }
 
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
-    // берём только цифры из того, что прислал пользователь
     final onlyDigits = newValue.text.replaceAll(RegExp(r'\D'), '');
-
-    // ограничим максимумом 11 цифр (7 + 10)
-    final limited = onlyDigits.length > 11 ? onlyDigits.substring(0, 11) : onlyDigits;
-
+    final limited =
+        onlyDigits.length > 11 ? onlyDigits.substring(0, 11) : onlyDigits;
     final formatted = format(limited);
-
-    // курсор — в конец форматированной строки
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
@@ -731,7 +859,7 @@ class _AddressesSheet extends StatefulWidget {
 }
 
 class _AddressesSheetState extends State<_AddressesSheet> {
-  List<_LastAddress> _items = [];
+  List<AddressModel> _items = [];
   bool _loading = true;
 
   @override
@@ -741,27 +869,8 @@ class _AddressesSheetState extends State<_AddressesSheet> {
   }
 
   Future<void> _load() async {
-    final uid = supa.auth.currentUser?.id;
-    if (uid == null) {
-      setState(() => _loading = false);
-      return;
-    }
     try {
-      final res = await supa
-          .from('addresses')
-          .select('country,city,line,created_at')
-          .eq('user_id', uid)
-          .order('created_at', ascending: false);
-
-      final list = (res as List).map((e) {
-        final m = e as Map<String, dynamic>;
-        return _LastAddress(
-          country: (m['country'] ?? '') as String,
-          city: (m['city'] ?? '') as String,
-          line: (m['line'] ?? '') as String,
-        );
-      }).toList();
-
+      final list = await AppServices.instance.addresses.list();
       if (mounted) {
         setState(() {
           _items = list;
@@ -775,27 +884,24 @@ class _AddressesSheetState extends State<_AddressesSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const titleColor = Color(0xFF282828);
     const orange = Color(0xFFFF5E1C);
+    final theme = Theme.of(context);
+    final sheetBg = theme.brightness == Brightness.dark
+        ? theme.colorScheme.surface
+        : Colors.white;
+    final titleColor = theme.colorScheme.onSurface;
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 150),
       padding: MediaQuery.of(context).viewInsets,
       child: Container(
         height: widget.desiredHeight,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: sheetBg,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(40),
             topRight: Radius.circular(40),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x0D000000),
-              offset: Offset(3, -12),
-              blurRadius: 20,
-            )
-          ],
         ),
         child: SafeArea(
           top: false,
@@ -806,42 +912,32 @@ class _AddressesSheetState extends State<_AddressesSheet> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'ВЫБОР АДРЕСА',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w900,
                           fontSize: 24,
-                          height: 23/24,
                           color: titleColor,
                         ),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, size: 20, color: Color(0xFFD6D6D6)),
-                      splashRadius: 22,
+                      icon: Icon(Icons.close,
+                          size: 20,
+                          color: titleColor.withValues(alpha: 0.35)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-
                 if (_loading)
-                  const Expanded(child: Center(child: CircularProgressIndicator()))
+                  const Expanded(
+                      child: Center(child: CircularProgressIndicator()))
                 else if (_items.isEmpty)
                   const Expanded(
-                    child: Center(
-                      child: Text(
-                        'Адресов пока нет',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: Color(0xFF282828),
-                        ),
-                      ),
-                    ),
+                    child: Center(child: Text('Адресов пока нет')),
                   )
                 else
                   Expanded(
@@ -851,38 +947,28 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                       itemBuilder: (_, i) {
                         final a = _items[i];
                         return InkWell(
-                          onTap: () => Navigator.pop(context, a), // выбрать
-                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => Navigator.pop(context, a),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.home_outlined, size: 24, color: orange),
+                              const Icon(Icons.home_outlined,
+                                  size: 24, color: orange),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      a.heading,
-                                      style: const TextStyle(
+                                      a.heading.isEmpty ? a.city : a.heading,
+                                      style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w600,
                                         fontSize: 18,
-                                        height: 1.3,
-                                        color: Color(0xFF282828),
+                                        color: titleColor,
                                       ),
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      a.line,
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 16,
-                                        height: 1.3,
-                                        color: Color(0xFF282828),
-                                      ),
-                                    ),
+                                    Text(a.line,
+                                        style: TextStyle(color: titleColor)),
                                   ],
                                 ),
                               ),
@@ -892,35 +978,30 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                       },
                     ),
                   ),
-
                 const SizedBox(height: 20),
-
-                // Можно ещё добавить кнопку "УПРАВЛЯТЬ АДРЕСАМИ" -> экран адресов
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
                     onPressed: () async {
-                      // откроем экран адресов; после возврата перезагрузим список
                       await Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const AddressesPage()),
+                        MaterialPageRoute(
+                            builder: (_) => const AddressesPage()),
                       );
-                      await _load(); // refresh список в шите
+                      await _load();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orange,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-                      padding: const EdgeInsets.symmetric(vertical: 22),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(40)),
                     ),
                     child: const Text(
                       'УПРАВЛЯТЬ АДРЕСАМИ',
-                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
-                        height: 1.0,
                         letterSpacing: 0.48,
                         color: Colors.white,
                       ),

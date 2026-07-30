@@ -43,3 +43,38 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# --- Secrets & local config (keep examples tracked) ---
+.env
+.env.*
+!.env.example
+config/local.json
+config/*.local.json
+!config/local.example.json
+
+# Android signing
+key.properties
+**/android/key.properties
+*.jks
+*.keystore
+
+# Cloud / service accounts
+*service-account*.json
+*-firebase-adminsdk*.json
+google-services.json
+GoogleService-Info.plist
+
+# NestJS backend
+backend/node_modules/
+backend/dist/
+backend/coverage/
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/generated/prisma/
+backend/.agents/
+backend/.claude/
+backend/.windsurf/
+backend/skills-lock.json
+backend/uploads/
+artifacts/

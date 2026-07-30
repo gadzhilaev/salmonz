@@ -18,17 +18,22 @@ class AppNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // контейнер 88 высотой, бордер 1px белый, слева/справа 40, между элементами 38
     return Container(
       height: 88,
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(top: BorderSide(color: Colors.white, width: 1)),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).dividerColor,
+            width: 1,
+          ),
+        ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 0),
       child: Row(
         children: [
           _NavItem(
+            key: const Key('navHome'),
             icon: Icons.home_outlined,
             label: 'ГЛАВНАЯ',
             active: current == AppTab.home,
@@ -36,6 +41,7 @@ class AppNavBar extends StatelessWidget {
           ),
           const SizedBox(width: width38),
           _NavItem(
+            key: const Key('navOrders'),
             icon: Icons.format_list_bulleted,
             label: 'ЗАКАЗЫ',
             active: current == AppTab.orders,
@@ -43,6 +49,7 @@ class AppNavBar extends StatelessWidget {
           ),
           const SizedBox(width: width38),
           _NavItem(
+            key: const Key('navBasket'),
             icon: Icons.shopping_cart_outlined,
             label: 'КОРЗИНА',
             active: current == AppTab.basket,
@@ -50,6 +57,7 @@ class AppNavBar extends StatelessWidget {
           ),
           const SizedBox(width: width38),
           _NavItem(
+            key: const Key('navProfile'),
             icon: Icons.account_circle_outlined,
             label: 'ПРОФИЛЬ',
             active: current == AppTab.profile,
@@ -63,6 +71,7 @@ class AppNavBar extends StatelessWidget {
 
 class _NavItem extends StatelessWidget {
   const _NavItem({
+    super.key,
     required this.icon,
     required this.label,
     required this.active,
@@ -79,7 +88,11 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? orange : inactive;
+    final color = active
+        ? orange
+        : (Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.onSurface
+            : inactive);
 
     return Expanded(
       child: InkWell(

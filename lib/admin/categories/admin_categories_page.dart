@@ -1,282 +1,189 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../products_pages/products.dart';
-import 'category_editor_page.dart';
-import '../../utils/category.dart';
-
-final supa = Supabase.instance.client;
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/data/models/models.dart';
 
 class AdminCategoriesPage extends StatefulWidget {
   const AdminCategoriesPage({super.key});
-
   @override
   State<AdminCategoriesPage> createState() => _AdminCategoriesPageState();
 }
 
 class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
-  // стили из админки
-  static const bg = Color(0xFFFFFFFF);
-  static const arrowColor = Color(0xFFCDCDCD);
-  static const titleDark = Color(0xFF26351E);
-  static const orange = Color(0xFFFF5E1C);
-  static const tileLight = Color(0xFFFAFAFA);
+  late Future<List<CategoryModel>> _future;
 
-  static const double hLogo = 62;
-  static const double ls24 = 0.96;
-
-  int _streamKey = 0;
-
-  Stream<List<CategoryItem>> _buildStream() {
-    return supa
-        .from('categories')
-        .stream(primaryKey: ['id'])
-        .order('position', ascending: true)
-        .map((rows) => rows.map<CategoryItem>((m) => CategoryItem(
-      id: (m['id'] as num).toInt(),
-      title: (m['title'] ?? '') as String,
-      type: (m['type'] ?? '') as String,
-      img: (m['img'] ?? '') as String,
-      position: (m['position'] as num?)?.toInt() ?? 0,
-    )).toList());
+  @override
+  void initState() {
+    super.initState();
+    _future = AppServices.instance.admin.listCategories(limit: 100);
   }
 
-  Future<void> _refresh() async {
-    setState(() => _streamKey++);
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+  Future<void> _reload() async {
+    setState(() {
+      _future = AppServices.instance.admin.listCategories(limit: 100);
+    });
+    await _future;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // APPBAR из админки
-              SizedBox(
-                height: hLogo + 26,
-                child: Stack(
-                  alignment: Alignment.topCenter,
-                  children: [
-                    Positioned(
-                      left: 20, top: 26,
-                      child: SizedBox(
-                        width: 24, height: 24,
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          splashRadius: 20,
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new,
-                              size: 20, color: arrowColor),
-                        ),
+      appBar: AppBar(title: const Text('Категории')),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFFFF5E1C),
+        onPressed: () async {
+          final ok = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(builder: (_) => const CategoryEditorPage()),
+          );
+          if (ok == true) await _reload();
+        },
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _reload,
+        child: FutureBuilder<List<CategoryModel>>(
+          future: _future,
+          builder: (context, snap) {
+            if (!snap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final items = snap.data!;
+            return ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (_, i) {
+                final c = items[i];
+                return ListTile(
+                  title: Text(c.name),
+                  subtitle: Text(c.slug),
+                  onTap: () async {
+                    final ok = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CategoryEditorPage(existing: c),
                       ),
-                    ),
-                    Positioned(
-                      top: 4,
-                      child: Image.asset(
-                        'assets/icon/logo_salmonz_small.png',
-                        width: 80, height: 62, fit: BoxFit.contain,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Заголовок "Категории" (слева 12)
-              const Padding(
-                padding: EdgeInsets.only(left: 12),
-                child: Text(
-                  'КАТЕГОРИИ',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w900,
-                    fontSize: 24,
-                    height: 1.0,
-                    letterSpacing: ls24, // 4%
-                    color: titleDark,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _refresh,
-                  child: StreamBuilder<List<CategoryItem>>(
-                    key: ValueKey(_streamKey),
-                    stream: _buildStream(),
-                    builder: (context, snap) {
-                      if (!snap.hasData) {
-                        return ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            SizedBox(height: 160),
-                            Center(child: CircularProgressIndicator()),
-                          ],
-                        );
-                      }
-                      final items = snap.data!;
-                      if (items.isEmpty) {
-                        return ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            SizedBox(height: 160),
-                            Center(child: Text('Категорий пока нет')),
-                          ],
-                        );
-                      }
-
-                      return ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          // Сетка категорий, выравнивание по левому краю
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              const gap = 8.0;                       // промежуток между карточками
-                              final maxW = constraints.maxWidth;
-                              final tileW = (maxW - gap) / 2;        // две карточки в ряд
-
-                              return Wrap(
-                                alignment: WrapAlignment.start,
-                                crossAxisAlignment: WrapCrossAlignment.start,
-                                runAlignment: WrapAlignment.start,
-                                spacing: gap,
-                                runSpacing: gap,
-                                children: List.generate(items.length, (i) {
-                                  final it = items[i];
-                                  final isFirst = i == 0;
-
-                                  return SizedBox(
-                                    width: tileW,
-                                    height: 160,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(12),
-                                      onTap: () async {
-                                        final changed = await Navigator.push<bool>(
-                                          context,
-                                          MaterialPageRoute(builder: (_) => CategoryEditorPage(existing: it)),
-                                        );
-                                        if (changed == true && mounted) _refresh();
-                                      },
-                                      onLongPress: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => ProductsPage(title: it.title, type: it.type),
-                                          ),
-                                        );
-                                      },
-                                      child: _CategoryCard(
-                                        title: it.title,
-                                        imagePath: it.img,
-                                        radius: 12,
-                                        bgColor: isFirst ? orange : tileLight,
-                                        titleColor: isFirst ? Colors.white : titleDark,
-                                        fontWeight: isFirst ? FontWeight.w900 : FontWeight.w700,
-                                        letterSpacing: 0.72,
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
+                    );
+                    if (ok == true) await _reload();
+                  },
+                );
+              },
+            );
+          },
         ),
       ),
-
-      // FAB «плюс» — добавить категорию
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(right: 24, bottom: 40),
-        child: SizedBox(
-          width: 60, height: 60,
-          child: RawMaterialButton(
-            onPressed: () async {
-              final changed = await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(builder: (_) => const CategoryEditorPage()),
-              );
-              if (changed == true && mounted) _refresh();
-            },
-            fillColor: orange,
-            shape: const CircleBorder(),
-            elevation: 0,
-            child: const Icon(Icons.add, size: 24, color: Color(0xFFE8EAED)),
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 }
 
-/* ---- карточка как на главной ---- */
-class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({
-    required this.title,
-    required this.imagePath,
-    required this.radius,
-    required this.bgColor,
-    required this.titleColor,
-    required this.fontWeight,
-    required this.letterSpacing,
-  });
+class CategoryEditorPage extends StatefulWidget {
+  const CategoryEditorPage({super.key, this.existing});
+  final CategoryModel? existing;
 
-  final String title;
-  final String imagePath;
-  final double radius;
-  final Color bgColor;
-  final Color titleColor;
-  final FontWeight fontWeight;
-  final double letterSpacing;
+  @override
+  State<CategoryEditorPage> createState() => _CategoryEditorPageState();
+}
 
-  bool get _isUrl => imagePath.startsWith('http');
+class _CategoryEditorPageState extends State<CategoryEditorPage> {
+  final _name = TextEditingController();
+  final _slug = TextEditingController();
+  String? _imageKey;
+  String? _imageUrl;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    if (e != null) {
+      _name.text = e.name;
+      _slug.text = e.slug;
+      _imageKey = e.imageKey;
+      _imageUrl = e.imageUrl;
+    }
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _slug.dispose();
+    super.dispose();
+  }
+
+  Future<void> _upload() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+    final up = await AppServices.instance.admin.uploadCategoryImage(
+      filePath: picked.path,
+      filename: p.basename(picked.path),
+    );
+    setState(() {
+      _imageKey = up.key;
+      _imageUrl = up.url;
+    });
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      final body = {
+        'name': _name.text.trim(),
+        'slug': _slug.text.trim(),
+        if (_imageKey != null) 'imageKey': _imageKey,
+      };
+      if (widget.existing == null) {
+        await AppServices.instance.admin.createCategory(body);
+      } else {
+        await AppServices.instance.admin
+            .updateCategory(widget.existing!.id, body);
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    if (widget.existing == null) return;
+    await AppServices.instance.admin.deleteCategory(widget.existing!.id);
+    if (!mounted) return;
+    Navigator.pop(context, true);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: Stack(
-        fit: StackFit.expand,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.existing == null ? 'Новая категория' : 'Категория'),
+        actions: [
+          if (widget.existing != null)
+            IconButton(onPressed: _delete, icon: const Icon(Icons.delete)),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          Container(color: bgColor),
-          Positioned.fill(
-            child: Align(
-              alignment: Alignment.bottomRight,
-              child: _isUrl
-                  ? Image.network(imagePath, fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.broken_image))
-                  : Image.asset(imagePath, fit: BoxFit.contain),
-            ),
-          ),
-          Positioned(
-            left: 16, right: 16, top: 16,
-            child: Text(
-              title.toUpperCase(),
-              maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 18,
-                height: 1.0,
-                fontWeight: fontWeight,
-                letterSpacing: letterSpacing,
-                color: titleColor,
-              ),
-            ),
+          TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Название')),
+          TextField(
+              controller: _slug,
+              decoration: const InputDecoration(labelText: 'Slug')),
+          if ((_imageUrl ?? '').isNotEmpty)
+            Image.network(_imageUrl!, height: 120, fit: BoxFit.cover),
+          TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
+          ElevatedButton(
+            onPressed: _saving ? null : _save,
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5E1C)),
+            child: const Text('СОХРАНИТЬ',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

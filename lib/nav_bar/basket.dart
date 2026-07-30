@@ -102,7 +102,7 @@ class BasketPage extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${_priceFmt(cart.totalSum)} ₽',
+                            cart.totalSum.formatRub(),
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
@@ -118,6 +118,7 @@ class BasketPage extends StatelessWidget {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
+                          key: const Key('cartCheckoutButton'),
                           onPressed: cart.items.isEmpty ? null : () {
                             Navigator.push(
                               context,
@@ -181,10 +182,6 @@ class BasketPage extends StatelessWidget {
     );
   }
 
-  static String _priceFmt(double v) {
-    final isInt = v == v.roundToDouble();
-    return isInt ? v.toInt().toString() : v.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
-  }
 }
 
 class _BasketTile extends StatelessWidget {
@@ -213,7 +210,7 @@ class _BasketTile extends StatelessWidget {
                 height: 80,
                 color: tileBg,
                 child: Image.network(item.img, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+                  errorBuilder: (_, __, ___) => const Icon(Icons.restaurant_menu_outlined),
                 ),
               ),
             ),
@@ -256,7 +253,7 @@ class _BasketTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        '${_priceFmt(item.subtotal)} ₽',
+                        item.subtotal.formatRub(),
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
@@ -319,10 +316,6 @@ class _BasketTile extends StatelessWidget {
     );
   }
 
-  static String _priceFmt(double v) {
-    final isInt = v == v.roundToDouble();
-    return isInt ? v.toInt().toString() : v.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
-  }
 }
 
 class _SquareBtn extends StatelessWidget {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/theme/theme_controller.dart';
 import '../profile/legal/legal_text_page.dart';
 import '../profile/legal/legal_texts.dart';
 import '../profile/edit_profile_page.dart';
@@ -11,8 +12,6 @@ import '../profile/addresses_page.dart';
 import '../auth/login.dart';
 import '../profile/support_page.dart';
 import '../admin/admin_panel_page.dart';
-
-final supa = Supabase.instance.client;
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -50,29 +49,18 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<_UserVm> _loadMe() async {
-    final user = supa.auth.currentUser;
-    if (user == null) {
+    try {
+      final user = await AppServices.instance.profile.getMe();
+      return _UserVm(
+        email: user.email,
+        name: user.name,
+        img: user.avatarUrl ?? '',
+        isAdmin: user.isAdmin,
+        lang: 'ru',
+      );
+    } catch (_) {
       return const _UserVm(email: '', name: '', img: '', isAdmin: false, lang: 'ru');
     }
-
-    final row = await supa
-        .from('user')
-        .select('name, img, email, is_admin, lang')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    final raw = row?['is_admin'];
-    final isAdmin = (raw == true) ||
-        (raw is num && raw != 0) ||
-        (raw is String &&
-            (raw.toLowerCase() == 't' || raw.toLowerCase() == 'true'));
-    return _UserVm(
-      email: (row?['email'] as String?) ?? (user.email ?? ''),
-      name: (row?['name'] as String?) ?? '',
-      img: (row?['img'] as String?) ?? '',
-      isAdmin: isAdmin,
-      lang: (row?['lang'] as String?) ?? 'ru',
-    );
   }
 
   void _logout() async {
@@ -82,7 +70,7 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (_) => const _LogoutConfirmDialog(),
     );
     if (ok == true) {
-      await supa.auth.signOut();
+      await AppServices.instance.auth.logout();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const Login()),
@@ -149,6 +137,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               IconButton(
+                                key: const Key('logoutButton'),
                                 onPressed: _logout,
                                 icon: const Icon(Icons.logout_outlined,
                                     size: 24, color: orange),
@@ -233,6 +222,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
                           const SizedBox(height: 24),
 
+                          _ThemeModeTile(
+                            key: const Key('themeToggle'),
+                          ),
+                          const SizedBox(height: 8),
                           _ProfileTile(
                             icon: Icons.account_circle_outlined,
                             text: 'Редактировать профиль',
@@ -314,6 +307,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 8),
                           if (me.isAdmin)
                             _ProfileTile(
+                              key: const Key('adminPanelEntry'),
                               icon: Icons.person_pin_circle_outlined,
                               text: 'Админ панель',
                               onTap: () {
@@ -399,23 +393,74 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (chosen != null && chosen != me.lang) {
-      final uid = supa.auth.currentUser?.id;
-      if (uid != null) {
-        await supa.from('user').update({'lang': chosen}).eq('id', uid);
-      }
+      // Language preference is client-only (API has no lang field yet).
       if (!mounted) return;
       setState(() {
-        _future = _loadMe();
+        _future = Future.value(_UserVm(
+          email: me.email,
+          name: me.name,
+          img: me.img,
+          isAdmin: me.isAdmin,
+          lang: chosen,
+        ));
       });
-      // переснимем после перестроения (на случай изменения верстки)
       if (!mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) => _captureNameBottom());
     }
   }
 }
 
+class _ThemeModeTile extends StatelessWidget {
+  const _ThemeModeTile({super.key});
+
+  static const orange = Color(0xFFFF5E1C);
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () => controller.cycle(),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            height: 48,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: orange, width: 1),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                const Icon(Icons.brightness_6_outlined, size: 24, color: orange),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Тема: ${controller.labelRu()}',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      height: 1.0,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _ProfileTile extends StatelessWidget {
   const _ProfileTile({
+    super.key,
     required this.icon,
     required this.text,
     this.onTap,
@@ -429,6 +474,7 @@ class _ProfileTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = Theme.of(context).colorScheme.onSurface;
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
@@ -447,12 +493,12 @@ class _ProfileTile extends StatelessWidget {
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w400,
                   fontSize: 14,
                   height: 1.0,
-                  color: Colors.black,
+                  color: textColor,
                 ),
               ),
             ),

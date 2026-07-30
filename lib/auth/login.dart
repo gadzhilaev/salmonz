@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'register.dart';
+import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/nav_bar/main_screen.dart';
-
-final supa = Supabase.instance.client;
+import 'register.dart';
 
 class Login extends StatefulWidget {
   const Login({
@@ -23,7 +22,7 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   final emailCtr = TextEditingController();
-  final passCtr  = TextEditingController();
+  final passCtr = TextEditingController();
   bool isLoading = false;
   bool _obscurePass = true;
 
@@ -36,7 +35,7 @@ class _LoginState extends State<Login> {
 
   Future<void> _login() async {
     final email = emailCtr.text.trim();
-    final pass  = passCtr.text;
+    final pass = passCtr.text;
 
     if (email.isEmpty || pass.isEmpty) {
       _showSnack('Введите почту и пароль');
@@ -45,16 +44,16 @@ class _LoginState extends State<Login> {
 
     setState(() => isLoading = true);
     try {
-      await supa.auth.signInWithPassword(email: email, password: pass);
+      await AppServices.instance.auth.login(email: email, password: pass);
 
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const SuccessPage()),
-            (route) => false,
+        (route) => false,
       );
-    } on AuthException catch (e) {
-      _showSnack(e.message); // например: Invalid login credentials
+    } on ApiException catch (e) {
+      _showSnack(e.message);
     } catch (e) {
       _showSnack('Ошибка: $e');
     } finally {
@@ -70,16 +69,19 @@ class _LoginState extends State<Login> {
   Widget build(BuildContext context) {
     const hintColor = Color(0xB2FFFFFF);
     return Scaffold(
-      backgroundColor: const Color(0xFFFF5E1C), // фон оранжевый
+      backgroundColor: const Color(0xFFFF5E1C),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20), // общий отступ
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
               SizedBox(height: widget.topPadding),
-
-              // Логотип
               Center(
                 child: Image.asset(
                   'assets/icon/logo_salmonz.png',
@@ -88,16 +90,14 @@ class _LoginState extends State<Login> {
                   fit: BoxFit.contain,
                 ),
               ),
-
               const SizedBox(height: 48),
-
-              // === Поле Email ===
               const _FieldLabel('Электронная почта'),
               const SizedBox(height: 8),
               SizedBox(
                 height: 48,
                 width: double.infinity,
                 child: TextField(
+                  key: const Key('loginEmail'),
                   controller: emailCtr,
                   style: const TextStyle(
                     fontFamily: 'Inter',
@@ -110,7 +110,7 @@ class _LoginState extends State<Login> {
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.fromLTRB(20, 17, 20, 17),
                     filled: true,
-                    fillColor: const Color(0x29FFFFFF), // #FFFFFF29
+                    fillColor: const Color(0x29FFFFFF),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
                       borderSide: BorderSide.none,
@@ -128,22 +128,23 @@ class _LoginState extends State<Login> {
                   textInputAction: TextInputAction.next,
                 ),
               ),
-
-              const SizedBox(height: 24), // отступ между email и паролем
-
-              // === Пароль с кнопкой показать/скрыть ===
+              const SizedBox(height: 24),
               const _FieldLabel('Пароль'),
               const SizedBox(height: 8),
               SizedBox(
                 height: 48,
                 width: double.infinity,
                 child: TextField(
+                  key: const Key('loginPassword'),
                   controller: passCtr,
                   obscureText: _obscurePass,
                   obscuringCharacter: '•',
                   style: const TextStyle(
-                    fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-                    height: 1.0, color: Colors.white,
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 1.0,
+                    color: Colors.white,
                   ),
                   cursorColor: Colors.white,
                   decoration: InputDecoration(
@@ -156,24 +157,29 @@ class _LoginState extends State<Login> {
                     ),
                     hintText: 'Введите пароль',
                     hintStyle: const TextStyle(
-                      fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500,
-                      height: 1.0, color: hintColor,
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      height: 1.0,
+                      color: hintColor,
                     ),
-
-                    // >>> сама кнопка
                     suffixIconConstraints: const BoxConstraints.tightFor(
-                      width: 48, height: 48, // размер как у поля
+                      width: 48,
+                      height: 48,
                     ),
                     suffixIcon: Material(
                       type: MaterialType.transparency,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(24),
-                        onTap: () => setState(() => _obscurePass = !_obscurePass),
+                        onTap: () =>
+                            setState(() => _obscurePass = !_obscurePass),
                         child: Center(
                           child: Icon(
-                            _obscurePass ? Icons.visibility_off : Icons.visibility,
+                            _obscurePass
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                             size: 20,
-                            color: hintColor, // как у hint
+                            color: hintColor,
                           ),
                         ),
                       ),
@@ -183,16 +189,15 @@ class _LoginState extends State<Login> {
                   onSubmitted: (_) => _login(),
                 ),
               ),
-
-              // === Кнопка "ВОЙТИ В АККАУНТ" ===
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
+                  key: const Key('loginSubmit'),
                   onPressed: isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white, // фон белый
+                    backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(40),
                     ),
@@ -202,20 +207,18 @@ class _LoginState extends State<Login> {
                   child: isLoading
                       ? const CircularProgressIndicator()
                       : const Text(
-                    'ВОЙТИ В АККАУНТ',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      height: 1.0,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.48, // 4% от 12px
-                      color: Color(0xFFA83100),
-                    ),
-                  ),
+                          'ВОЙТИ В АККАУНТ',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            height: 1.0,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.48,
+                            color: Color(0xFFA83100),
+                          ),
+                        ),
                 ),
               ),
-
-              // === Кнопка "РЕГИСТРАЦИЯ" ===
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -224,7 +227,8 @@ class _LoginState extends State<Login> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const RegisterPage()),
+                      MaterialPageRoute(
+                          builder: (context) => const RegisterPage()),
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -234,7 +238,7 @@ class _LoginState extends State<Login> {
                     ),
                     fixedSize: const Size.fromHeight(56),
                     padding: EdgeInsets.zero,
-                    foregroundColor: Colors.white, // цвет ripple
+                    foregroundColor: Colors.white,
                   ),
                   child: const Text(
                     'РЕГИСТРАЦИЯ',
@@ -242,15 +246,18 @@ class _LoginState extends State<Login> {
                       fontFamily: 'Inter',
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      height: 1.0, // 100%
-                      letterSpacing: 0.48, // 4%
+                      height: 1.0,
+                      letterSpacing: 0.48,
                       color: Colors.white,
                     ),
                   ),
                 ),
               ),
             ],
-          ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -266,7 +273,7 @@ class _FieldLabel extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(left: 8), // 20+8=28 от экрана
+        padding: const EdgeInsets.only(left: 8),
         child: Text(
           text,
           style: const TextStyle(
