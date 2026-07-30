@@ -16,8 +16,10 @@ class ProductAdminViewPage extends StatelessWidget {
           if ((product.imageUrl ?? '').isNotEmpty)
             Image.network(product.imageUrl!, height: 200, fit: BoxFit.cover),
           const SizedBox(height: 12),
-          Text(product.price.formatRub(),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            product.price.formatRub(),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           Text(product.description),
           Text(product.isAvailable ? 'В наличии' : 'Нет в наличии'),
         ],

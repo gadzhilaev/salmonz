@@ -7,6 +7,7 @@ NestJS API + Flutter client against a local stack. No cloud SaaS required.
 - Node.js **20+**
 - Flutter **3.9+**
 - PostgreSQL **16** **or** Docker (Compose)
+- **Git LFS** for image assets: `git lfs install && git lfs pull`
 
 ## Option A — Postgres on the host + local storage
 
@@ -46,13 +47,15 @@ From the repo root:
 
 ```bash
 cp docker-compose.example.env .env
-# set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET
+# set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET (long random strings)
 docker compose up --build
 ```
 
 Services: `postgres`, `minio`, `minio-init`, `backend`.
 
-For a **host-run** Nest process with only DB/MinIO in Compose, start `postgres` (and optionally `minio`) and point `backend/.env` at `localhost`.
+The backend container runs **Prisma migrate deploy** and **seed** on start (`docker-entrypoint.sh`), then serves the API with `STORAGE_DRIVER=s3` (MinIO) by default.
+
+For a **host-run** Nest process with only DB/MinIO in Compose, start `postgres` (and optionally `minio`) and point `backend/.env` at `localhost` with `STORAGE_DRIVER=local`.
 
 ## Flutter
 

@@ -223,6 +223,67 @@ describeE2e('Salmonz live API e2e', () => {
     expect(msg.status).toBeLessThan(300);
   });
 
+  it('rejects unauthenticated protected routes', async () => {
+    await request(api).get('/api/v1/auth/me').expect(401);
+    await request(api).get('/api/v1/orders').expect(401);
+    await request(api).get('/api/v1/admin/users').expect(401);
+  });
+
+  it('rejects client price override fields on order create', async () => {
+    const res = await request(api)
+      .post('/api/v1/orders')
+      .set('Authorization', `Bearer ${userAccess}`)
+      .send({
+        addressId,
+        phone: '+79001234567',
+        idempotencyKey: `price-hack-${suffix}`,
+        total: 1,
+        price: 1,
+        items: [{ productId, quantity: 1, unitPrice: 1 }],
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it('avatar upload accepts png and rejects non-image', async () => {
+    // Minimal 1x1 PNG
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    const ok = await request(api)
+      .post('/api/v1/users/me/avatar')
+      .set('Authorization', `Bearer ${userAccess}`)
+      .attach('file', png, { filename: 'dot.png', contentType: 'image/png' });
+    expect(ok.status).toBeLessThan(300);
+    expect(ok.body.avatarUrl || ok.body.avatarKey || ok.body.user).toBeTruthy();
+
+    const bad = await request(api)
+      .post('/api/v1/users/me/avatar')
+      .set('Authorization', `Bearer ${userAccess}`)
+      .attach(
+        'file',
+        Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>'),
+        {
+          filename: 'x.svg',
+          contentType: 'image/svg+xml',
+        },
+      );
+    expect(bad.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it('admin product image upload', async () => {
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    const res = await request(api)
+      .post('/api/v1/admin/uploads/product')
+      .set('Authorization', `Bearer ${adminAccess}`)
+      .attach('file', png, { filename: 'p.png', contentType: 'image/png' });
+    expect(res.status).toBeLessThan(300);
+    expect(res.body.url || res.body.key).toBeTruthy();
+  });
+
   it('logout', async () => {
     const res = await request(api)
       .post('/api/v1/auth/logout')

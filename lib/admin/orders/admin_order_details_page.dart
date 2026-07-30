@@ -32,15 +32,18 @@ class _AdminOrderDetailsPageState extends State<AdminOrderDetailsPage> {
 
   Future<void> _setStatus(String status) async {
     try {
-      await AppServices.instance.admin
-          .updateOrderStatus(widget.orderId, status);
+      await AppServices.instance.admin.updateOrderStatus(
+        widget.orderId,
+        status,
+      );
       setState(() {
         _future = AppServices.instance.admin.getOrder(widget.orderId);
       });
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -58,9 +61,13 @@ class _AdminOrderDetailsPageState extends State<AdminOrderDetailsPage> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(o.publicNumber,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(
+                o.publicNumber,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Text('Статус: ${o.status}'),
               Text('Телефон: ${o.phone}'),
               Text('Адрес: ${o.addressText}'),
@@ -70,17 +77,21 @@ class _AdminOrderDetailsPageState extends State<AdminOrderDetailsPage> {
               Wrap(
                 spacing: 8,
                 children: statuses
-                    .map((s) => ActionChip(
-                          label: Text(s),
-                          onPressed: () => _setStatus(s),
-                        ))
+                    .map(
+                      (s) => ActionChip(
+                        label: Text(s),
+                        onPressed: () => _setStatus(s),
+                      ),
+                    )
                     .toList(),
               ),
               const Divider(),
               for (final item in o.items)
                 ListTile(
                   title: Text(item.productName),
-                  subtitle: Text('${item.quantity} × ${item.unitPrice.formatRub()}'),
+                  subtitle: Text(
+                    '${item.quantity} × ${item.unitPrice.formatRub()}',
+                  ),
                   trailing: Text(item.lineTotal.formatRub()),
                 ),
             ],

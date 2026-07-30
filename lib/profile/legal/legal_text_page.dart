@@ -5,7 +5,7 @@ class LegalTextPage extends StatelessWidget {
   const LegalTextPage({
     super.key,
     required this.caption, // заголовок (маленький жирный 14, UPPERCASE)
-    required this.body,    // основной текст (12, Regular)
+    required this.body, // основной текст (12, Regular)
   });
 
   final String caption;
@@ -16,12 +16,13 @@ class LegalTextPage extends StatelessWidget {
   static const titleColor = Color(0xFF26351E);
 
   static const double hLogo = 62;
-  static const double ls24 = 0.96; // 4% от 24px — для заголовка раздела (если понадобится)
+  static const double ls24 =
+      0.96; // 4% от 24px — для заголовка раздела (если понадобится)
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           // общий горизонтальный отступ как в products.dart = 12,
@@ -46,8 +47,11 @@ class LegalTextPage extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new,
-                              size: 20, color: arrowColor),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ),
