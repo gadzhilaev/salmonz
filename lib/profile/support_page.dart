@@ -10,7 +10,6 @@ class SupportPage extends StatefulWidget {
 }
 
 class _SupportPageState extends State<SupportPage> {
-  static const bg = Color(0xFFFFFFFF);
   static const arrowColor = Color(0xFFCDCDCD);
   static const titleColor = Color(0xFF26351E);
   static const labelColor = Color(0xB2464646);
@@ -42,9 +41,9 @@ class _SupportPageState extends State<SupportPage> {
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Напишите сообщение')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Напишите сообщение')));
       return;
     }
     if (_sending) return;
@@ -56,19 +55,23 @@ class _SupportPageState extends State<SupportPage> {
       await showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => _SuccessDialog(onOk: () {
-          Navigator.of(context).pop();
-          Navigator.of(context).pop();
-        }),
+        builder: (_) => _SuccessDialog(
+          onOk: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
+          },
+        ),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -83,7 +86,7 @@ class _SupportPageState extends State<SupportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -100,8 +103,11 @@ class _SupportPageState extends State<SupportPage> {
                       child: IconButton(
                         padding: EdgeInsets.zero,
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_ios_new,
-                            size: 20, color: arrowColor),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 20,
+                          color: arrowColor,
+                        ),
                       ),
                     ),
                     Positioned(
@@ -201,9 +207,7 @@ class _SuccessDialog extends StatelessWidget {
     return AlertDialog(
       title: const Text('Внимание!'),
       content: const Text('Сообщение отправлено в поддержку'),
-      actions: [
-        TextButton(onPressed: onOk, child: const Text('ОК')),
-      ],
+      actions: [TextButton(onPressed: onOk, child: const Text('ОК'))],
     );
   }
 }

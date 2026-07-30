@@ -16,8 +16,6 @@ class OrdersPage extends StatefulWidget {
 
 class _OrdersPageState extends State<OrdersPage> {
   late Future<List<OrderModel>> _future;
-
-  static const bg = Colors.white;
   static const titleDark = Color(0xFF26351E);
   static const double ls24 = 0.96;
 
@@ -57,7 +55,7 @@ class _OrdersPageState extends State<OrdersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),

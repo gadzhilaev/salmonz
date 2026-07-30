@@ -77,4 +77,5 @@ backend/.claude/
 backend/.windsurf/
 backend/skills-lock.json
 backend/uploads/
+backend/*.tsbuildinfo
 artifacts/

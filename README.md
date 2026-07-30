@@ -7,6 +7,8 @@
   <img src="https://img.shields.io/badge/NestJS-Backend-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS"/>
   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License"/>
+  <a href="https://github.com/gadzhilaev/salmonz/actions/workflows/flutter.yml"><img src="https://github.com/gadzhilaev/salmonz/actions/workflows/flutter.yml/badge.svg" alt="Flutter CI"/></a>
+  <a href="https://github.com/gadzhilaev/salmonz/actions/workflows/backend.yml"><img src="https://github.com/gadzhilaev/salmonz/actions/workflows/backend.yml/badge.svg" alt="Backend CI"/></a>
 </p>
 
 <p align="center">
@@ -17,65 +19,64 @@
 
 ## О проекте
 
-**Salmonz** — кроссплатформенное приложение службы доставки японской кухни. Проект демонстрирует связку **Flutter + NestJS + Prisma + PostgreSQL** (аутентификация, каталог, заказы, админ-панель).
+**Salmonz** — кроссплатформенное приложение службы доставки японской кухни. Стек: **Flutter + NestJS + Prisma + PostgreSQL** (JWT auth, каталог, заказы с server-side quote, админ-панель, загрузка медиа).
 
-> Это **портфолио / demo**, а не production-ready продукт. Нет платежей, push-уведомлений, полноценного мониторинга и жёстких SLA. Не используйте как есть в реальной коммерческой эксплуатации без доработки.
+> Это **портфолио / demo**, а не production-ready продукт. Нет платежей, push, полноценного мониторинга и жёстких SLA. Не используйте как есть в коммерческой эксплуатации без доработки.
 
-Документация:
+Документация: [LOCAL_DEVELOPMENT](docs/LOCAL_DEVELOPMENT.md) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [API](docs/API.md) · [BACKEND](docs/BACKEND.md) · [TESTING](docs/TESTING.md) · [SECURITY](docs/SECURITY.md) · [CONTRIBUTING](CONTRIBUTING.md)
 
-| Документ | Содержание |
-|----------|------------|
-| [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) | Локальный запуск |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура |
-| [docs/API.md](docs/API.md) | Обзор REST API |
-| [docs/BACKEND.md](docs/BACKEND.md) | NestJS backend |
-| [docs/TESTING.md](docs/TESTING.md) | Тесты |
-| [docs/SECURITY.md](docs/SECURITY.md) | Заметки по безопасности |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Вклад в проект |
-| [SECURITY.md](SECURITY.md) | Сообщения об уязвимостях |
+---
+
+## Скриншоты
+
+| Login (iPhone) | Login (iPad) | Home |
+|---|---|---|
+| ![login phone](docs/screenshots/01_login.png) | ![login ipad](docs/screenshots/09_ipad.png) | ![home](docs/screenshots/02_home_light.png) |
+
+| Category | Profile (light) | Profile (dark) |
+|---|---|---|
+| ![category](docs/screenshots/03_category.png) | ![profile light](docs/screenshots/04_profile_light.png) | ![profile dark](docs/screenshots/05_profile_dark.png) |
+
+Снято на iOS Simulator (iPhone 17 Pro / iPad Pro) против локального API.
 
 ---
 
 ## Функциональность
 
-### Для пользователей
+### Пользователь
 
 | Функция | Описание |
 |---------|----------|
-| Аутентификация | Регистрация и вход (email/пароль), JWT access + refresh |
-| Каталог | Категории и товары меню |
-| Корзина | Локальная корзина (SharedPreferences) |
-| Заказ | Адрес, телефон, комментарий; цены считает сервер |
-| История заказов | Список и детали своих заказов |
-| Профиль | Данные пользователя, аватар |
-| Адреса | CRUD адресов доставки |
-| Мультиязычность | RU / EN / ES |
-| Акции | Промо-баннеры |
-| Поддержка | Обращения в поддержку |
+| Аутентификация | Email/пароль, JWT access + refresh, secure storage |
+| Каталог | Категории и товары |
+| Корзина | Локально (SharedPreferences) |
+| Заказ | Адрес, телефон, комментарий; цены считает сервер (`/orders/quote`) |
+| Idempotency | Повторный submit с тем же ключом не создаёт дубликат |
+| История заказов | Список и детали |
+| Профиль / адреса / support | CRUD адреса, аватар, обращения |
+| Тема | System / light / dark |
 
-### Для администраторов
+### Администратор
 
 | Функция | Описание |
 |---------|----------|
-| Админ-панель | Роль `ADMIN` в Flutter-клиенте |
-| Каталог | CRUD категорий, продуктов, акций |
-| Заказы | Просмотр и смена статуса |
-| Пользователи | Список пользователей |
-| Поддержка | Обработка обращений |
+| Админ-панель | Роль `ADMIN` |
+| Каталог | CRUD категорий, продуктов, акций + upload изображений |
+| Заказы | Список и смена статуса |
+| Пользователи / support | Просмотр и обработка |
 
 ---
 
 ## Архитектура
 
 ```
-Flutter (Dio + secure storage)
+Flutter (Dio + flutter_secure_storage)
         │  REST  /api/v1
         ▼
-NestJS modular monolith
+NestJS modular monolith  ·  Swagger /docs
         │
    ┌────┴────┐
-   ▼         ▼
-PostgreSQL  Storage (local FS или S3/MinIO)
+PostgreSQL   Storage: local FS  или  S3/MinIO
 (Prisma 7)
 ```
 
@@ -83,112 +84,85 @@ PostgreSQL  Storage (local FS или S3/MinIO)
 
 ---
 
-## Стек
-
-| Слой | Технологии |
-|------|------------|
-| Клиент | Flutter 3.9+, Dart 3, Dio, flutter_secure_storage, shared_preferences, image_picker |
-| API | NestJS 11, Passport JWT, Argon2id, Swagger (`/docs`) |
-| Данные | Prisma 7, PostgreSQL 16 |
-| Файлы | `STORAGE_DRIVER=local` (по умолчанию) или S3-совместимое хранилище |
-| Инфра (опц.) | Docker Compose: Postgres + MinIO + backend |
-
----
-
 ## Быстрый старт
 
 ### Требования
 
-- Flutter SDK 3.9+
-- Node.js 20+
-- PostgreSQL 16 **или** Docker Compose
+- Flutter SDK 3.9+, Node.js 20+, Docker (рекомендуется)
+- **Git LFS** (`git lfs install && git lfs pull`) — PNG-ассеты хранятся в LFS
 
-### Backend
+### Backend (Docker Compose)
 
 ```bash
-# Вариант A: свой Postgres
-cd backend
-cp .env.example .env   # задайте DATABASE_URL и JWT_* секреты
-npm ci
-npm run prisma:generate
-npm run prisma:migrate:deploy
-npm run prisma:seed
-npm run start:dev
-
-# Вариант B: docker compose (из корня репо)
-cp docker-compose.example.env .env
+cp docker-compose.example.env .env   # задайте JWT_* (длинные случайные строки)
 docker compose up --build
 ```
 
-API: `http://localhost:3000/api/v1` · Swagger: `http://localhost:3000/docs`
+Сервисы: `postgres`, `minio`, `minio-init`, `backend` (migrate + seed при старте).
+
+- API: `http://localhost:3000/api/v1`
+- Swagger: `http://localhost:3000/docs`
+- MinIO console: `http://localhost:9001`
+
+Альтернатива без Docker backend: Postgres в Compose + `STORAGE_DRIVER=local`, см. [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md).
 
 ### Flutter
 
 ```bash
 cp config/local.example.json config/local.json
-# Android emulator: API_BASE_URL=http://10.0.2.2:3000
-# iOS / desktop:    API_BASE_URL=http://127.0.0.1:3000
+# iOS Simulator / desktop: http://127.0.0.1:3000
+# Android emulator:        http://10.0.2.2:3000
 
 flutter pub get
 flutter run --dart-define-from-file=config/local.json
 ```
 
-Секреты и URL **не** коммитятся: используйте `.env` / `config/local.json` (см. `.gitignore`).
+Demo-учётки после seed (только локально, **смените** перед любым shared env):
 
-Полная инструкция: [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md).
+| Role | Email | Password |
+|------|-------|----------|
+| USER | `demo@example.com` | `ChangeMeDemo123!` |
+| ADMIN | `admin@example.com` | `ChangeMeAdmin123!` |
 
----
-
-## Безопасность (кратко)
-
-- Пароли: Argon2id; refresh-токены хранятся как хеши, с ротацией
-- Регистрация создаёт только роль `USER` (нельзя самоназначить `ADMIN`)
-- Заказы: серверный расчёт цен, проверка адреса владельца, idempotency key
-- Токены на клиенте — в `flutter_secure_storage`
-
-Подробнее: [docs/SECURITY.md](docs/SECURITY.md). Сообщения об уязвимостях: [SECURITY.md](SECURITY.md).
+Секреты не коммитятся: `.env`, `backend/.env`, `config/local.json` в `.gitignore`.
 
 ---
 
 ## Тесты
 
 ```bash
-# Backend unit
-cd backend && npm test && npm run lint && npm run build
+# Backend
+cd backend && npm ci && npm run prisma:generate
+npm test && npm run lint && npm run build
+RUN_E2E=1 npm run test:e2e   # нужен живой API + seed
 
 # Flutter
-flutter analyze
-flutter test
+flutter analyze && flutter test
+flutter test integration_test -d <device> --dart-define-from-file=config/local.json
 ```
 
-См. [docs/TESTING.md](docs/TESTING.md).
+CI: `.github/workflows/backend.yml`, `.github/workflows/flutter.yml` (analyze/unit/build; e2e с БД — локально).
+
+---
+
+## Storage
+
+| `STORAGE_DRIVER` | Поведение |
+|------------------|-----------|
+| `local` (host-run default) | Файлы в `backend/uploads`, URL `/media/...` |
+| `s3` (Compose default) | MinIO/S3-compatible bucket |
 
 ---
 
 ## Ограничения demo
 
-- Нет реальных платежей / эквайринга
-- Нет push / email-рассылок
-- Локальное хранилище файлов не рассчитано на прод-нагрузку
-- Seed-учётки только для локальной разработки — смените пароли
-- CI покрывает lint/unit; e2e с БД опционален
-
----
-
-## Скриншоты
-
-Скриншоты будут добавлены после QA.
+- Нет эквайринга / push / email
+- Seed-пароли только для локальной разработки
+- Ранняя Git history может содержать старый Supabase anon JWT — в текущем HEAD его нет; владелец должен отключить/ротировать старый Supabase-проект
+- npm audit может показывать transitive high (например через swagger) без безопасного fix без major downgrade
 
 ---
 
 ## Лицензия
 
-MIT — см. [LICENSE](LICENSE).
-
----
-
-<p align="center">
-  <img src="assets/icon/logo_salmonz_small.png" alt="Salmonz" width="60"/>
-  <br/>
-  <sub>Портфолио-проект · © Salmonz</sub>
-</p>
+MIT — [LICENSE](LICENSE).

@@ -22,10 +22,8 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late Future<_UserVm> _future;
-  final _nameKey = GlobalKey();   // ключ для текста имени
+  final _nameKey = GlobalKey(); // ключ для текста имени
   double? _nameBottomDy;
-
-  static const bg = Colors.white;
   static const titleDark = Color(0xFF26351E);
   static const orange = Color(0xFFFF5E1C);
   static const grayText = Color(0xFF000000);
@@ -59,7 +57,13 @@ class _ProfilePageState extends State<ProfilePage> {
         lang: 'ru',
       );
     } catch (_) {
-      return const _UserVm(email: '', name: '', img: '', isAdmin: false, lang: 'ru');
+      return const _UserVm(
+        email: '',
+        name: '',
+        img: '',
+        isAdmin: false,
+        lang: 'ru',
+      );
     }
   }
 
@@ -82,7 +86,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -112,9 +116,15 @@ class _ProfilePageState extends State<ProfilePage> {
                       if (snap.connectionState != ConnectionState.done) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      final me = snap.data ??
+                      final me =
+                          snap.data ??
                           const _UserVm(
-                              email: '', name: '', img: '', isAdmin: false, lang: 'ru');
+                            email: '',
+                            name: '',
+                            img: '',
+                            isAdmin: false,
+                            lang: 'ru',
+                          );
 
                       return ListView(
                         padding: EdgeInsets.zero,
@@ -123,7 +133,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                           Row(
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Text(
                                   'ПРОФИЛЬ',
                                   style: TextStyle(
@@ -132,15 +142,24 @@ class _ProfilePageState extends State<ProfilePage> {
                                     fontSize: 24,
                                     height: 1.0,
                                     letterSpacing: ls24,
-                                    color: titleDark,
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface
+                                        : titleDark,
                                   ),
                                 ),
                               ),
                               IconButton(
                                 key: const Key('logoutButton'),
                                 onPressed: _logout,
-                                icon: const Icon(Icons.logout_outlined,
-                                    size: 24, color: orange),
+                                icon: const Icon(
+                                  Icons.logout_outlined,
+                                  size: 24,
+                                  color: orange,
+                                ),
                                 tooltip: 'Выйти',
                               ),
                             ],
@@ -167,12 +186,17 @@ class _ProfilePageState extends State<ProfilePage> {
                                                 me.img,
                                                 fit: BoxFit.cover,
                                                 errorBuilder: (_, __, ___) =>
-                                                    const Icon(Icons.person,
-                                                        size: 56,
-                                                        color: secondary),
+                                                    const Icon(
+                                                      Icons.person,
+                                                      size: 56,
+                                                      color: secondary,
+                                                    ),
                                               )
-                                            : const Icon(Icons.person,
-                                                size: 56, color: secondary),
+                                            : const Icon(
+                                                Icons.person,
+                                                size: 56,
+                                                color: secondary,
+                                              ),
                                       ),
                                     ),
                                   ),
@@ -222,9 +246,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                           const SizedBox(height: 24),
 
-                          _ThemeModeTile(
-                            key: const Key('themeToggle'),
-                          ),
+                          _ThemeModeTile(key: const Key('themeToggle')),
                           const SizedBox(height: 8),
                           _ProfileTile(
                             icon: Icons.account_circle_outlined,
@@ -233,7 +255,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               final updated = await Navigator.push<bool>(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) => const EditProfilePage()),
+                                  builder: (_) => const EditProfilePage(),
+                                ),
                               );
                               if (updated == true && mounted) {
                                 setState(() {
@@ -247,12 +270,14 @@ class _ProfilePageState extends State<ProfilePage> {
                           _ProfileTile(
                             icon: Icons.home_outlined,
                             text: 'Мои адреса',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const AddressesPage()),
-                                );
-                              },
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AddressesPage(),
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(height: 8),
                           _ProfileTile(
@@ -300,7 +325,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) => const SupportPage()),
+                                  builder: (_) => const SupportPage(),
+                                ),
                               );
                             },
                           ),
@@ -313,7 +339,9 @@ class _ProfilePageState extends State<ProfilePage> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const AdminPanelPage()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const AdminPanelPage(),
+                                  ),
                                 );
                               },
                             ),
@@ -378,31 +406,33 @@ class _ProfilePageState extends State<ProfilePage> {
     final double anchorTop = _nameBottomDy ?? fallbackTop;
 
     // высота шторки = высота экрана - положение якоря (имя)
-    final double sheetHeight =
-    (mq.size.height - anchorTop).clamp(300.0, mq.size.height);
+    final double sheetHeight = (mq.size.height - anchorTop).clamp(
+      300.0,
+      mq.size.height,
+    );
 
     if (!mounted) return;
     final chosen = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _LanguageSheet(
-        initialLang: me.lang,
-        desiredHeight: sheetHeight,
-      ),
+      builder: (_) =>
+          _LanguageSheet(initialLang: me.lang, desiredHeight: sheetHeight),
     );
 
     if (chosen != null && chosen != me.lang) {
       // Language preference is client-only (API has no lang field yet).
       if (!mounted) return;
       setState(() {
-        _future = Future.value(_UserVm(
-          email: me.email,
-          name: me.name,
-          img: me.img,
-          isAdmin: me.isAdmin,
-          lang: chosen,
-        ));
+        _future = Future.value(
+          _UserVm(
+            email: me.email,
+            name: me.name,
+            img: me.img,
+            isAdmin: me.isAdmin,
+            lang: chosen,
+          ),
+        );
       });
       if (!mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) => _captureNameBottom());
@@ -434,7 +464,11 @@ class _ThemeModeTile extends StatelessWidget {
             child: Row(
               children: [
                 const SizedBox(width: 16),
-                const Icon(Icons.brightness_6_outlined, size: 24, color: orange),
+                const Icon(
+                  Icons.brightness_6_outlined,
+                  size: 24,
+                  color: orange,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -533,7 +567,7 @@ class _LogoutConfirmDialog extends StatelessWidget {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 48),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      backgroundColor: Colors.white, // #FFFFFF
+      backgroundColor: Theme.of(context).colorScheme.surface,
       surfaceTintColor: Colors.transparent, // убираем розовый тинт
       elevation: 0,
       child: ConstrainedBox(
@@ -641,6 +675,7 @@ class _LogoutConfirmDialog extends StatelessWidget {
     );
   }
 }
+
 class _LanguageSheet extends StatefulWidget {
   const _LanguageSheet({this.initialLang = 'ru', required this.desiredHeight});
   final String initialLang;
@@ -675,7 +710,7 @@ class _LanguageSheetState extends State<_LanguageSheet> {
               offset: Offset(3, -12),
               blurRadius: 20,
               spreadRadius: 0,
-            )
+            ),
           ],
         ),
         child: SafeArea(
@@ -683,7 +718,8 @@ class _LanguageSheetState extends State<_LanguageSheet> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, // 👈 заголовок слева
+              crossAxisAlignment:
+                  CrossAxisAlignment.start, // 👈 заголовок слева
               children: [
                 Row(
                   children: [
@@ -694,7 +730,7 @@ class _LanguageSheetState extends State<_LanguageSheet> {
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w900,
                           fontSize: 24,
-                          height: 23/24,
+                          height: 23 / 24,
                           letterSpacing: 0,
                           color: titleColor,
                         ),
@@ -703,7 +739,11 @@ class _LanguageSheetState extends State<_LanguageSheet> {
                     // крестик без фона, сам икон цвета #D6D6D6
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, size: 20, color: Color(0xFFD6D6D6)),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 20,
+                        color: Color(0xFFD6D6D6),
+                      ),
                       splashRadius: 22,
                     ),
                   ],
@@ -795,7 +835,9 @@ class _LangRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = selected ? const Color(0xFFFF5E1C) : const Color(0xFF26351E);
+    final textColor = selected
+        ? const Color(0xFFFF5E1C)
+        : const Color(0xFF26351E);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -805,9 +847,7 @@ class _LangRow extends StatelessWidget {
           Container(
             width: 24,
             height: 24,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(shape: BoxShape.circle),
             clipBehavior: Clip.antiAlias,
             child: Image.asset(asset, fit: BoxFit.cover),
           ),

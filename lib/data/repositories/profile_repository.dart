@@ -16,10 +16,7 @@ class ProfileRepository {
   Future<UserModel> updateMe({String? name, String? phone}) async {
     final res = await _api.patch(
       '/users/me',
-      data: {
-        if (name != null) 'name': name,
-        if (phone != null) 'phone': phone,
-      },
+      data: {if (name != null) 'name': name, if (phone != null) 'phone': phone},
     );
     return UserModel.fromJson(asMap(res.data));
   }

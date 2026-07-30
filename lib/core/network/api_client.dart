@@ -15,21 +15,19 @@ class ApiClient {
     required TokenStore tokenStore,
     this.onSessionExpired,
     Dio? dio,
-  })  : _tokenStore = tokenStore,
-        _dio = dio ??
-            Dio(
-              BaseOptions(
-                baseUrl: config.apiV1Base,
-                connectTimeout: const Duration(seconds: 15),
-                receiveTimeout: const Duration(seconds: 20),
-                headers: {'Content-Type': 'application/json'},
-              ),
-            ) {
+  }) : _tokenStore = tokenStore,
+       _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               baseUrl: config.apiV1Base,
+               connectTimeout: const Duration(seconds: 15),
+               receiveTimeout: const Duration(seconds: 20),
+               headers: {'Content-Type': 'application/json'},
+             ),
+           ) {
     _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: _onRequest,
-        onError: _onError,
-      ),
+      InterceptorsWrapper(onRequest: _onRequest, onError: _onError),
     );
   }
 
@@ -46,51 +44,51 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     Options? options,
-  }) =>
-      _wrap(() => _dio.get<T>(
-            path,
-            queryParameters: queryParameters,
-            options: options,
-          ));
+  }) => _wrap(
+    () => _dio.get<T>(path, queryParameters: queryParameters, options: options),
+  );
 
   Future<Response<T>> post<T>(
     String path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
     Options? options,
-  }) =>
-      _wrap(() => _dio.post<T>(
-            path,
-            data: data,
-            queryParameters: queryParameters,
-            options: options,
-          ));
+  }) => _wrap(
+    () => _dio.post<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: options,
+    ),
+  );
 
   Future<Response<T>> patch<T>(
     String path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
     Options? options,
-  }) =>
-      _wrap(() => _dio.patch<T>(
-            path,
-            data: data,
-            queryParameters: queryParameters,
-            options: options,
-          ));
+  }) => _wrap(
+    () => _dio.patch<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: options,
+    ),
+  );
 
   Future<Response<T>> delete<T>(
     String path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
     Options? options,
-  }) =>
-      _wrap(() => _dio.delete<T>(
-            path,
-            data: data,
-            queryParameters: queryParameters,
-            options: options,
-          ));
+  }) => _wrap(
+    () => _dio.delete<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: options,
+    ),
+  );
 
   Future<Response<T>> _wrap<T>(Future<Response<T>> Function() run) async {
     try {

@@ -2,11 +2,7 @@ import 'package:dio/dio.dart';
 
 /// Normalized API / network error for UI and repositories.
 class ApiException implements Exception {
-  const ApiException({
-    required this.message,
-    this.statusCode,
-    this.code,
-  });
+  const ApiException({required this.message, this.statusCode, this.code});
 
   final String message;
   final int? statusCode;

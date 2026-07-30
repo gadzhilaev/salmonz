@@ -36,22 +36,22 @@ class ThemeController extends ChangeNotifier {
   }
 
   String labelRu() => switch (_mode) {
-        ThemeMode.system => 'Системная',
-        ThemeMode.light => 'Светлая',
-        ThemeMode.dark => 'Тёмная',
-      };
+    ThemeMode.system => 'Системная',
+    ThemeMode.light => 'Светлая',
+    ThemeMode.dark => 'Тёмная',
+  };
 
   static String _toStorage(ThemeMode mode) => switch (mode) {
-        ThemeMode.system => 'system',
-        ThemeMode.light => 'light',
-        ThemeMode.dark => 'dark',
-      };
+    ThemeMode.system => 'system',
+    ThemeMode.light => 'light',
+    ThemeMode.dark => 'dark',
+  };
 
   static ThemeMode _fromStorage(String? raw) => switch (raw) {
-        'light' => ThemeMode.light,
-        'dark' => ThemeMode.dark,
-        _ => ThemeMode.system,
-      };
+    'light' => ThemeMode.light,
+    'dark' => ThemeMode.dark,
+    _ => ThemeMode.system,
+  };
 }
 
 /// Provides [ThemeController] down the tree.

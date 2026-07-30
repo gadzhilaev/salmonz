@@ -38,7 +38,6 @@ class _ProductsPageState extends State<ProductsPage> {
 
   @override
   Widget build(BuildContext context) {
-    const bg = Color(0xFFFFFFFF);
     const arrowColor = Color(0xFFCDCDCD);
     const titleColor = Color(0xFF26351E);
 
@@ -46,7 +45,7 @@ class _ProductsPageState extends State<ProductsPage> {
     const double ls24 = 0.96;
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -68,8 +67,11 @@ class _ProductsPageState extends State<ProductsPage> {
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new,
-                              size: 20, color: arrowColor),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ),
@@ -135,9 +137,8 @@ class _ProductsPageState extends State<ProductsPage> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => ProductPage(
-                                            product: p,
-                                          ),
+                                          builder: (_) =>
+                                              ProductPage(product: p),
                                         ),
                                       );
                                     }
@@ -160,10 +161,7 @@ class _ProductsPageState extends State<ProductsPage> {
 }
 
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({
-    required this.product,
-    this.onTap,
-  });
+  const _ProductCard({required this.product, this.onTap});
 
   final ProductModel product;
   final VoidCallback? onTap;
@@ -198,12 +196,15 @@ class _ProductCard extends StatelessWidget {
                     child: Opacity(
                       opacity: inStock ? 1.0 : 0.3,
                       child: imageUrl.isEmpty
-                          ? const Center(child: Icon(Icons.restaurant_menu_outlined))
+                          ? const Center(
+                              child: Icon(Icons.restaurant_menu_outlined),
+                            )
                           : Image.network(
                               imageUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  const Center(child: Icon(Icons.restaurant_menu_outlined)),
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(Icons.restaurant_menu_outlined),
+                              ),
                             ),
                     ),
                   ),
@@ -270,27 +271,32 @@ class _ProductCard extends StatelessWidget {
                         key: const Key('addToCart'),
                         onPressed: inStock
                             ? () {
-                                Cart.instance.add(CartItem(
-                                  id: product.id,
-                                  name: product.name,
-                                  img: imageUrl,
-                                  price: price,
-                                  gramm: product.weight ?? 0,
-                                  amount: 1,
-                                  qty: 1,
-                                ));
+                                Cart.instance.add(
+                                  CartItem(
+                                    id: product.id,
+                                    name: product.name,
+                                    img: imageUrl,
+                                    price: price,
+                                    gramm: product.weight ?? 0,
+                                    amount: 1,
+                                    qty: 1,
+                                  ),
+                                );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                      content: Text('Добавлено в корзину')),
+                                    content: Text('Добавлено в корзину'),
+                                  ),
                                 );
                               }
                             : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: btnBg,
-                          disabledBackgroundColor:
-                              const Color(0xFFFF5E1C).withValues(alpha: 0.4),
-                          disabledForegroundColor:
-                              Colors.white.withValues(alpha: 0.8),
+                          disabledBackgroundColor: const Color(
+                            0xFFFF5E1C,
+                          ).withValues(alpha: 0.4),
+                          disabledForegroundColor: Colors.white.withValues(
+                            alpha: 0.8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(40),
                           ),

@@ -16,10 +16,32 @@
 /// - user: demo@example.com / ChangeMeDemo123!
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/main.dart' as app;
+
+Future<void> _assertApiReachable() async {
+  final base = AppServices.instance.config.apiBaseUrl;
+  final uri = Uri.parse('$base/api/v1/health/live');
+  final client = HttpClient();
+  try {
+    final req = await client.getUrl(uri).timeout(const Duration(seconds: 5));
+    final res = await req.close().timeout(const Duration(seconds: 5));
+    expect(
+      res.statusCode,
+      200,
+      reason: 'API not reachable at $uri (status ${res.statusCode})',
+    );
+  } on Object catch (e) {
+    fail('API not reachable at $uri: $e');
+  } finally {
+    client.close(force: true);
+  }
+}
 
 Future<void> _pumpApp(WidgetTester tester) async {
   await app.main();
@@ -62,10 +84,58 @@ Future<void> _login(
 }) async {
   await _ensureLoggedOut(tester);
   expect(find.byKey(const Key('loginEmail')), findsOneWidget);
-  await tester.enterText(find.byKey(const Key('loginEmail')), email);
-  await tester.enterText(find.byKey(const Key('loginPassword')), password);
+
+  // Clear any validation snackbars from prior interactions.
+  final messenger = ScaffoldMessenger.maybeOf(
+    tester.element(find.byType(MaterialApp)),
+  );
+  messenger?.clearSnackBars();
+  await tester.pump();
+
+  final emailField = find.byKey(const Key('loginEmail'));
+  final passField = find.byKey(const Key('loginPassword'));
+
+  await tester.tap(emailField);
+  await tester.pump();
+  await tester.enterText(emailField, email);
+  await tester.pump();
+
+  await tester.tap(passField);
+  await tester.pump();
+  await tester.enterText(passField, password);
+  await tester.pump();
+
+  // Dismiss keyboard so the submit button is hittable.
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
+
+  await tester.ensureVisible(find.byKey(const Key('loginSubmit')));
   await tester.tap(find.byKey(const Key('loginSubmit')));
-  await tester.pumpAndSettle(const Duration(seconds: 5));
+
+  // Wait until home chrome appears (network login + secure storage).
+  var reachedHome = false;
+  for (var i = 0; i < 60; i++) {
+    await tester.pump(const Duration(milliseconds: 250));
+    if (find.byKey(const Key('navHome')).evaluate().isNotEmpty ||
+        find.byKey(const Key('homeCategory')).evaluate().isNotEmpty ||
+        find.textContaining('Категорий').evaluate().isNotEmpty) {
+      reachedHome = true;
+      break;
+    }
+  }
+  await tester.pumpAndSettle(const Duration(seconds: 2));
+  if (!reachedHome) {
+    // Surface snackbar / still-on-login diagnostics.
+    final snacks = find.byType(SnackBar);
+    final snackText = snacks.evaluate().isEmpty
+        ? '(no snackbar)'
+        : tester.widget<SnackBar>(snacks.last).content.toString();
+    fail(
+      'Login did not reach home. Still on login='
+      '${find.byKey(const Key('loginSubmit')).evaluate().isNotEmpty}. '
+      'Snackbar=$snackText',
+    );
+  }
 }
 
 void main() {
@@ -84,6 +154,8 @@ void main() {
 
   testWidgets('demo login, cart, checkout quote, logout', (tester) async {
     await _pumpApp(tester);
+    expect(AppServices.instance.config.apiBaseUrl, contains('3000'));
+    await _assertApiReachable();
 
     await _login(
       tester,

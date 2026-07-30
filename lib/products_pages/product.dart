@@ -25,7 +25,7 @@ class ProductPage extends StatelessWidget {
     final gramm = product.weight ?? 0;
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -47,8 +47,11 @@ class ProductPage extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new,
-                              size: 20, color: arrowColor),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ),
@@ -81,13 +84,19 @@ class ProductPage extends StatelessWidget {
                             Positioned.fill(
                               child: img.isEmpty
                                   ? const Center(
-                                      child: Icon(Icons.restaurant_menu_outlined))
+                                      child: Icon(
+                                        Icons.restaurant_menu_outlined,
+                                      ),
+                                    )
                                   : Image.network(
                                       img,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) =>
                                           const Center(
-                                              child: Icon(Icons.restaurant_menu_outlined)),
+                                            child: Icon(
+                                              Icons.restaurant_menu_outlined,
+                                            ),
+                                          ),
                                     ),
                             ),
                           ],
@@ -152,18 +161,21 @@ class ProductPage extends StatelessWidget {
                           child: ElevatedButton(
                             key: const Key('addToCart'),
                             onPressed: () {
-                              Cart.instance.add(CartItem(
-                                id: product.id,
-                                name: product.name,
-                                img: img,
-                                price: product.price,
-                                gramm: gramm,
-                                amount: 1,
-                                qty: 1,
-                              ));
+                              Cart.instance.add(
+                                CartItem(
+                                  id: product.id,
+                                  name: product.name,
+                                  img: img,
+                                  price: product.price,
+                                  gramm: gramm,
+                                  amount: 1,
+                                  qty: 1,
+                                ),
+                              );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('Добавлено в корзину')),
+                                  content: Text('Добавлено в корзину'),
+                                ),
                               );
                             },
                             style: ElevatedButton.styleFrom(
@@ -171,8 +183,9 @@ class ProductPage extends StatelessWidget {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(40),
                               ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                             ),
                             child: const Text(
                               'ДОБАВИТЬ В КОРЗИНУ',

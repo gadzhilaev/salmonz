@@ -26,24 +26,24 @@ class CartItem {
   Money get subtotal => price * qty;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'img': img,
-        'price': price.asDouble,
-        'gramm': gramm,
-        'amount': amount,
-        'qty': qty,
-      };
+    'id': id,
+    'name': name,
+    'img': img,
+    'price': price.asDouble,
+    'gramm': gramm,
+    'amount': amount,
+    'qty': qty,
+  };
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-        id: json['id'].toString(),
-        name: json['name'] as String,
-        img: json['img'] as String,
-        price: Money.parse(json['price']),
-        gramm: (json['gramm'] as num?)?.toInt() ?? 0,
-        amount: (json['amount'] as num?)?.toInt() ?? 1,
-        qty: (json['qty'] as num?)?.toInt() ?? 1,
-      );
+    id: json['id'].toString(),
+    name: json['name'] as String,
+    img: json['img'] as String,
+    price: Money.parse(json['price']),
+    gramm: (json['gramm'] as num?)?.toInt() ?? 0,
+    amount: (json['amount'] as num?)?.toInt() ?? 1,
+    qty: (json['qty'] as num?)?.toInt() ?? 1,
+  );
 }
 
 class Cart extends ChangeNotifier {
@@ -66,10 +66,12 @@ class Cart extends ChangeNotifier {
       final decoded = jsonDecode(jsonStr) as List;
       _items
         ..clear()
-        ..addEntries(decoded.map((e) {
-          final item = CartItem.fromJson(Map<String, dynamic>.from(e as Map));
-          return MapEntry(item.id, item);
-        }));
+        ..addEntries(
+          decoded.map((e) {
+            final item = CartItem.fromJson(Map<String, dynamic>.from(e as Map));
+            return MapEntry(item.id, item);
+          }),
+        );
       notifyListeners();
     }
   }

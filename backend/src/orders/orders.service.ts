@@ -98,7 +98,7 @@ export class OrdersService {
     }
 
     const money = calcOrderMoney(priced);
-    const publicNumber = await this.nextPublicNumber();
+    const publicNumber = this.nextPublicNumber();
 
     const addressSnapshot = {
       title: address.title,
@@ -303,9 +303,13 @@ export class OrdersService {
     };
   }
 
-  private async nextPublicNumber(): Promise<string> {
-    const count = await this.prisma.order.count();
-    const n = count + 1;
-    return `SZ-${String(n).padStart(6, '0')}`;
+  private nextPublicNumber(): string {
+    // Time-based + random suffix avoids collisions under concurrent creates.
+    const stamp = Date.now().toString(36).toUpperCase();
+    const rand = Math.floor(Math.random() * 36 ** 4)
+      .toString(36)
+      .toUpperCase()
+      .padStart(4, '0');
+    return `SZ-${stamp}-${rand}`;
   }
 }

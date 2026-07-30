@@ -14,7 +14,6 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
-  static const bg = Color(0xFFFFFFFF);
   static const arrowColor = Color(0xFFCDCDCD);
   static const titleColor = Color(0xFF26351E);
   static const orange = Color(0xFFFF5E1C);
@@ -68,13 +67,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
       setState(() => _img = user.avatarUrl ?? '');
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -94,12 +95,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -116,7 +119,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -135,8 +138,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             child: IconButton(
                               padding: EdgeInsets.zero,
                               onPressed: () => Navigator.pop(context),
-                              icon: const Icon(Icons.arrow_back_ios_new,
-                                  size: 20, color: arrowColor),
+                              icon: const Icon(
+                                Icons.arrow_back_ios_new,
+                                size: 20,
+                                color: arrowColor,
+                              ),
                             ),
                           ),
                           Positioned(
@@ -176,21 +182,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 color: const Color(0xFFEFEFEF),
                                 child: _uploading
                                     ? const Center(
-                                        child: CircularProgressIndicator())
+                                        child: CircularProgressIndicator(),
+                                      )
                                     : (_img.isNotEmpty
-                                        ? Image.network(_img,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                const Icon(Icons.person,
-                                                    size: 56))
-                                        : const Icon(Icons.person, size: 56)),
+                                          ? Image.network(
+                                              _img,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) =>
+                                                  const Icon(
+                                                    Icons.person,
+                                                    size: 56,
+                                                  ),
+                                            )
+                                          : const Icon(Icons.person, size: 56)),
                               ),
                             ),
                             const CircleAvatar(
                               radius: 16,
                               backgroundColor: orange,
-                              child: Icon(Icons.camera_alt,
-                                  size: 16, color: Colors.white),
+                              child: Icon(
+                                Icons.camera_alt,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                             ),
                           ],
                         ),

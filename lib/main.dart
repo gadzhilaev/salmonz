@@ -21,11 +21,13 @@ Future<void> main() async {
 
   final user = await AppServices.instance.auth.restoreSession();
 
-  runApp(MyApp(
-    isLoggedIn: user != null,
-    isDemo: config.isDemo,
-    themeController: themeController,
-  ));
+  runApp(
+    MyApp(
+      isLoggedIn: user != null,
+      isDemo: config.isDemo,
+      themeController: themeController,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

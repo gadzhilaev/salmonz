@@ -10,7 +10,10 @@ class AdminRepository {
 
   // --- Categories ---
 
-  Future<List<CategoryModel>> listCategories({int page = 1, int limit = 100}) async {
+  Future<List<CategoryModel>> listCategories({
+    int page = 1,
+    int limit = 100,
+  }) async {
     final res = await _api.get(
       '/admin/categories',
       queryParameters: {'page': page, 'limit': limit},
@@ -23,7 +26,10 @@ class AdminRepository {
     return CategoryModel.fromJson(asMap(res.data));
   }
 
-  Future<CategoryModel> updateCategory(String id, Map<String, dynamic> body) async {
+  Future<CategoryModel> updateCategory(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     final res = await _api.patch('/admin/categories/$id', data: body);
     return CategoryModel.fromJson(asMap(res.data));
   }
@@ -55,7 +61,10 @@ class AdminRepository {
     return ProductModel.fromJson(asMap(res.data));
   }
 
-  Future<ProductModel> updateProduct(String id, Map<String, dynamic> body) async {
+  Future<ProductModel> updateProduct(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     final res = await _api.patch('/admin/products/$id', data: body);
     return ProductModel.fromJson(asMap(res.data));
   }
@@ -66,7 +75,10 @@ class AdminRepository {
 
   // --- Promotions ---
 
-  Future<List<PromotionModel>> listPromotions({int page = 1, int limit = 100}) async {
+  Future<List<PromotionModel>> listPromotions({
+    int page = 1,
+    int limit = 100,
+  }) async {
     final res = await _api.get(
       '/admin/promotions',
       queryParameters: {'page': page, 'limit': limit},
@@ -79,7 +91,10 @@ class AdminRepository {
     return PromotionModel.fromJson(asMap(res.data));
   }
 
-  Future<PromotionModel> updatePromotion(String id, Map<String, dynamic> body) async {
+  Future<PromotionModel> updatePromotion(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     final res = await _api.patch('/admin/promotions/$id', data: body);
     return PromotionModel.fromJson(asMap(res.data));
   }
@@ -117,7 +132,10 @@ class AdminRepository {
 
   // --- Support ---
 
-  Future<List<SupportMessageModel>> listSupport({int page = 1, int limit = 50}) async {
+  Future<List<SupportMessageModel>> listSupport({
+    int page = 1,
+    int limit = 50,
+  }) async {
     final res = await _api.get(
       '/admin/support',
       queryParameters: {'page': page, 'limit': limit},
@@ -129,7 +147,10 @@ class AdminRepository {
     return asMapList(data).map(SupportMessageModel.fromJson).toList();
   }
 
-  Future<SupportMessageModel> updateSupportStatus(String id, String status) async {
+  Future<SupportMessageModel> updateSupportStatus(
+    String id,
+    String status,
+  ) async {
     final res = await _api.patch(
       '/admin/support/$id/status',
       data: {'status': status},
@@ -156,22 +177,23 @@ class AdminRepository {
   Future<UploadResult> uploadProductImage({
     required String filePath,
     required String filename,
-  }) =>
-      _upload('/admin/uploads/product', filePath, filename);
+  }) => _upload('/admin/uploads/product', filePath, filename);
 
   Future<UploadResult> uploadCategoryImage({
     required String filePath,
     required String filename,
-  }) =>
-      _upload('/admin/uploads/category', filePath, filename);
+  }) => _upload('/admin/uploads/category', filePath, filename);
 
   Future<UploadResult> uploadPromotionImage({
     required String filePath,
     required String filename,
-  }) =>
-      _upload('/admin/uploads/promotion', filePath, filename);
+  }) => _upload('/admin/uploads/promotion', filePath, filename);
 
-  Future<UploadResult> _upload(String path, String filePath, String filename) async {
+  Future<UploadResult> _upload(
+    String path,
+    String filePath,
+    String filename,
+  ) async {
     final form = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath, filename: filename),
     });

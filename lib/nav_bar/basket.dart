@@ -23,7 +23,7 @@ class BasketPage extends StatelessWidget {
     final cart = Cart.instance;
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -35,7 +35,9 @@ class BasketPage extends StatelessWidget {
               Center(
                 child: Image.asset(
                   'assets/icon/logo_salmonz_small.png',
-                  width: 80, height: 62, fit: BoxFit.contain,
+                  width: 80,
+                  height: 62,
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 24),
@@ -119,12 +121,16 @@ class BasketPage extends StatelessWidget {
                         height: 56,
                         child: ElevatedButton(
                           key: const Key('cartCheckoutButton'),
-                          onPressed: cart.items.isEmpty ? null : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const CheckoutPage()),
-                            );
-                          },
+                          onPressed: cart.items.isEmpty
+                              ? null
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const CheckoutPage(),
+                                    ),
+                                  );
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: btnOrange,
                             shape: RoundedRectangleBorder(
@@ -161,19 +167,22 @@ class BasketPage extends StatelessWidget {
           switch (tab) {
             case AppTab.home:
               Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const SuccessPage()),
+                context,
+                MaterialPageRoute(builder: (_) => const SuccessPage()),
               );
               break;
             case AppTab.orders:
               Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const OrdersPage()),
+                context,
+                MaterialPageRoute(builder: (_) => const OrdersPage()),
               );
               break;
             case AppTab.basket:
               break;
             case AppTab.profile:
               Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const ProfilePage()),
+                context,
+                MaterialPageRoute(builder: (_) => const ProfilePage()),
               );
               break;
           }
@@ -181,7 +190,6 @@ class BasketPage extends StatelessWidget {
       ),
     );
   }
-
 }
 
 class _BasketTile extends StatelessWidget {
@@ -209,8 +217,11 @@ class _BasketTile extends StatelessWidget {
                 width: 120,
                 height: 80,
                 color: tileBg,
-                child: Image.network(item.img, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.restaurant_menu_outlined),
+                child: Image.network(
+                  item.img,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.restaurant_menu_outlined),
                 ),
               ),
             ),
@@ -302,12 +313,13 @@ class _BasketTile extends StatelessWidget {
         // крестик удалить — справа по центру высоты блока (80), отцентрируем
         Positioned(
           right: 0,
-          top: 80/2 - 12, // иконка 24 -> по центру
+          top: 80 / 2 - 12, // иконка 24 -> по центру
           child: InkWell(
             onTap: () => cart.remove(item.id),
             borderRadius: BorderRadius.circular(12),
             child: const SizedBox(
-              width: 24, height: 24,
+              width: 24,
+              height: 24,
               child: Icon(Icons.close, color: orange, size: 20),
             ),
           ),
@@ -315,7 +327,6 @@ class _BasketTile extends StatelessWidget {
       ],
     );
   }
-
 }
 
 class _SquareBtn extends StatelessWidget {
@@ -329,7 +340,8 @@ class _SquareBtn extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(2),
       child: Container(
-        width: 32, height: 32,
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
           color: const Color(0xFFFAFAFA),
           borderRadius: BorderRadius.circular(2),

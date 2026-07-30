@@ -78,8 +78,9 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
       });
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -92,8 +93,9 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
       Navigator.pop(context, true);
     } on ApiException catch (err) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(err.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(err.message)));
     }
   }
 
@@ -105,7 +107,8 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
     if (name.isEmpty || _categoryId == null || _imageKey == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Заполните название, категорию и картинку')),
+          content: Text('Заполните название, категорию и картинку'),
+        ),
       );
       return;
     }
@@ -123,15 +126,18 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
       if (widget.existing == null) {
         await AppServices.instance.admin.createProduct(body);
       } else {
-        await AppServices.instance.admin
-            .updateProduct(widget.existing!.id, body);
+        await AppServices.instance.admin.updateProduct(
+          widget.existing!.id,
+          body,
+        );
       }
       if (!mounted) return;
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -140,7 +146,7 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(widget.existing == null ? 'Новый товар' : 'Товар'),
         actions: [
@@ -152,26 +158,29 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Название')),
+            controller: _nameCtrl,
+            decoration: const InputDecoration(labelText: 'Название'),
+          ),
           TextField(
-              controller: _descCtrl,
-              decoration: const InputDecoration(labelText: 'Описание'),
-              maxLines: 3),
+            controller: _descCtrl,
+            decoration: const InputDecoration(labelText: 'Описание'),
+            maxLines: 3,
+          ),
           TextField(
-              controller: _priceCtrl,
-              decoration: const InputDecoration(labelText: 'Цена'),
-              keyboardType: TextInputType.number),
+            controller: _priceCtrl,
+            decoration: const InputDecoration(labelText: 'Цена'),
+            keyboardType: TextInputType.number,
+          ),
           TextField(
-              controller: _weightCtrl,
-              decoration: const InputDecoration(labelText: 'Вес (г)'),
-              keyboardType: TextInputType.number),
+            controller: _weightCtrl,
+            decoration: const InputDecoration(labelText: 'Вес (г)'),
+            keyboardType: TextInputType.number,
+          ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             initialValue: _categoryId,
             items: _cats
-                .map((c) =>
-                    DropdownMenuItem(value: c.id, child: Text(c.name)))
+                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
                 .toList(),
             onChanged: (v) => setState(() => _categoryId = v),
             decoration: const InputDecoration(labelText: 'Категория'),
@@ -192,8 +201,10 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
           ElevatedButton(
             onPressed: _saving ? null : _save,
             style: ElevatedButton.styleFrom(backgroundColor: orange),
-            child: const Text('СОХРАНИТЬ',
-                style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'СОХРАНИТЬ',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

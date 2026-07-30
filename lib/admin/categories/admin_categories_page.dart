@@ -135,15 +135,18 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
       if (widget.existing == null) {
         await AppServices.instance.admin.createCategory(body);
       } else {
-        await AppServices.instance.admin
-            .updateCategory(widget.existing!.id, body);
+        await AppServices.instance.admin.updateCategory(
+          widget.existing!.id,
+          body,
+        );
       }
       if (!mounted) return;
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -170,20 +173,25 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'Название')),
+            controller: _name,
+            decoration: const InputDecoration(labelText: 'Название'),
+          ),
           TextField(
-              controller: _slug,
-              decoration: const InputDecoration(labelText: 'Slug')),
+            controller: _slug,
+            decoration: const InputDecoration(labelText: 'Slug'),
+          ),
           if ((_imageUrl ?? '').isNotEmpty)
             Image.network(_imageUrl!, height: 120, fit: BoxFit.cover),
           TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
           ElevatedButton(
             onPressed: _saving ? null : _save,
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5E1C)),
-            child: const Text('СОХРАНИТЬ',
-                style: TextStyle(color: Colors.white)),
+              backgroundColor: const Color(0xFFFF5E1C),
+            ),
+            child: const Text(
+              'СОХРАНИТЬ',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

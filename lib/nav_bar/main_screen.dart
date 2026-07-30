@@ -15,7 +15,6 @@ class SuccessPage extends StatefulWidget {
 }
 
 class _SuccessPageState extends State<SuccessPage> {
-  static const Color bgPage = Color(0xFFFFFFFF);
   static const Color textDark = Color(0xFF26351E);
   static const Color orange = Color(0xFFFF5E1C);
   static const Color tileLight = Color(0xFFFAFAFA);
@@ -46,7 +45,7 @@ class _SuccessPageState extends State<SuccessPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgPage,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -92,7 +91,8 @@ class _SuccessPageState extends State<SuccessPage> {
                         );
                       }
 
-                      final data = snap.data ??
+                      final data =
+                          snap.data ??
                           const _HomeData(categories: [], promotions: []);
                       final items = data.categories;
 
@@ -118,7 +118,8 @@ class _SuccessPageState extends State<SuccessPage> {
                                 _promoPC?.dispose();
                                 _promoViewport = viewportFraction;
                                 _promoPC = PageController(
-                                    viewportFraction: viewportFraction);
+                                  viewportFraction: viewportFraction,
+                                );
                               }
                               return _promoPC!;
                             },
@@ -128,7 +129,24 @@ class _SuccessPageState extends State<SuccessPage> {
                             builder: (context, constraints) {
                               const gap = 8.0;
                               final maxW = constraints.maxWidth;
-                              final tileW = (maxW - gap) / 2;
+                              final columns = maxW >= 900
+                                  ? 4
+                                  : maxW >= 600
+                                  ? 3
+                                  : 2;
+                              final tileW =
+                                  (maxW - gap * (columns - 1)) / columns;
+                              final isDark =
+                                  Theme.of(context).brightness ==
+                                  Brightness.dark;
+                              final tileBg = isDark
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest
+                                  : tileLight;
+                              final mutedTitle = isDark
+                                  ? Theme.of(context).colorScheme.onSurface
+                                  : textDark;
 
                               return Wrap(
                                 alignment: WrapAlignment.start,
@@ -158,10 +176,10 @@ class _SuccessPageState extends State<SuccessPage> {
                                         title: it.name,
                                         imagePath: it.imageUrl ?? '',
                                         radius: 12,
-                                        bgColor: isFirst ? orange : tileLight,
+                                        bgColor: isFirst ? orange : tileBg,
                                         titleColor: isFirst
                                             ? Colors.white
-                                            : textDark,
+                                            : mutedTitle,
                                         fontWeight: isFirst
                                             ? FontWeight.w900
                                             : FontWeight.w700,
@@ -288,10 +306,7 @@ class _CategoryCard extends StatelessWidget {
 }
 
 class _PromosSection extends StatelessWidget {
-  const _PromosSection({
-    required this.promos,
-    required this.controllerBuilder,
-  });
+  const _PromosSection({required this.promos, required this.controllerBuilder});
 
   final List<PromotionModel> promos;
   final PageController Function(double viewportFraction) controllerBuilder;
@@ -304,8 +319,7 @@ class _PromosSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visible =
-        promos.where((p) => (p.imageUrl ?? '').isNotEmpty).toList();
+    final visible = promos.where((p) => (p.imageUrl ?? '').isNotEmpty).toList();
     if (visible.isEmpty) return const SizedBox.shrink();
 
     final screenW = MediaQuery.of(context).size.width;
