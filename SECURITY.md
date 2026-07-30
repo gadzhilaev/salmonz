@@ -27,3 +27,9 @@ We will try to acknowledge reports when possible. There is no bug bounty program
 - Include production secrets or personal data in reports
 - Demand immediate response for a demo project
 - Test against systems you do not own
+
+## Historical note (Supabase)
+
+This project was previously prototyped with Supabase. The **current** default-branch runtime uses Flutter + NestJS + Prisma + PostgreSQL and does **not** use Supabase.
+
+Any old hosted Supabase project from early history should be disabled or have its keys rotated by the owner. Do not treat historical commits as the current architecture.
