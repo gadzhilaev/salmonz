@@ -48,16 +48,18 @@ describe('Orders domain rules', () => {
 describe('OrdersService.quote', () => {
   const userId = 'user-1';
 
-  function makeService(products: Array<{
-    id: string;
-    name: string;
-    price: number;
-    isAvailable: boolean;
-  }>) {
+  function makeService(
+    products: Array<{
+      id: string;
+      name: string;
+      price: number;
+      isAvailable: boolean;
+    }>,
+  ) {
     const prisma = {
       product: {
-        findMany: jest.fn(async ({ where }: { where: { id: { in: string[] } } }) =>
-          products.filter((p) => where.id.in.includes(p.id)),
+        findMany: jest.fn(({ where }: { where: { id: { in: string[] } } }) =>
+          Promise.resolve(products.filter((p) => where.id.in.includes(p.id))),
         ),
       },
       order: {
