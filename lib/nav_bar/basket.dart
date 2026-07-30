@@ -1,36 +1,36 @@
 import 'package:flutter/material.dart';
-import "package:salmonz/widgets/app_nav_bar.dart";
-import 'main_screen.dart';
-import 'orders.dart';
-import 'package:salmonz/nav_bar/profile.dart';
-import 'package:salmonz/widgets/cart.dart';
+import 'package:salmonz/core/responsive/app_breakpoints.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/pages/checkout_page.dart';
+import 'package:salmonz/widgets/cart.dart';
 
 class BasketPage extends StatelessWidget {
-  const BasketPage({super.key});
+  const BasketPage({super.key, this.embedded = false});
 
-  static const bg = Colors.white;
+  final bool embedded;
+
   static const textDark = Color(0xFF26351E);
   static const gray2828 = Color(0xFF282828);
   static const btnOrange = Color(0xFFFF5E1C);
   static const tileBg = Color(0xFFFAFAFA);
 
   static const double hLogo = 62;
-  static const double ls24 = 0.96; // 4% от 24
+  static const double ls24 = 0.96;
 
   @override
   Widget build(BuildContext context) {
     final cart = Cart.instance;
+    final width = MediaQuery.sizeOf(context).width;
+    final scale = AppBreakpoints.typeScale(width);
+    final controlH = AppBreakpoints.controlHeight(width);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // логотип как в других экранах
               const SizedBox(height: 4),
               Center(
                 child: Image.asset(
@@ -41,16 +41,14 @@ class BasketPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // КОРЗИНА
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'КОРЗИНА',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w900,
-                    fontSize: 24,
+                    fontSize: 24 * scale,
                     height: 1.0,
                     letterSpacing: ls24,
                     color: textDark,
@@ -58,8 +56,6 @@ class BasketPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // контент — слушаем корзину
               Expanded(
                 child: AnimatedBuilder(
                   animation: cart,
@@ -74,14 +70,12 @@ class BasketPage extends StatelessWidget {
                       separatorBuilder: (_, __) => const SizedBox(height: 16),
                       itemBuilder: (context, i) {
                         final it = items[i];
-                        return _BasketTile(item: it);
+                        return _BasketTile(item: it, scale: scale);
                       },
                     );
                   },
                 ),
               ),
-
-              // итого + кнопка
               AnimatedBuilder(
                 animation: cart,
                 builder: (_, __) {
@@ -91,12 +85,12 @@ class BasketPage extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
+                          Text(
                             'ИТОГО:',
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w700,
-                              fontSize: 24,
+                              fontSize: 24 * scale,
                               height: 1.0,
                               letterSpacing: ls24,
                               color: textDark,
@@ -105,10 +99,10 @@ class BasketPage extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             cart.totalSum.formatRub(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
-                              fontSize: 24,
+                              fontSize: 24 * scale,
                               height: 1.0,
                               color: Colors.black,
                             ),
@@ -118,7 +112,7 @@ class BasketPage extends StatelessWidget {
                       const SizedBox(height: 40),
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
+                        height: controlH,
                         child: ElevatedButton(
                           key: const Key('cartCheckoutButton'),
                           onPressed: cart.items.isEmpty
@@ -144,7 +138,7 @@ class BasketPage extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
                               height: 1.0,
-                              letterSpacing: 0.48, // 4%
+                              letterSpacing: 0.48,
                               color: Colors.white,
                             ),
                           ),
@@ -159,42 +153,14 @@ class BasketPage extends StatelessWidget {
           ),
         ),
       ),
-
-      // нижний навбар
-      bottomNavigationBar: AppNavBar(
-        current: AppTab.basket,
-        onTap: (tab) {
-          switch (tab) {
-            case AppTab.home:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const SuccessPage()),
-              );
-              break;
-            case AppTab.orders:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const OrdersPage()),
-              );
-              break;
-            case AppTab.basket:
-              break;
-            case AppTab.profile:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfilePage()),
-              );
-              break;
-          }
-        },
-      ),
     );
   }
 }
 
 class _BasketTile extends StatelessWidget {
-  const _BasketTile({required this.item});
+  const _BasketTile({required this.item, required this.scale});
   final CartItem item;
+  final double scale;
 
   static const textDark = Color(0xFF26351E);
   static const gray2828 = Color(0xFF282828);
@@ -210,7 +176,6 @@ class _BasketTile extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // картинка 120 x 80, r=8, background-image
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Container(
@@ -226,38 +191,32 @@ class _BasketTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-
-            // правый блок
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // название (верх карточки)
                   Text(
                     item.name.toUpperCase(),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      height: 1.3, // 130%
-                      letterSpacing: 0.56, // 4% от 14
+                      fontSize: 14 * scale,
+                      height: 1.3,
+                      letterSpacing: 0.56,
                       color: textDark,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
-                  // "NN шт." + цена (за 1 * qty) справа с отступом 16
                   Row(
                     children: [
                       Text(
                         '${item.amount} шт',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w400,
-                          fontSize: 14,
+                          fontSize: 14 * scale,
                           height: 22 / 14,
                           color: gray2828,
                         ),
@@ -265,20 +224,17 @@ class _BasketTile extends StatelessWidget {
                       const SizedBox(width: 16),
                       Text(
                         item.subtotal.formatRub(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
-                          fontSize: 16,
+                          fontSize: 16 * scale,
                           height: 1.0,
                           color: Colors.black,
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 10),
-
-                  // − qty +
                   Row(
                     children: [
                       _SquareBtn(
@@ -288,17 +244,16 @@ class _BasketTile extends StatelessWidget {
                       const SizedBox(width: 16),
                       Text(
                         '${item.qty}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w400,
-                          fontSize: 16,
+                          fontSize: 16 * scale,
                           height: 1.0,
                           color: Colors.black,
                         ),
                       ),
                       const SizedBox(width: 16),
                       _SquareBtn(
-                        // та же кнопка, но «вправо»
                         icon: Icons.arrow_forward_ios,
                         onTap: () => cart.inc(item.id),
                       ),
@@ -309,11 +264,9 @@ class _BasketTile extends StatelessWidget {
             ),
           ],
         ),
-
-        // крестик удалить — справа по центру высоты блока (80), отцентрируем
         Positioned(
           right: 0,
-          top: 80 / 2 - 12, // иконка 24 -> по центру
+          top: 80 / 2 - 12,
           child: InkWell(
             onTap: () => cart.remove(item.id),
             borderRadius: BorderRadius.circular(12),

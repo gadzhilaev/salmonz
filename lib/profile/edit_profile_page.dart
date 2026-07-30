@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import '../utils/ru_phone_formatter.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -123,8 +124,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
-            : Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+            : AppPageContainer.form(
                 child: ListView(
                   children: [
                     SizedBox(

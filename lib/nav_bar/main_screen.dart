@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/responsive/app_breakpoints.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
+import 'package:salmonz/core/responsive/responsive_grid.dart';
 import 'package:salmonz/data/models/models.dart';
-import '../products_pages/products.dart';
-import '../widgets/app_nav_bar.dart';
-import 'orders.dart';
-import 'basket.dart';
-import 'profile.dart';
+import 'package:salmonz/products_pages/products.dart';
+import 'package:salmonz/widgets/app_network_image.dart';
 
 class SuccessPage extends StatefulWidget {
-  const SuccessPage({super.key});
+  const SuccessPage({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   State<SuccessPage> createState() => _SuccessPageState();
@@ -47,10 +49,9 @@ class _SuccessPageState extends State<SuccessPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 4),
               Center(
@@ -106,36 +107,75 @@ class _SuccessPageState extends State<SuccessPage> {
                         );
                       }
 
+                      final width = MediaQuery.sizeOf(context).width;
+                      final scale = AppBreakpoints.typeScale(width);
+                      final categoryHeight = width >= AppBreakpoints.compactMax
+                          ? 190.0
+                          : 160.0;
+
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: [
                           const SizedBox(height: 12),
-                          _PromosSection(
-                            promos: data.promotions,
-                            controllerBuilder: (viewportFraction) {
-                              if (_promoPC == null ||
-                                  _promoViewport != viewportFraction) {
-                                _promoPC?.dispose();
-                                _promoViewport = viewportFraction;
-                                _promoPC = PageController(
-                                  viewportFraction: viewportFraction,
-                                );
-                              }
-                              return _promoPC!;
-                            },
+                          if (data.promotions.isNotEmpty) ...[
+                            Text(
+                              'АКЦИИ',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w900,
+                                fontSize: 20 * scale,
+                                letterSpacing: 0.8,
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Theme.of(context).colorScheme.onSurface
+                                    : textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _PromosSection(
+                              promos: data.promotions,
+                              controllerBuilder: (viewportFraction) {
+                                if (_promoPC == null ||
+                                    _promoViewport != viewportFraction) {
+                                  _promoPC?.dispose();
+                                  _promoViewport = viewportFraction;
+                                  _promoPC = PageController(
+                                    viewportFraction: viewportFraction,
+                                  );
+                                }
+                                return _promoPC!;
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                          Text(
+                            'МЕНЮ',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 20 * scale,
+                              letterSpacing: 0.8,
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Theme.of(context).colorScheme.onSurface
+                                  : textDark,
+                            ),
                           ),
-                          const SizedBox(height: 24),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              const gap = 8.0;
-                              final maxW = constraints.maxWidth;
-                              final columns = maxW >= 900
-                                  ? 4
-                                  : maxW >= 600
-                                  ? 3
-                                  : 2;
-                              final tileW =
-                                  (maxW - gap * (columns - 1)) / columns;
+                          const SizedBox(height: 12),
+                          ResponsiveGrid(
+                            itemCount: items.length,
+                            minCardWidth: width >= AppBreakpoints.compactMax
+                                ? 300
+                                : 240,
+                            maxColumns: width >= AppBreakpoints.mediumMax
+                                ? 4
+                                : 3,
+                            itemHeight: categoryHeight,
+                            itemBuilder: (context, i, tileW) {
+                              final it = items[i];
+                              final isFirst = i == 0;
                               final isDark =
                                   Theme.of(context).brightness ==
                                   Brightness.dark;
@@ -148,49 +188,37 @@ class _SuccessPageState extends State<SuccessPage> {
                                   ? Theme.of(context).colorScheme.onSurface
                                   : textDark;
 
-                              return Wrap(
-                                alignment: WrapAlignment.start,
-                                crossAxisAlignment: WrapCrossAlignment.start,
-                                runAlignment: WrapAlignment.start,
-                                spacing: gap,
-                                runSpacing: gap,
-                                children: List.generate(items.length, (i) {
-                                  final it = items[i];
-                                  final isFirst = i == 0;
-                                  return SizedBox(
-                                    width: tileW,
-                                    height: 160,
-                                    child: InkWell(
-                                      key: const Key('homeCategory'),
-                                      borderRadius: BorderRadius.circular(12),
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => ProductsPage(
-                                            title: it.name,
-                                            categoryId: it.id,
-                                          ),
-                                        ),
-                                      ),
-                                      child: _CategoryCard(
-                                        title: it.name,
-                                        imagePath: it.imageUrl ?? '',
-                                        radius: 12,
-                                        bgColor: isFirst ? orange : tileBg,
-                                        titleColor: isFirst
-                                            ? Colors.white
-                                            : mutedTitle,
-                                        fontWeight: isFirst
-                                            ? FontWeight.w900
-                                            : FontWeight.w700,
-                                        letterSpacing: 0.72,
-                                      ),
+                              return InkWell(
+                                key: i == 0 ? const Key('homeCategory') : null,
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ProductsPage(
+                                      title: it.name,
+                                      categoryId: it.id,
                                     ),
-                                  );
-                                }),
+                                  ),
+                                ),
+                                child: _CategoryCard(
+                                  title: it.name,
+                                  imageUrl: it.imageUrl,
+                                  slug: it.slug,
+                                  radius: 12,
+                                  bgColor: isFirst ? orange : tileBg,
+                                  titleColor: isFirst
+                                      ? Colors.white
+                                      : mutedTitle,
+                                  fontWeight: isFirst
+                                      ? FontWeight.w900
+                                      : FontWeight.w700,
+                                  letterSpacing: 0.72,
+                                  titleScale: scale,
+                                ),
                               );
                             },
                           ),
+                          const SizedBox(height: 16),
                         ],
                       );
                     },
@@ -200,33 +228,6 @@ class _SuccessPageState extends State<SuccessPage> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: AppNavBar(
-        current: AppTab.home,
-        onTap: (tab) {
-          switch (tab) {
-            case AppTab.home:
-              break;
-            case AppTab.orders:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const OrdersPage()),
-              );
-              break;
-            case AppTab.basket:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const BasketPage()),
-              );
-              break;
-            case AppTab.profile:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfilePage()),
-              );
-              break;
-          }
-        },
       ),
     );
   }
@@ -238,49 +239,82 @@ class _HomeData {
   final List<PromotionModel> promotions;
 }
 
+String _categoryAssetFallback(String slug, String name) {
+  final s = slug.toLowerCase();
+  final n = name.toLowerCase();
+  if (s.contains('roll') || n.contains('ролл')) {
+    return 'assets/main/rolls.png';
+  }
+  if (s.contains('set') || n.contains('сет')) {
+    return 'assets/main/sets.png';
+  }
+  if (s.contains('sushi') || n.contains('суши')) {
+    return 'assets/main/sushi.png';
+  }
+  if (s.contains('drink') ||
+      s.contains('bottle') ||
+      n.contains('напит') ||
+      n.contains('бутыл')) {
+    return 'assets/main/bootls.png';
+  }
+  if (s.contains('sauce') || s.contains('sous') || n.contains('соус')) {
+    return 'assets/main/souses.png';
+  }
+  if (s.contains('cake') || n.contains('торт') || n.contains('десерт')) {
+    return 'assets/main/cakes.png';
+  }
+  if (s.contains('lapsha') || s.contains('noodle') || n.contains('лапш')) {
+    return 'assets/main/lapsha.png';
+  }
+  if (s.contains('zakusk') || n.contains('закуск')) {
+    return 'assets/main/zakuski.png';
+  }
+  return AppNetworkImage.defaultCategoryAsset;
+}
+
 class _CategoryCard extends StatelessWidget {
   const _CategoryCard({
     required this.title,
-    required this.imagePath,
+    required this.imageUrl,
+    required this.slug,
     required this.radius,
     required this.bgColor,
     required this.titleColor,
     required this.fontWeight,
     required this.letterSpacing,
+    required this.titleScale,
   });
 
   final String title;
-  final String imagePath;
+  final String? imageUrl;
+  final String slug;
   final double radius;
   final Color bgColor;
   final Color titleColor;
   final FontWeight fontWeight;
   final double letterSpacing;
-
-  bool get _isUrl => imagePath.startsWith('http');
+  final double titleScale;
 
   @override
   Widget build(BuildContext context) {
+    final fallback = _categoryAssetFallback(slug, title);
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: Stack(
         fit: StackFit.expand,
         children: [
           Container(color: bgColor),
-          if (imagePath.isNotEmpty)
-            Positioned.fill(
-              child: Align(
-                alignment: Alignment.bottomRight,
-                child: _isUrl
-                    ? Image.network(
-                        imagePath,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.restaurant_menu_outlined),
-                      )
-                    : Image.asset(imagePath, fit: BoxFit.contain),
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.bottomRight,
+              child: AppNetworkImage(
+                url: imageUrl,
+                fit: BoxFit.contain,
+                assetFallback: fallback,
               ),
             ),
+          ),
           Positioned(
             left: 16,
             right: 16,
@@ -291,7 +325,7 @@ class _CategoryCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 18,
+                fontSize: 18 * titleScale,
                 height: 1.0,
                 fontWeight: fontWeight,
                 letterSpacing: letterSpacing,
@@ -311,57 +345,104 @@ class _PromosSection extends StatelessWidget {
   final List<PromotionModel> promos;
   final PageController Function(double viewportFraction) controllerBuilder;
 
-  static const double cardW = 220;
-  static const double cardH = 330;
   static const double radius = 12;
-  static const double between = 8;
+  static const double between = 12;
   static const tileBg = Color(0xFFFAFAFA);
 
   @override
   Widget build(BuildContext context) {
-    final visible = promos.where((p) => (p.imageUrl ?? '').isNotEmpty).toList();
-    if (visible.isEmpty) return const SizedBox.shrink();
+    if (promos.isEmpty) return const SizedBox.shrink();
 
-    final screenW = MediaQuery.of(context).size.width;
-    const sidePadding = 12.0;
-    final pageW = screenW - sidePadding * 2;
-    final viewportFraction = ((cardW + between) / pageW).clamp(0.3, 1.0);
-    final pc = controllerBuilder(viewportFraction);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final pageW = constraints.maxWidth;
+        final bp = AppBreakpoints.ofWidth(MediaQuery.sizeOf(context).width);
+        final isTablet = bp != AppBreakpoint.compact;
 
-    return SizedBox(
-      height: cardH,
-      child: PageView.builder(
-        controller: pc,
-        padEnds: false,
-        itemCount: visible.length,
-        itemBuilder: (context, index) {
-          final isLast = index == visible.length - 1;
-          return Padding(
-            padding: EdgeInsets.only(right: isLast ? 0 : between),
-            child: SizedBox(
-              width: cardW,
-              height: cardH,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(radius),
-                child: ColoredBox(
-                  color: tileBg,
-                  child: ((visible[index].imageUrl ?? '').isEmpty)
-                      ? const Center(
-                          child: Icon(Icons.restaurant_menu_outlined),
-                        )
-                      : Image.network(
-                          visible[index].imageUrl!,
+        // Single promo fills most of the row; multiple stay carousel-sized.
+        final cardW = promos.length == 1
+            ? pageW
+            : (isTablet
+                  ? (pageW * 0.72).clamp(320.0, 640.0)
+                  : (pageW * 0.85).clamp(220.0, 360.0));
+        final cardH = isTablet ? 280.0 : 220.0;
+        final viewportFraction = promos.length == 1
+            ? 1.0
+            : ((cardW + between) / pageW).clamp(0.45, 0.95);
+        final pc = controllerBuilder(viewportFraction);
+
+        return SizedBox(
+          height: cardH,
+          width: pageW,
+          child: PageView.builder(
+            controller: pc,
+            padEnds: false,
+            itemCount: promos.length,
+            itemBuilder: (context, index) {
+              final promo = promos[index];
+              final isLast = index == promos.length - 1;
+              final hasTitle = promo.title.trim().isNotEmpty;
+
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: promos.length == 1 || isLast ? 0 : between,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(radius),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ColoredBox(
+                        color: tileBg,
+                        child: AppNetworkImage(
+                          url: promo.imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(Icons.restaurant_menu_outlined),
+                          assetFallback: AppNetworkImage.defaultPromoAsset,
+                        ),
+                      ),
+                      if (hasTitle)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.65),
+                                ],
+                              ),
+                            ),
+                            child: Text(
+                              promo.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                                fontSize:
+                                    16 *
+                                    AppBreakpoints.typeScale(
+                                      MediaQuery.sizeOf(context).width,
+                                    ),
+                                height: 1.2,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

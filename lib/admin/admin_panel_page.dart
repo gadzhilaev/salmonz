@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:salmonz/core/responsive/app_breakpoints.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
+import 'package:salmonz/core/responsive/responsive_grid.dart';
 import 'users/users_list_page.dart';
 import 'promotions/promotions_list_page.dart';
 import 'orders/admin_orders_page.dart';
@@ -8,37 +11,46 @@ import 'products/admin_products_page.dart';
 class AdminPanelPage extends StatelessWidget {
   const AdminPanelPage({super.key});
 
-  // цвета/константы как в products.dart
-  static const bg = Color(0xFFFFFFFF);
   static const arrowColor = Color(0xFFCDCDCD);
   static const titleDark = Color(0xFF26351E);
   static const orange = Color(0xFFFF5E1C);
 
   static const double hLogo = 62;
-  static const double ls24 = 0.96; // 4% от 24
+  static const double ls24 = 0.96;
+
+  static const _menuItems = [
+    _AdminMenuItem('Список акций', PromotionsListPage.new),
+    _AdminMenuItem('Список пользователей', UsersListPage.new),
+    _AdminMenuItem('Список заказов', AdminOrdersPage.new),
+    _AdminMenuItem('Список товаров', AdminProductsPage.new),
+    _AdminMenuItem('Список категорий', AdminCategoriesPage.new),
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final scale = AppBreakpoints.typeScale(width);
+    final tileH = AppBreakpoints.controlHeight(width);
+    final isCompact = AppBreakpoints.ofWidth(width) == AppBreakpoint.compact;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- APPBAR как в products.dart ---
               SizedBox(
                 height: hLogo + 26,
                 child: Stack(
                   alignment: Alignment.topCenter,
                   children: [
                     Positioned(
-                      left: 20,
+                      left: 0,
                       top: 26,
                       child: SizedBox(
-                        width: 24,
-                        height: 24,
+                        width: tileH,
+                        height: tileH,
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
@@ -63,96 +75,63 @@ class AdminPanelPage extends StatelessWidget {
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // --- ЗАГОЛОВОК ---
-              const Padding(
-                padding: EdgeInsets.only(left: 12),
-                child: Text(
-                  'АДМИН ПАНЕЛЬ',
-                  // Inter Black 24, 100%, letter-spacing 4%, CAPS
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w900,
-                    fontSize: 24,
-                    height: 1.0,
-                    letterSpacing: ls24, // 4%
-                    color: titleDark, // #26351E
-                  ),
+              Text(
+                'АДМИН ПАНЕЛЬ',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 24 * scale,
+                  height: 1.0,
+                  letterSpacing: ls24,
+                  color: titleDark,
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // --- СПИСОК КНОПОК ---
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    // admin_panel_page.dart (фрагмент внутри ListView)
-                    _AdminTile(
-                      text: 'Список акций',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PromotionsListPage(),
+                child: isCompact
+                    ? ListView(
+                        children: [
+                          for (final item in _menuItems) ...[
+                            _AdminTile(
+                              text: item.label,
+                              height: tileH,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => item.builder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          const SizedBox(height: 16),
+                        ],
+                      )
+                    : ListView(
+                        children: [
+                          ResponsiveGrid(
+                            itemCount: _menuItems.length,
+                            minCardWidth: 260,
+                            maxColumns: 2,
+                            itemHeight: tileH + 8,
+                            itemBuilder: (context, index, tileW) {
+                              final item = _menuItems[index];
+                              return _AdminTile(
+                                text: item.label,
+                                height: tileH,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => item.builder(),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    _AdminTile(
-                      text: 'Список пользователей',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const UsersListPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    _AdminTile(
-                      text: 'Список заказов',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AdminOrdersPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    _AdminTile(
-                      text: 'Список товаров',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AdminProductsPage(),
-                        ),
+                          const SizedBox(height: 16),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    _AdminTile(
-                      text: 'Список категорий',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AdminCategoriesPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    _AdminTile(text: 'Список обращений'),
-                    SizedBox(height: 16),
-                  ],
-                ),
               ),
             ],
           ),
@@ -162,9 +141,16 @@ class AdminPanelPage extends StatelessWidget {
   }
 }
 
+class _AdminMenuItem {
+  const _AdminMenuItem(this.label, this.builder);
+  final String label;
+  final Widget Function() builder;
+}
+
 class _AdminTile extends StatelessWidget {
-  const _AdminTile({required this.text, this.onTap});
+  const _AdminTile({required this.text, required this.height, this.onTap});
   final String text;
+  final double height;
   final VoidCallback? onTap;
 
   static const orange = Color(0xFFFF5E1C);
@@ -173,33 +159,28 @@ class _AdminTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(10000),
-      onTap: onTap, // потом сюда подставишь переходы на экраны
+      onTap: onTap,
       child: Container(
-        height: 48,
+        height: height,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10000),
-          border: Border.all(color: orange, width: 1), // 1px solid #FF5E1C
+          border: Border.all(color: orange, width: 1),
         ),
         child: Row(
           children: [
             const SizedBox(width: 16),
-            // иконка как у «Заказы» в нижней навигации
             const Icon(Icons.format_list_bulleted, size: 24, color: orange),
             const SizedBox(width: 12),
-            // текст по центру по высоте, сверху/снизу по 16
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(
-                  text,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w400,
-                    fontSize: 14,
-                    height: 1.0,
-                    letterSpacing: 0,
-                    color: Colors.black,
-                  ),
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 14,
+                  height: 1.0,
+                  letterSpacing: 0,
+                  color: Colors.black,
                 ),
               ),
             ),

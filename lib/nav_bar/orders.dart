@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/responsive/app_breakpoints.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
 import '../pages/order_details_page.dart';
-import '../widgets/app_nav_bar.dart';
-import 'main_screen.dart';
-import 'basket.dart';
-import 'profile.dart';
 
 class OrdersPage extends StatefulWidget {
-  const OrdersPage({super.key});
+  const OrdersPage({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   State<OrdersPage> createState() => _OrdersPageState();
@@ -54,11 +54,12 @@ class _OrdersPageState extends State<OrdersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = AppBreakpoints.typeScale(MediaQuery.sizeOf(context).width);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer(
           child: Column(
             children: [
               const SizedBox(height: 4),
@@ -104,21 +105,21 @@ class _OrdersPageState extends State<OrdersPage> {
                         itemCount: orders.length + 1,
                         itemBuilder: (context, index) {
                           if (index == 0) {
-                            return const Column(
+                            return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SizedBox(height: 24),
+                                const SizedBox(height: 24),
                                 Text(
                                   'ЗАКАЗЫ',
                                   style: TextStyle(
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 24,
+                                    fontSize: 24 * scale,
                                     letterSpacing: ls24,
                                     color: titleDark,
                                   ),
                                 ),
-                                SizedBox(height: 24),
+                                const SizedBox(height: 24),
                               ],
                             );
                           }
@@ -149,30 +150,30 @@ class _OrdersPageState extends State<OrdersPage> {
                                       o.publicNumber.isNotEmpty
                                           ? o.publicNumber
                                           : 'Заказ',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w700,
-                                        fontSize: 16,
+                                        fontSize: 16 * scale,
                                         color: titleDark,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
                                       _fmtDate(o.createdAt),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'Inter',
-                                        fontSize: 14,
-                                        color: Color(0xFF282828),
+                                        fontSize: 14 * scale,
+                                        color: const Color(0xFF282828),
                                       ),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
                                       '${_statusRu(o.status)} · ${o.total.formatRub()}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'Inter',
-                                        fontSize: 14,
+                                        fontSize: 14 * scale,
                                         fontWeight: FontWeight.w500,
-                                        color: Color(0xFFFF5E1C),
+                                        color: const Color(0xFFFF5E1C),
                                       ),
                                     ),
                                   ],
@@ -189,33 +190,6 @@ class _OrdersPageState extends State<OrdersPage> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: AppNavBar(
-        current: AppTab.orders,
-        onTap: (tab) {
-          switch (tab) {
-            case AppTab.home:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const SuccessPage()),
-              );
-              break;
-            case AppTab.orders:
-              break;
-            case AppTab.basket:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const BasketPage()),
-              );
-              break;
-            case AppTab.profile:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfilePage()),
-              );
-              break;
-          }
-        },
       ),
     );
   }

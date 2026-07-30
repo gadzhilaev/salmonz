@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:salmonz/core/responsive/app_breakpoints.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
 import '../widgets/cart.dart';
 
@@ -23,12 +25,14 @@ class ProductPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final img = product.imageUrl ?? '';
     final gramm = product.weight ?? 0;
+    final width = MediaQuery.sizeOf(context).width;
+    final scale = AppBreakpoints.typeScale(width);
+    final controlH = AppBreakpoints.controlHeight(width);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -38,11 +42,11 @@ class ProductPage extends StatelessWidget {
                   alignment: Alignment.topCenter,
                   children: [
                     Positioned(
-                      left: 20,
+                      left: 0,
                       top: 26,
                       child: SizedBox(
-                        width: 24,
-                        height: 24,
+                        width: controlH,
+                        height: controlH,
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
@@ -106,9 +110,9 @@ class ProductPage extends StatelessWidget {
                     const SizedBox(height: 14),
                     Text(
                       product.name.toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 20,
+                        fontSize: 20 * scale,
                         fontWeight: FontWeight.w900,
                         height: 1.3,
                         letterSpacing: ls20,
@@ -155,48 +159,49 @@ class ProductPage extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        SizedBox(
-                          width: 173,
-                          height: 46,
-                          child: ElevatedButton(
-                            key: const Key('addToCart'),
-                            onPressed: () {
-                              Cart.instance.add(
-                                CartItem(
-                                  id: product.id,
-                                  name: product.name,
-                                  img: img,
-                                  price: product.price,
-                                  gramm: gramm,
-                                  amount: 1,
-                                  qty: 1,
+                        Expanded(
+                          child: SizedBox(
+                            height: controlH,
+                            child: ElevatedButton(
+                              key: const Key('addToCart'),
+                              onPressed: () {
+                                Cart.instance.add(
+                                  CartItem(
+                                    id: product.id,
+                                    name: product.name,
+                                    img: img,
+                                    price: product.price,
+                                    gramm: gramm,
+                                    amount: 1,
+                                    qty: 1,
+                                  ),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Добавлено в корзину'),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: btnBg,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(40),
                                 ),
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Добавлено в корзину'),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: btnBg,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(40),
                               ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                            ),
-                            child: const Text(
-                              'ДОБАВИТЬ В КОРЗИНУ',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 10,
-                                height: 1.0,
-                                letterSpacing: lsBtn,
-                                color: Colors.white,
+                              child: const Text(
+                                'ДОБАВИТЬ В КОРЗИНУ',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
+                                  height: 1.0,
+                                  letterSpacing: lsBtn,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),

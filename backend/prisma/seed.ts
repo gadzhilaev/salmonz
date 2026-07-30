@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { PrismaClient } from '../generated/prisma/client';
 import { Role } from '../generated/prisma/enums';
 
@@ -171,13 +173,16 @@ async function seedCatalog() {
   }
 
   const promoTitle = 'Бесплатная доставка от 1500₽';
+  const promoImageKey = 'promotions/free-delivery.webp';
+  await uploadSeedPromo(promoImageKey);
+
   const promo = await prisma.promotion.findFirst({ where: { title: promoTitle } });
   if (promo) {
     await prisma.promotion.update({
       where: { id: promo.id },
       data: {
         description: 'При заказе от 1500 ₽ доставка бесплатно',
-        imageKey: 'promotions/free-delivery.webp',
+        imageKey: promoImageKey,
         isActive: true,
         sortOrder: 1,
       },
@@ -187,7 +192,7 @@ async function seedCatalog() {
       data: {
         title: promoTitle,
         description: 'При заказе от 1500 ₽ доставка бесплатно',
-        imageKey: 'promotions/free-delivery.webp',
+        imageKey: promoImageKey,
         isActive: true,
         sortOrder: 1,
       },
@@ -195,6 +200,59 @@ async function seedCatalog() {
   }
 
   console.log('Catalog seed upserted');
+}
+
+/** Best-effort upload of demo promo art into local/S3 storage. */
+async function uploadSeedPromo(key: string) {
+  const filePath = path.join(__dirname, '..', 'seed-assets', 'promo-free-delivery.png');
+  let body: Buffer;
+  try {
+    body = await readFile(filePath);
+  } catch {
+    console.log('seed-assets/promo-free-delivery.png missing — skip promo upload');
+    return;
+  }
+
+  const driver = (process.env.STORAGE_DRIVER ?? 'local').toLowerCase();
+  if (driver === 's3') {
+    try {
+      const { PutObjectCommand, S3Client } = await import('@aws-sdk/client-s3');
+      const endpoint = process.env.S3_ENDPOINT;
+      const bucket = process.env.S3_BUCKET ?? 'salmonz';
+      const client = new S3Client({
+        region: process.env.S3_REGION ?? 'us-east-1',
+        endpoint,
+        forcePathStyle: (process.env.S3_FORCE_PATH_STYLE ?? 'true') === 'true',
+        credentials: {
+          accessKeyId: process.env.S3_ACCESS_KEY ?? 'minioadmin',
+          secretAccessKey: process.env.S3_SECRET_KEY ?? 'minioadmin',
+        },
+      });
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: body,
+          ContentType: 'image/png',
+        }),
+      );
+      console.log(`Promo image uploaded to s3://${bucket}/${key}`);
+    } catch (e) {
+      console.log(`Promo S3 upload skipped: ${(e as Error).message}`);
+    }
+    return;
+  }
+
+  try {
+    const { mkdir, writeFile } = await import('node:fs/promises');
+    const root = process.env.LOCAL_UPLOAD_DIR ?? 'uploads';
+    const dest = path.join(root, key);
+    await mkdir(path.dirname(dest), { recursive: true });
+    await writeFile(dest, body);
+    console.log(`Promo image written to ${dest}`);
+  } catch (e) {
+    console.log(`Promo local upload skipped: ${(e as Error).message}`);
+  }
 }
 
 async function main() {

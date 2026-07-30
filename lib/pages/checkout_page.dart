@@ -10,7 +10,9 @@ import 'package:salmonz/data/models/models.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/cart.dart';
 import '../profile/addresses_page.dart';
-import '../nav_bar/orders.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
+import '../widgets/app_root.dart';
+import '../widgets/app_nav_bar.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -190,7 +192,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _snack('Заказ успешно оформлен! Итого: ${order.total.formatRub()}');
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const OrdersPage()),
+        MaterialPageRoute(
+          builder: (_) => const AppRoot(initialTab: AppTab.orders),
+        ),
         (r) => false,
       );
     } on ApiException catch (e) {
@@ -223,8 +227,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer.form(
           child: Column(
             children: [
               SizedBox(
