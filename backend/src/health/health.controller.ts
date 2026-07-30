@@ -24,6 +24,16 @@ export class HealthController {
     ]);
   }
 
+  /** Readiness: DB (and dependents) must be up. */
+  @Get('ready')
+  @HealthCheck()
+  ready() {
+    return this.health.check([
+      () => this.prismaHealth.pingCheck('database', this.prisma),
+    ]);
+  }
+
+  /** Liveness: process is up (no dependency checks). */
   @Get('live')
   live() {
     return { status: 'ok' };
