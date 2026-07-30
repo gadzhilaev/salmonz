@@ -40,14 +40,12 @@ describeE2e('Salmonz live API e2e', () => {
   });
 
   it('register forces USER and rejects unknown fields', async () => {
-    const bad = await request(api)
-      .post('/api/v1/auth/register')
-      .send({
-        email: userEmail,
-        password: userPass,
-        name: 'E2E User',
-        role: 'ADMIN',
-      });
+    const bad = await request(api).post('/api/v1/auth/register').send({
+      email: userEmail,
+      password: userPass,
+      name: 'E2E User',
+      role: 'ADMIN',
+    });
     expect(bad.status).toBe(400);
 
     const ok = await request(api)
@@ -133,9 +131,11 @@ describeE2e('Salmonz live API e2e', () => {
     const productsRes = await request(api)
       .get('/api/v1/products?limit=20')
       .expect(200);
-    const catalog = productsRes.body.data ?? productsRes.body.items ?? productsRes.body;
+    const catalog =
+      productsRes.body.data ?? productsRes.body.items ?? productsRes.body;
     expect(catalog.length).toBeGreaterThan(0);
-    const product = catalog.find((p: { id: string }) => p.id === productId) ?? catalog[0];
+    const product =
+      catalog.find((p: { id: string }) => p.id === productId) ?? catalog[0];
     productId = product.id;
     const unitPrice = Number(product.price);
     expect(unitPrice).toBeGreaterThan(0);
@@ -147,7 +147,8 @@ describeE2e('Salmonz live API e2e', () => {
       .get('/api/v1/orders')
       .set('Authorization', `Bearer ${userAccess}`)
       .expect(200);
-    const countBefore = beforeOrders.body.total ?? beforeOrders.body.data?.length ?? 0;
+    const countBefore =
+      beforeOrders.body.total ?? beforeOrders.body.data?.length ?? 0;
 
     const smallQuote = await request(api)
       .post('/api/v1/orders/quote')
@@ -172,7 +173,8 @@ describeE2e('Salmonz live API e2e', () => {
       .get('/api/v1/orders')
       .set('Authorization', `Bearer ${userAccess}`)
       .expect(200);
-    const countAfter = afterOrders.body.total ?? afterOrders.body.data?.length ?? 0;
+    const countAfter =
+      afterOrders.body.total ?? afterOrders.body.data?.length ?? 0;
     expect(countAfter).toBe(countBefore);
   });
 
