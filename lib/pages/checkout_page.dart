@@ -242,8 +242,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: Icon(Icons.arrow_back_ios_new,
-                              size: 20, color: arrowColor),
+                          icon: Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ),
@@ -282,8 +285,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.home_outlined,
-                                    size: 24, color: orange),
+                                const Icon(
+                                  Icons.home_outlined,
+                                  size: 24,
+                                  color: orange,
+                                ),
                                 const SizedBox(width: 9),
                                 Expanded(
                                   child: Column(
@@ -387,8 +393,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: cs.errorContainer
-                                            .withValues(alpha: 0.35),
+                                        color: cs.errorContainer.withValues(
+                                          alpha: 0.35,
+                                        ),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
@@ -424,14 +431,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   ],
                                   if (_quoteLoading && _quote == null)
                                     const Padding(
-                                      padding:
-                                          EdgeInsets.symmetric(vertical: 12),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
                                       child: Center(
                                         child: SizedBox(
                                           width: 24,
                                           height: 24,
                                           child: CircularProgressIndicator(
-                                              strokeWidth: 2),
+                                            strokeWidth: 2,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -456,7 +465,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w400,
                                         fontSize: 13,
-                                        color: bodyColor.withValues(alpha: 0.75),
+                                        color: bodyColor.withValues(
+                                          alpha: 0.75,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 16),
@@ -483,8 +494,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                             fontFamily: 'Inter',
                                             fontWeight: FontWeight.w500,
                                             fontSize: 20,
-                                            color: bodyColor
-                                                .withValues(alpha: 0.7),
+                                            color: bodyColor.withValues(
+                                              alpha: 0.7,
+                                            ),
                                           ),
                                         )
                                       else
@@ -505,7 +517,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                           width: 16,
                                           height: 16,
                                           child: CircularProgressIndicator(
-                                              strokeWidth: 2),
+                                            strokeWidth: 2,
+                                          ),
                                         ),
                                       ],
                                     ],
@@ -521,8 +534,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                       style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontSize: 14,
-                                        color:
-                                            bodyColor.withValues(alpha: 0.65),
+                                        color: bodyColor.withValues(
+                                          alpha: 0.65,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -532,7 +546,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     height: 56,
                                     child: ElevatedButton(
                                       key: const Key('checkoutCreateOrder'),
-                                      onPressed: _sending ||
+                                      onPressed:
+                                          _sending ||
                                               items.isEmpty ||
                                               _quoteError != null
                                           ? null
@@ -541,16 +556,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                         backgroundColor: orange,
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(40),
+                                          borderRadius: BorderRadius.circular(
+                                            40,
+                                          ),
                                         ),
                                       ),
                                       child: _sending
                                           ? const SizedBox(
                                               width: 20,
                                               height: 20,
-                                              child:
-                                                  CircularProgressIndicator(
+                                              child: CircularProgressIndicator(
                                                 strokeWidth: 2,
                                                 color: Colors.white,
                                               ),
@@ -838,10 +853,13 @@ class RuPhoneTextInputFormatter extends TextInputFormatter {
 
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final onlyDigits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final limited =
-        onlyDigits.length > 11 ? onlyDigits.substring(0, 11) : onlyDigits;
+    final limited = onlyDigits.length > 11
+        ? onlyDigits.substring(0, 11)
+        : onlyDigits;
     final formatted = format(limited);
     return TextEditingValue(
       text: formatted,
@@ -925,20 +943,21 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close,
-                          size: 20,
-                          color: titleColor.withValues(alpha: 0.35)),
+                      icon: Icon(
+                        Icons.close,
+                        size: 20,
+                        color: titleColor.withValues(alpha: 0.35),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
                 if (_loading)
                   const Expanded(
-                      child: Center(child: CircularProgressIndicator()))
-                else if (_items.isEmpty)
-                  const Expanded(
-                    child: Center(child: Text('Адресов пока нет')),
+                    child: Center(child: CircularProgressIndicator()),
                   )
+                else if (_items.isEmpty)
+                  const Expanded(child: Center(child: Text('Адресов пока нет')))
                 else
                   Expanded(
                     child: ListView.separated(
@@ -951,8 +970,11 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.home_outlined,
-                                  size: 24, color: orange),
+                              const Icon(
+                                Icons.home_outlined,
+                                size: 24,
+                                color: orange,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Column(
@@ -967,8 +989,10 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                                         color: titleColor,
                                       ),
                                     ),
-                                    Text(a.line,
-                                        style: TextStyle(color: titleColor)),
+                                    Text(
+                                      a.line,
+                                      style: TextStyle(color: titleColor),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -987,14 +1011,16 @@ class _AddressesSheetState extends State<_AddressesSheet> {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const AddressesPage()),
+                          builder: (_) => const AddressesPage(),
+                        ),
                       );
                       await _load();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orange,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(40)),
+                        borderRadius: BorderRadius.circular(40),
+                      ),
                     ),
                     child: const Text(
                       'УПРАВЛЯТЬ АДРЕСАМИ',

@@ -12,8 +12,6 @@ class OrderDetailsPage extends StatefulWidget {
 
 class _OrderDetailsPageState extends State<OrderDetailsPage> {
   late Future<OrderModel> _future;
-
-  static const bg = Color(0xFFFFFFFF);
   static const arrowColor = Color(0xFFCDCDCD);
   static const titleDark = Color(0xFF26351E);
   static const double hLogo = 62;
@@ -55,7 +53,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -76,8 +74,11 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new,
-                              size: 20, color: arrowColor),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ),
@@ -156,7 +157,8 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                             contentPadding: EdgeInsets.zero,
                             title: Text(item.productName),
                             subtitle: Text(
-                                '${item.quantity} × ${item.unitPrice.formatRub()}'),
+                              '${item.quantity} × ${item.unitPrice.formatRub()}',
+                            ),
                             trailing: Text(item.lineTotal.formatRub()),
                           ),
                         ],

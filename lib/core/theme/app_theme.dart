@@ -42,19 +42,20 @@ class AppTheme {
   }
 
   static ThemeData get dark {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: orange,
-      primary: orange,
-      secondary: const Color(0xFF8FA882),
-      brightness: Brightness.dark,
-      surface: darkSurface,
-      onSurface: darkOnSurface,
-    ).copyWith(
-      primary: orange,
-      onPrimary: Colors.white,
-      surfaceContainerHighest: darkSurfaceElevated,
-      outline: const Color(0xFF3A3A3C),
-    );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: orange,
+          primary: orange,
+          secondary: const Color(0xFF8FA882),
+          brightness: Brightness.dark,
+          surface: darkSurface,
+          onSurface: darkOnSurface,
+        ).copyWith(
+          primary: orange,
+          onPrimary: Colors.white,
+          surfaceContainerHighest: darkSurfaceElevated,
+          outline: const Color(0xFF3A3A3C),
+        );
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -83,12 +84,9 @@ class AppTheme {
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(color: orange),
       dividerColor: const Color(0xFF3A3A3C),
-      textTheme: Typography.material2021(platform: TargetPlatform.android)
-          .white
-          .apply(
-            bodyColor: darkOnSurface,
-            displayColor: darkOnSurface,
-          ),
+      textTheme: Typography.material2021(
+        platform: TargetPlatform.android,
+      ).white.apply(bodyColor: darkOnSurface, displayColor: darkOnSurface),
       inputDecorationTheme: InputDecorationTheme(
         hintStyle: TextStyle(color: darkOnSurfaceMuted.withValues(alpha: 0.8)),
       ),

@@ -10,7 +10,6 @@ class AdminProductsPage extends StatefulWidget {
 }
 
 class _AdminProductsPageState extends State<AdminProductsPage> {
-  static const bg = Color(0xFFFFFFFF);
   static const titleDark = Color(0xFF26351E);
   static const orange = Color(0xFFFF5E1C);
 
@@ -32,7 +31,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -77,8 +76,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                                   final ok = await Navigator.push<bool>(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          const ProductEditorPage(),
+                                      builder: (_) => const ProductEditorPage(),
                                     ),
                                   );
                                   if (ok == true) await _reload();
@@ -101,11 +99,16 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                           return ListTile(
                             leading: (p.imageUrl ?? '').isEmpty
                                 ? const Icon(Icons.image)
-                                : Image.network(p.imageUrl!,
-                                    width: 48, height: 48, fit: BoxFit.cover),
+                                : Image.network(
+                                    p.imageUrl!,
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                  ),
                             title: Text(p.name),
                             subtitle: Text(
-                                '${p.price.formatRub()} · ${p.isAvailable ? "в наличии" : "нет"}'),
+                              '${p.price.formatRub()} · ${p.isAvailable ? "в наличии" : "нет"}',
+                            ),
                             onTap: () async {
                               final ok = await Navigator.push<bool>(
                                 context,
@@ -150,14 +153,20 @@ class _AdminAppBar extends StatelessWidget {
             child: IconButton(
               padding: EdgeInsets.zero,
               onPressed: onBack,
-              icon: const Icon(Icons.arrow_back_ios_new,
-                  size: 20, color: arrowColor),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                size: 20,
+                color: arrowColor,
+              ),
             ),
           ),
           Positioned(
             top: 4,
-            child: Image.asset('assets/icon/logo_salmonz_small.png',
-                width: 80, height: 62),
+            child: Image.asset(
+              'assets/icon/logo_salmonz_small.png',
+              width: 80,
+              height: 62,
+            ),
           ),
         ],
       ),

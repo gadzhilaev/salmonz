@@ -48,7 +48,10 @@ class RuPhoneFormatter {
 /// Текстовый форматтер ввода для TextField
 class RuPhoneTextInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final formatted = RuPhoneFormatter.pretty(newValue.text);
     return TextEditingValue(
       text: formatted,

@@ -12,7 +12,10 @@ class AdminUserDetailsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(user.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            user.name,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           Text(user.email),
           Text('Роль: ${user.role}'),
           if ((user.phone ?? '').isNotEmpty) Text('Телефон: ${user.phone}'),

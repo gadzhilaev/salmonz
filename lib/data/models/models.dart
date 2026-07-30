@@ -54,30 +54,29 @@ class UserModel {
   bool get isAdmin => role.toUpperCase() == 'ADMIN';
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-        id: asString(json['id']) ?? '',
-        email: asString(json['email']) ?? '',
-        name: asString(json['name']) ?? '',
-        role: asString(json['role']) ?? 'USER',
-        phone: asString(json['phone']),
-        avatarKey: asString(json['avatarKey']),
-        avatarUrl: asString(json['avatarUrl']),
-      );
+    id: asString(json['id']) ?? '',
+    email: asString(json['email']) ?? '',
+    name: asString(json['name']) ?? '',
+    role: asString(json['role']) ?? 'USER',
+    phone: asString(json['phone']),
+    avatarKey: asString(json['avatarKey']),
+    avatarUrl: asString(json['avatarUrl']),
+  );
 
   UserModel copyWith({
     String? name,
     String? phone,
     String? avatarUrl,
     String? avatarKey,
-  }) =>
-      UserModel(
-        id: id,
-        email: email,
-        name: name ?? this.name,
-        role: role,
-        phone: phone ?? this.phone,
-        avatarKey: avatarKey ?? this.avatarKey,
-        avatarUrl: avatarUrl ?? this.avatarUrl,
-      );
+  }) => UserModel(
+    id: id,
+    email: email,
+    name: name ?? this.name,
+    role: role,
+    phone: phone ?? this.phone,
+    avatarKey: avatarKey ?? this.avatarKey,
+    avatarUrl: avatarUrl ?? this.avatarUrl,
+  );
 }
 
 class AuthResult {
@@ -92,10 +91,10 @@ class AuthResult {
   final UserModel user;
 
   factory AuthResult.fromJson(Map<String, dynamic> json) => AuthResult(
-        accessToken: asString(json['accessToken']) ?? '',
-        refreshToken: asString(json['refreshToken']) ?? '',
-        user: UserModel.fromJson(asMap(json['user'])),
-      );
+    accessToken: asString(json['accessToken']) ?? '',
+    refreshToken: asString(json['refreshToken']) ?? '',
+    user: UserModel.fromJson(asMap(json['user'])),
+  );
 }
 
 class CategoryModel {
@@ -118,14 +117,14 @@ class CategoryModel {
   final bool isActive;
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) => CategoryModel(
-        id: asString(json['id']) ?? '',
-        name: asString(json['name']) ?? '',
-        slug: asString(json['slug']) ?? '',
-        imageKey: asString(json['imageKey']),
-        imageUrl: asString(json['imageUrl']),
-        sortOrder: asInt(json['sortOrder']),
-        isActive: asBool(json['isActive'], fallback: true),
-      );
+    id: asString(json['id']) ?? '',
+    name: asString(json['name']) ?? '',
+    slug: asString(json['slug']) ?? '',
+    imageKey: asString(json['imageKey']),
+    imageUrl: asString(json['imageUrl']),
+    sortOrder: asInt(json['sortOrder']),
+    isActive: asBool(json['isActive'], fallback: true),
+  );
 }
 
 class ProductModel {
@@ -199,14 +198,14 @@ class PromotionModel {
   final int sortOrder;
 
   factory PromotionModel.fromJson(Map<String, dynamic> json) => PromotionModel(
-        id: asString(json['id']) ?? '',
-        title: asString(json['title']) ?? '',
-        description: asString(json['description']),
-        imageKey: asString(json['imageKey']) ?? '',
-        imageUrl: asString(json['imageUrl']),
-        isActive: asBool(json['isActive'], fallback: true),
-        sortOrder: asInt(json['sortOrder']),
-      );
+    id: asString(json['id']) ?? '',
+    title: asString(json['title']) ?? '',
+    description: asString(json['description']),
+    imageKey: asString(json['imageKey']) ?? '',
+    imageUrl: asString(json['imageUrl']),
+    isActive: asBool(json['isActive'], fallback: true),
+    sortOrder: asInt(json['sortOrder']),
+  );
 }
 
 class AddressModel {
@@ -235,30 +234,31 @@ class AddressModel {
   final bool isDefault;
 
   String get line => [
-        street,
-        house,
-        if (apartment != null && apartment!.isNotEmpty) 'кв. $apartment',
-      ].where((e) => e.trim().isNotEmpty).join(', ');
+    street,
+    house,
+    if (apartment != null && apartment!.isNotEmpty) 'кв. $apartment',
+  ].where((e) => e.trim().isNotEmpty).join(', ');
 
   String get heading => [
-        if (title != null && title!.trim().isNotEmpty) title!,
-        city,
-      ].where((e) => e.trim().isNotEmpty).join(', ');
+    if (title != null && title!.trim().isNotEmpty) title!,
+    city,
+  ].where((e) => e.trim().isNotEmpty).join(', ');
 
-  String get fullLine => [city, line].where((e) => e.trim().isNotEmpty).join(', ');
+  String get fullLine =>
+      [city, line].where((e) => e.trim().isNotEmpty).join(', ');
 
   factory AddressModel.fromJson(Map<String, dynamic> json) => AddressModel(
-        id: asString(json['id']) ?? '',
-        title: asString(json['title']),
-        city: asString(json['city']) ?? '',
-        street: asString(json['street']) ?? '',
-        house: asString(json['house']) ?? '',
-        apartment: asString(json['apartment']),
-        entrance: asString(json['entrance']),
-        floor: asString(json['floor']),
-        comment: asString(json['comment']),
-        isDefault: asBool(json['isDefault']),
-      );
+    id: asString(json['id']) ?? '',
+    title: asString(json['title']),
+    city: asString(json['city']) ?? '',
+    street: asString(json['street']) ?? '',
+    house: asString(json['house']) ?? '',
+    apartment: asString(json['apartment']),
+    entrance: asString(json['entrance']),
+    floor: asString(json['floor']),
+    comment: asString(json['comment']),
+    isDefault: asBool(json['isDefault']),
+  );
 }
 
 class OrderQuoteLineModel {
@@ -311,16 +311,17 @@ class OrderQuoteModel {
   List<OrderQuoteLineModel> get unavailableItems =>
       items.where((e) => !e.isAvailable).toList(growable: false);
 
-  factory OrderQuoteModel.fromJson(Map<String, dynamic> json) =>
-      OrderQuoteModel(
-        items: asMapList(json['items']).map(OrderQuoteLineModel.fromJson).toList(),
-        subtotal: asMoney(json['subtotal']),
-        deliveryFee: asMoney(json['deliveryFee']),
-        total: asMoney(json['total']),
-        currency: asString(json['currency']) ?? 'RUB',
-        freeDeliveryThreshold: asInt(json['freeDeliveryThreshold'], fallback: 1500),
-        deliveryFeeAmount: asInt(json['deliveryFeeAmount'], fallback: 249),
-      );
+  factory OrderQuoteModel.fromJson(
+    Map<String, dynamic> json,
+  ) => OrderQuoteModel(
+    items: asMapList(json['items']).map(OrderQuoteLineModel.fromJson).toList(),
+    subtotal: asMoney(json['subtotal']),
+    deliveryFee: asMoney(json['deliveryFee']),
+    total: asMoney(json['total']),
+    currency: asString(json['currency']) ?? 'RUB',
+    freeDeliveryThreshold: asInt(json['freeDeliveryThreshold'], fallback: 1500),
+    deliveryFeeAmount: asInt(json['deliveryFeeAmount'], fallback: 249),
+  );
 }
 
 class OrderItemModel {
@@ -341,15 +342,16 @@ class OrderItemModel {
   final Money lineTotal;
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) => OrderItemModel(
-        id: asString(json['id']) ?? '',
-        productId: asString(json['productId']),
-        productName: asString(json['productNameSnapshot']) ??
-            asString(json['productName']) ??
-            '',
-        unitPrice: asMoney(json['unitPrice']),
-        quantity: asInt(json['quantity'], fallback: 1),
-        lineTotal: asMoney(json['lineTotal']),
-      );
+    id: asString(json['id']) ?? '',
+    productId: asString(json['productId']),
+    productName:
+        asString(json['productNameSnapshot']) ??
+        asString(json['productName']) ??
+        '',
+    unitPrice: asMoney(json['unitPrice']),
+    quantity: asInt(json['quantity'], fallback: 1),
+    lineTotal: asMoney(json['lineTotal']),
+  );
 }
 
 class OrderModel {
@@ -393,21 +395,21 @@ class OrderModel {
   }
 
   factory OrderModel.fromJson(Map<String, dynamic> json) => OrderModel(
-        id: asString(json['id']) ?? '',
-        publicNumber: asString(json['publicNumber']) ?? '',
-        status: asString(json['status']) ?? 'NEW',
-        subtotal: asMoney(json['subtotal']),
-        deliveryFee: asMoney(json['deliveryFee']),
-        total: asMoney(json['total']),
-        phone: asString(json['phone']) ?? '',
-        comment: asString(json['comment']),
-        createdAt: DateTime.tryParse(asString(json['createdAt']) ?? '') ??
-            DateTime.now(),
-        items: asMapList(json['items']).map(OrderItemModel.fromJson).toList(),
-        addressSnapshot: json['addressSnapshot'] is Map
-            ? asMap(json['addressSnapshot'])
-            : null,
-      );
+    id: asString(json['id']) ?? '',
+    publicNumber: asString(json['publicNumber']) ?? '',
+    status: asString(json['status']) ?? 'NEW',
+    subtotal: asMoney(json['subtotal']),
+    deliveryFee: asMoney(json['deliveryFee']),
+    total: asMoney(json['total']),
+    phone: asString(json['phone']) ?? '',
+    comment: asString(json['comment']),
+    createdAt:
+        DateTime.tryParse(asString(json['createdAt']) ?? '') ?? DateTime.now(),
+    items: asMapList(json['items']).map(OrderItemModel.fromJson).toList(),
+    addressSnapshot: json['addressSnapshot'] is Map
+        ? asMap(json['addressSnapshot'])
+        : null,
+  );
 }
 
 class SupportMessageModel {
@@ -431,13 +433,18 @@ class SupportMessageModel {
         subject: asString(json['subject']),
         message: asString(json['message']) ?? '',
         status: asString(json['status']) ?? 'NEW',
-        createdAt: DateTime.tryParse(asString(json['createdAt']) ?? '') ??
+        createdAt:
+            DateTime.tryParse(asString(json['createdAt']) ?? '') ??
             DateTime.now(),
       );
 }
 
 class Paginated<T> {
-  const Paginated({required this.data, required this.page, required this.total});
+  const Paginated({
+    required this.data,
+    required this.page,
+    required this.total,
+  });
 
   final List<T> data;
   final int page;
@@ -463,7 +470,7 @@ class UploadResult {
   final String? url;
 
   factory UploadResult.fromJson(Map<String, dynamic> json) => UploadResult(
-        key: asString(json['key']) ?? '',
-        url: asString(json['url']),
-      );
+    key: asString(json['key']) ?? '',
+    url: asString(json['url']),
+  );
 }

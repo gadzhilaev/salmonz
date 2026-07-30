@@ -58,15 +58,18 @@ class _PromotionsListPageState extends State<PromotionsListPage> {
                 return ListTile(
                   leading: (promo.imageUrl ?? '').isEmpty
                       ? null
-                      : Image.network(promo.imageUrl!,
-                          width: 48, height: 48, fit: BoxFit.cover),
+                      : Image.network(
+                          promo.imageUrl!,
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                        ),
                   title: Text(promo.title),
                   onTap: () async {
                     final ok = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            PromotionEditorPage(existing: promo),
+                        builder: (_) => PromotionEditorPage(existing: promo),
                       ),
                     );
                     if (ok == true) await _reload();
@@ -146,15 +149,18 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
       if (widget.existing == null) {
         await AppServices.instance.admin.createPromotion(body);
       } else {
-        await AppServices.instance.admin
-            .updatePromotion(widget.existing!.id, body);
+        await AppServices.instance.admin.updatePromotion(
+          widget.existing!.id,
+          body,
+        );
       }
       if (!mounted) return;
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -181,21 +187,26 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
-              controller: _title,
-              decoration: const InputDecoration(labelText: 'Заголовок')),
+            controller: _title,
+            decoration: const InputDecoration(labelText: 'Заголовок'),
+          ),
           TextField(
-              controller: _desc,
-              decoration: const InputDecoration(labelText: 'Описание'),
-              maxLines: 3),
+            controller: _desc,
+            decoration: const InputDecoration(labelText: 'Описание'),
+            maxLines: 3,
+          ),
           if ((_imageUrl ?? '').isNotEmpty)
             Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
           TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
           ElevatedButton(
             onPressed: _saving ? null : _save,
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5E1C)),
-            child: const Text('СОХРАНИТЬ',
-                style: TextStyle(color: Colors.white)),
+              backgroundColor: const Color(0xFFFF5E1C),
+            ),
+            child: const Text(
+              'СОХРАНИТЬ',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

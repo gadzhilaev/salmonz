@@ -20,7 +20,7 @@ class AdminPanelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -34,14 +34,20 @@ class AdminPanelPage extends StatelessWidget {
                   alignment: Alignment.topCenter,
                   children: [
                     Positioned(
-                      left: 20, top: 26,
+                      left: 20,
+                      top: 26,
                       child: SizedBox(
-                        width: 24, height: 24,
+                        width: 24,
+                        height: 24,
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: arrowColor),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ),
@@ -49,7 +55,9 @@ class AdminPanelPage extends StatelessWidget {
                       top: 4,
                       child: Image.asset(
                         'assets/icon/logo_salmonz_small.png',
-                        width: 80, height: 62, fit: BoxFit.contain,
+                        width: 80,
+                        height: 62,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ],
@@ -88,7 +96,9 @@ class AdminPanelPage extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const PromotionsListPage()),
+                          MaterialPageRoute(
+                            builder: (_) => const PromotionsListPage(),
+                          ),
                         );
                       },
                     ),
@@ -98,7 +108,9 @@ class AdminPanelPage extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const UsersListPage()),
+                          MaterialPageRoute(
+                            builder: (_) => const UsersListPage(),
+                          ),
                         );
                       },
                     ),
@@ -108,7 +120,9 @@ class AdminPanelPage extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const AdminOrdersPage()),
+                          MaterialPageRoute(
+                            builder: (_) => const AdminOrdersPage(),
+                          ),
                         );
                       },
                     ),
@@ -116,7 +130,10 @@ class AdminPanelPage extends StatelessWidget {
                     _AdminTile(
                       text: 'Список товаров',
                       onTap: () => Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => const AdminProductsPage()),
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminProductsPage(),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -125,7 +142,9 @@ class AdminPanelPage extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const AdminCategoriesPage()),
+                          MaterialPageRoute(
+                            builder: (_) => const AdminCategoriesPage(),
+                          ),
                         );
                       },
                     ),

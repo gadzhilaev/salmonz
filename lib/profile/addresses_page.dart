@@ -10,7 +10,6 @@ class AddressesPage extends StatefulWidget {
 }
 
 class _AddressesPageState extends State<AddressesPage> {
-  static const bg = Color(0xFFFFFFFF);
   static const arrowColor = Color(0xFFCDCDCD);
   static const titleColor = Color(0xFF26351E);
   static const textDark = Color(0xFF282828);
@@ -54,11 +53,13 @@ class _AddressesPageState extends State<AddressesPage> {
         title: const Text('Удалить адрес?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Отмена')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Удалить')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Удалить'),
+          ),
         ],
       ),
     );
@@ -68,15 +69,16 @@ class _AddressesPageState extends State<AddressesPage> {
       await _reload();
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -97,8 +99,11 @@ class _AddressesPageState extends State<AddressesPage> {
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new,
-                              size: 20, color: arrowColor),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ),
@@ -299,7 +304,6 @@ class _AddressFormPage extends StatefulWidget {
 }
 
 class _AddressFormPageState extends State<_AddressFormPage> {
-  static const bg = Color(0xFFFFFFFF);
   static const arrowColor = Color(0xFFCDCDCD);
   static const titleColor = Color(0xFF26351E);
   static const orange = Color(0xFFFF5E1C);
@@ -374,12 +378,14 @@ class _AddressFormPageState extends State<_AddressFormPage> {
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -388,7 +394,7 @@ class _AddressFormPageState extends State<_AddressFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -405,8 +411,11 @@ class _AddressFormPageState extends State<_AddressFormPage> {
                       child: IconButton(
                         padding: EdgeInsets.zero,
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_ios_new,
-                            size: 20, color: arrowColor),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 20,
+                          color: arrowColor,
+                        ),
                       ),
                     ),
                     Positioned(
@@ -473,13 +482,15 @@ class _AddressFormPageState extends State<_AddressFormPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-                color: Color(0xB2464646),
-              )),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              fontSize: 13,
+              color: Color(0xB2464646),
+            ),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: c,
@@ -487,13 +498,17 @@ class _AddressFormPageState extends State<_AddressFormPage> {
               contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10000),
-                borderSide:
-                    const BorderSide(color: Color(0xFFFF5E1C), width: 1),
+                borderSide: const BorderSide(
+                  color: Color(0xFFFF5E1C),
+                  width: 1,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10000),
-                borderSide:
-                    const BorderSide(color: Color(0xFFFF5E1C), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFFFF5E1C),
+                  width: 1.5,
+                ),
               ),
             ),
           ),

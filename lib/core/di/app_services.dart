@@ -30,7 +30,9 @@ class AppServices {
   static AppServices get instance {
     final i = _instance;
     if (i == null) {
-      throw StateError('AppServices not initialized. Call AppServices.init first.');
+      throw StateError(
+        'AppServices not initialized. Call AppServices.init first.',
+      );
     }
     return i;
   }
@@ -44,7 +46,8 @@ class AppServices {
     void Function()? onSessionExpired,
   }) {
     final tokens = tokenStore ?? TokenStore();
-    final api = apiClient ??
+    final api =
+        apiClient ??
         ApiClient(
           config: config,
           tokenStore: tokens,
