@@ -37,6 +37,7 @@ describeE2e('Salmonz live API e2e', () => {
   it('health', async () => {
     await request(api).get('/api/v1/health/live').expect(200);
     await request(api).get('/api/v1/health').expect(200);
+    await request(api).get('/api/v1/health/ready').expect(200);
   });
 
   it('register forces USER and rejects unknown fields', async () => {
