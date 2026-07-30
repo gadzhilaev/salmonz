@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
 
 class AddressesPage extends StatefulWidget {
@@ -80,8 +81,7 @@ class _AddressesPageState extends State<AddressesPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer(
           child: Column(
             children: [
               SizedBox(

@@ -29,15 +29,23 @@
 
 ## Скриншоты
 
-| Login (iPhone) | Login (iPad) | Home |
+| Login (iPhone) | Home (iPhone) | Profile dark (iPhone) |
 |---|---|---|
-| ![login phone](docs/screenshots/01_login.png) | ![login ipad](docs/screenshots/09_ipad.png) | ![home](docs/screenshots/02_home_light.png) |
+| ![login phone](docs/screenshots/01_login.png) | ![home phone](docs/screenshots/02_home_light.png) | ![profile dark](docs/screenshots/05_profile_dark.png) |
 
-| Category | Profile (light) | Profile (dark) |
+| Login (iPad) | Home (iPad landscape) | Admin (iPad) |
 |---|---|---|
-| ![category](docs/screenshots/03_category.png) | ![profile light](docs/screenshots/04_profile_light.png) | ![profile dark](docs/screenshots/05_profile_dark.png) |
+| ![login ipad](docs/screenshots/09_ipad.png) | ![home ipad](docs/screenshots/11_ipad_home_landscape.png) | ![admin ipad](docs/screenshots/13_ipad_admin.png) |
 
-Снято на iOS Simulator (iPhone 17 Pro / iPad Pro) против локального API.
+| Cart (iPad) | Category (iPad) | Before (old iPad) |
+|---|---|---|
+| ![cart ipad](docs/screenshots/14_ipad_cart.png) | ![category ipad](docs/screenshots/15_ipad_category.png) | ![before](docs/screenshots/before/09_ipad.png) |
+
+Снято на iOS Simulator (iPhone 17 Pro / iPad Pro 13" M5, iOS 26.5) против локального Docker API. На iPad ≥840 логических pt используется `NavigationRail`.
+
+<p align="center">
+  <a href="https://github.com/gadzhilaev/salmonz/actions/workflows/backend-e2e.yml"><img src="https://github.com/gadzhilaev/salmonz/actions/workflows/backend-e2e.yml/badge.svg" alt="Backend E2E"/></a>
+</p>
 
 ---
 

@@ -26,6 +26,7 @@ COPY --from=build --chown=nestjs:nestjs /app/package.json ./package.json
 COPY --from=build --chown=nestjs:nestjs /app/prisma ./prisma
 COPY --from=build --chown=nestjs:nestjs /app/generated ./generated
 COPY --from=build --chown=nestjs:nestjs /app/prisma.config.ts ./prisma.config.ts
+COPY --from=build --chown=nestjs:nestjs /app/seed-assets ./seed-assets
 COPY --from=build --chown=nestjs:nestjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 USER nestjs

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
@@ -88,8 +89,7 @@ class _SupportPageState extends State<SupportPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer.form(
           child: Column(
             children: [
               SizedBox(

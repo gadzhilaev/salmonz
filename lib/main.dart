@@ -5,7 +5,7 @@ import 'core/config/app_config.dart';
 import 'core/di/app_services.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
-import 'nav_bar/main_screen.dart';
+import 'widgets/app_root.dart';
 import 'widgets/cart.dart';
 
 Future<void> main() async {
@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: themeController.mode,
-            home: isLoggedIn ? const SuccessPage() : const Login(),
+            home: isLoggedIn ? const AppRoot() : const Login(),
           );
         },
       ),

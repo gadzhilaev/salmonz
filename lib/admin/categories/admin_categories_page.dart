@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
 
 class AdminCategoriesPage extends StatefulWidget {
@@ -42,35 +43,37 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: RefreshIndicator(
-        onRefresh: _reload,
-        child: FutureBuilder<List<CategoryModel>>(
-          future: _future,
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final items = snap.data!;
-            return ListView.builder(
-              itemCount: items.length,
-              itemBuilder: (_, i) {
-                final c = items[i];
-                return ListTile(
-                  title: Text(c.name),
-                  subtitle: Text(c.slug),
-                  onTap: () async {
-                    final ok = await Navigator.push<bool>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CategoryEditorPage(existing: c),
-                      ),
-                    );
-                    if (ok == true) await _reload();
-                  },
-                );
-              },
-            );
-          },
+      body: AppPageContainer(
+        child: RefreshIndicator(
+          onRefresh: _reload,
+          child: FutureBuilder<List<CategoryModel>>(
+            future: _future,
+            builder: (context, snap) {
+              if (!snap.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final items = snap.data!;
+              return ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (_, i) {
+                  final c = items[i];
+                  return ListTile(
+                    title: Text(c.name),
+                    subtitle: Text(c.slug),
+                    onTap: () async {
+                      final ok = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CategoryEditorPage(existing: c),
+                        ),
+                      );
+                      if (ok == true) await _reload();
+                    },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -169,31 +172,33 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
             IconButton(onPressed: _delete, icon: const Icon(Icons.delete)),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TextField(
-            controller: _name,
-            decoration: const InputDecoration(labelText: 'Название'),
-          ),
-          TextField(
-            controller: _slug,
-            decoration: const InputDecoration(labelText: 'Slug'),
-          ),
-          if ((_imageUrl ?? '').isNotEmpty)
-            Image.network(_imageUrl!, height: 120, fit: BoxFit.cover),
-          TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
-          ElevatedButton(
-            onPressed: _saving ? null : _save,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5E1C),
+      body: AppPageContainer.form(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Название'),
             ),
-            child: const Text(
-              'СОХРАНИТЬ',
-              style: TextStyle(color: Colors.white),
+            TextField(
+              controller: _slug,
+              decoration: const InputDecoration(labelText: 'Slug'),
             ),
-          ),
-        ],
+            if ((_imageUrl ?? '').isNotEmpty)
+              Image.network(_imageUrl!, height: 120, fit: BoxFit.cover),
+            TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
+            ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5E1C),
+              ),
+              child: const Text(
+                'СОХРАНИТЬ',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

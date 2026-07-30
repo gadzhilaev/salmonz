@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
 import 'product_editor_page.dart';
 
@@ -33,8 +34,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

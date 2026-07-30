@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/money/money.dart';
+import 'package:salmonz/core/responsive/app_breakpoints.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
+import 'package:salmonz/core/responsive/responsive_grid.dart';
 import 'package:salmonz/data/models/models.dart';
 
 import 'product.dart';
@@ -43,14 +46,17 @@ class _ProductsPageState extends State<ProductsPage> {
 
     const double hLogo = 62;
     const double ls24 = 0.96;
+    final width = MediaQuery.sizeOf(context).width;
+    final scale = AppBreakpoints.typeScale(width);
+    final controlH = AppBreakpoints.controlHeight(width);
+    final isCompact = AppBreakpoints.ofWidth(width) == AppBreakpoint.compact;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
                 height: hLogo + 26,
@@ -58,11 +64,11 @@ class _ProductsPageState extends State<ProductsPage> {
                   alignment: Alignment.topCenter,
                   children: [
                     Positioned(
-                      left: 20,
+                      left: 0,
                       top: 26,
                       child: SizedBox(
-                        width: 24,
-                        height: 24,
+                        width: controlH,
+                        height: controlH,
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           splashRadius: 20,
@@ -102,36 +108,69 @@ class _ProductsPageState extends State<ProductsPage> {
                       return const Center(child: Text('Ничего не найдено'));
                     }
 
-                    return ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: items.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
+                    if (isCompact) {
+                      return ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: items.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return _TitleHeader(
+                              title: widget.title,
+                              scale: scale,
+                              ls24: ls24,
+                              titleColor: titleColor,
+                            );
+                          }
+                          final p = items[index - 1];
                           return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const SizedBox(height: 24),
-                              Text(
-                                widget.title.toUpperCase(),
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.0,
-                                  letterSpacing: ls24,
-                                  color: titleColor,
-                                ),
+                              _ProductCard(
+                                product: p,
+                                scale: scale,
+                                controlH: controlH,
+                                compact: true,
+                                onTap: p.isAvailable
+                                    ? () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                ProductPage(product: p),
+                                          ),
+                                        );
+                                      }
+                                    : null,
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 26),
                             ],
                           );
-                        }
+                        },
+                      );
+                    }
 
-                        final p = items[index - 1];
-                        return Column(
-                          children: [
-                            _ProductCard(
+                    return ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        _TitleHeader(
+                          title: widget.title,
+                          scale: scale,
+                          ls24: ls24,
+                          titleColor: titleColor,
+                        ),
+                        ResponsiveGrid(
+                          itemCount: items.length,
+                          minCardWidth: 280,
+                          maxColumns: 3,
+                          itemHeight: 420,
+                          spacing: 16,
+                          runSpacing: 24,
+                          itemBuilder: (context, index, tileW) {
+                            final p = items[index];
+                            return _ProductCard(
                               product: p,
+                              scale: scale,
+                              controlH: controlH,
+                              compact: false,
                               onTap: p.isAvailable
                                   ? () {
                                       Navigator.push(
@@ -143,11 +182,11 @@ class _ProductsPageState extends State<ProductsPage> {
                                       );
                                     }
                                   : null,
-                            ),
-                            const SizedBox(height: 26),
-                          ],
-                        );
-                      },
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                     );
                   },
                 ),
@@ -160,10 +199,55 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 }
 
+class _TitleHeader extends StatelessWidget {
+  const _TitleHeader({
+    required this.title,
+    required this.scale,
+    required this.ls24,
+    required this.titleColor,
+  });
+
+  final String title;
+  final double scale;
+  final double ls24;
+  final Color titleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 24 * scale,
+            fontWeight: FontWeight.w900,
+            height: 1.0,
+            letterSpacing: ls24,
+            color: titleColor,
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product, this.onTap});
+  const _ProductCard({
+    required this.product,
+    required this.scale,
+    required this.controlH,
+    required this.compact,
+    this.onTap,
+  });
 
   final ProductModel product;
+  final double scale;
+  final double controlH;
+  final bool compact;
   final VoidCallback? onTap;
 
   @override
@@ -176,6 +260,7 @@ class _ProductCard extends StatelessWidget {
     final inStock = product.isAvailable;
     final imageUrl = product.imageUrl ?? '';
     final price = product.price;
+    final imageHeight = compact ? 260.0 : 200.0;
 
     return InkWell(
       onTap: onTap,
@@ -185,7 +270,7 @@ class _ProductCard extends StatelessWidget {
         children: [
           SizedBox(
             width: double.infinity,
-            height: 260,
+            height: imageHeight,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Stack(
@@ -237,22 +322,24 @@ class _ProductCard extends StatelessWidget {
                   product.name.toUpperCase(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 18,
+                    fontSize: 18 * scale,
                     fontWeight: FontWeight.w900,
                     height: 1.0,
                     letterSpacing: ls18,
                     color: nameColor,
                   ),
                 ),
-                if (product.description.trim().isNotEmpty) ...[
+                if (product.description.trim().isNotEmpty && compact) ...[
                   const SizedBox(height: 10),
                   Text(
                     product.description,
-                    style: const TextStyle(
+                    maxLines: compact ? null : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
                       fontFamily: 'Inter',
-                      fontSize: 14,
+                      fontSize: 14 * scale,
                       fontWeight: FontWeight.w400,
                       height: 1.5,
                       letterSpacing: 0,
@@ -264,65 +351,66 @@ class _ProductCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      width: 173,
-                      height: 46,
-                      child: ElevatedButton(
-                        key: const Key('addToCart'),
-                        onPressed: inStock
-                            ? () {
-                                Cart.instance.add(
-                                  CartItem(
-                                    id: product.id,
-                                    name: product.name,
-                                    img: imageUrl,
-                                    price: price,
-                                    gramm: product.weight ?? 0,
-                                    amount: 1,
-                                    qty: 1,
-                                  ),
-                                );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Добавлено в корзину'),
-                                  ),
-                                );
-                              }
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: btnBg,
-                          disabledBackgroundColor: const Color(
-                            0xFFFF5E1C,
-                          ).withValues(alpha: 0.4),
-                          disabledForegroundColor: Colors.white.withValues(
-                            alpha: 0.8,
+                    Expanded(
+                      child: SizedBox(
+                        height: controlH,
+                        child: ElevatedButton(
+                          key: const Key('addToCart'),
+                          onPressed: inStock
+                              ? () {
+                                  Cart.instance.add(
+                                    CartItem(
+                                      id: product.id,
+                                      name: product.name,
+                                      img: imageUrl,
+                                      price: price,
+                                      gramm: product.weight ?? 0,
+                                      amount: 1,
+                                      qty: 1,
+                                    ),
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Добавлено в корзину'),
+                                    ),
+                                  );
+                                }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: btnBg,
+                            disabledBackgroundColor: const Color(
+                              0xFFFF5E1C,
+                            ).withValues(alpha: 0.4),
+                            disabledForegroundColor: Colors.white.withValues(
+                              alpha: 0.8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(40),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(40),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                        child: const Text(
-                          'ДОБАВИТЬ В КОРЗИНУ',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10,
-                            height: 1.0,
-                            letterSpacing: 0.4,
-                            color: Colors.white,
+                          child: const Text(
+                            'ДОБАВИТЬ В КОРЗИНУ',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 10,
+                              height: 1.0,
+                              letterSpacing: 0.4,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 16),
                     Text(
                       price.formatRub(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w500,
-                        fontSize: 20,
+                        fontSize: 20 * scale,
                         height: 1.0,
                         color: Colors.black,
                       ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
-import 'package:salmonz/nav_bar/main_screen.dart';
+import 'package:salmonz/core/responsive/app_breakpoints.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
+import 'package:salmonz/widgets/app_root.dart';
 import 'register.dart';
 
 class Login extends StatefulWidget {
@@ -50,7 +52,7 @@ class _LoginState extends State<Login> {
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const SuccessPage()),
+        MaterialPageRoute(builder: (_) => const AppRoot()),
         (route) => false,
       );
     } on ApiException catch (e) {
@@ -74,198 +76,212 @@ class _LoginState extends State<Login> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(height: widget.topPadding),
-                    Center(
-                      child: Image.asset(
-                        'assets/icon/logo_salmonz.png',
-                        width: widget.imageWidth,
-                        height: widget.imageHeight,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    const SizedBox(height: 48),
-                    const _FieldLabel('Электронная почта'),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 48,
-                      width: double.infinity,
-                      child: TextField(
-                        key: const Key('loginEmail'),
-                        controller: emailCtr,
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          height: 1.0,
-                          color: Colors.white,
-                        ),
-                        cursorColor: Colors.white,
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.fromLTRB(
-                            20,
-                            17,
-                            20,
-                            17,
-                          ),
-                          filled: true,
-                          fillColor: const Color(0x29FFFFFF),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
-                          ),
-                          hintText: 'email@example.com',
-                          hintStyle: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            height: 1.0,
-                            color: Color(0xB2FFFFFF),
+            final width = constraints.maxWidth;
+            final controlH = AppBreakpoints.controlHeight(width);
+            final scale = AppBreakpoints.typeScale(width);
+            final logoW = widget.imageWidth * scale;
+            final logoH = widget.imageHeight * scale;
+
+            return Center(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: AppPageContainer.form(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(height: widget.topPadding),
+                        Center(
+                          child: Image.asset(
+                            'assets/icon/logo_salmonz.png',
+                            width: logoW,
+                            height: logoH,
+                            fit: BoxFit.contain,
                           ),
                         ),
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const _FieldLabel('Пароль'),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 48,
-                      width: double.infinity,
-                      child: TextField(
-                        key: const Key('loginPassword'),
-                        controller: passCtr,
-                        obscureText: _obscurePass,
-                        obscuringCharacter: '•',
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          height: 1.0,
-                          color: Colors.white,
+                        const SizedBox(height: 48),
+                        const _FieldLabel('Электронная почта'),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: controlH,
+                          width: double.infinity,
+                          child: TextField(
+                            key: const Key('loginEmail'),
+                            controller: emailCtr,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14 * scale,
+                              fontWeight: FontWeight.w500,
+                              height: 1.0,
+                              color: Colors.white,
+                            ),
+                            cursorColor: Colors.white,
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.fromLTRB(
+                                20,
+                                17,
+                                20,
+                                17,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0x29FFFFFF),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: BorderSide.none,
+                              ),
+                              hintText: 'email@example.com',
+                              hintStyle: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 14 * scale,
+                                fontWeight: FontWeight.w500,
+                                height: 1.0,
+                                color: hintColor,
+                              ),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                          ),
                         ),
-                        cursorColor: Colors.white,
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.fromLTRB(
-                            20,
-                            17,
-                            20,
-                            17,
-                          ),
-                          filled: true,
-                          fillColor: const Color(0x29FFFFFF),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
-                          ),
-                          hintText: 'Введите пароль',
-                          hintStyle: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            height: 1.0,
-                            color: hintColor,
-                          ),
-                          suffixIconConstraints: const BoxConstraints.tightFor(
-                            width: 48,
-                            height: 48,
-                          ),
-                          suffixIcon: Material(
-                            type: MaterialType.transparency,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(24),
-                              onTap: () =>
-                                  setState(() => _obscurePass = !_obscurePass),
-                              child: Center(
-                                child: Icon(
-                                  _obscurePass
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                  size: 20,
-                                  color: hintColor,
+                        const SizedBox(height: 24),
+                        const _FieldLabel('Пароль'),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: controlH,
+                          width: double.infinity,
+                          child: TextField(
+                            key: const Key('loginPassword'),
+                            controller: passCtr,
+                            obscureText: _obscurePass,
+                            obscuringCharacter: '•',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14 * scale,
+                              fontWeight: FontWeight.w500,
+                              height: 1.0,
+                              color: Colors.white,
+                            ),
+                            cursorColor: Colors.white,
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.fromLTRB(
+                                20,
+                                17,
+                                20,
+                                17,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0x29FFFFFF),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: BorderSide.none,
+                              ),
+                              hintText: 'Введите пароль',
+                              hintStyle: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                height: 1.0,
+                                color: hintColor,
+                              ),
+                              suffixIconConstraints: BoxConstraints.tightFor(
+                                width: controlH,
+                                height: controlH,
+                              ),
+                              suffixIcon: Material(
+                                type: MaterialType.transparency,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(24),
+                                  onTap: () => setState(
+                                    () => _obscurePass = !_obscurePass,
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      _obscurePass
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                      size: 20,
+                                      color: hintColor,
+                                    ),
+                                  ),
                                 ),
+                              ),
+                            ),
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) => _login(),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: controlH,
+                          child: ElevatedButton(
+                            key: const Key('loginSubmit'),
+                            onPressed: isLoading ? null : _login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(40),
+                              ),
+                              fixedSize: Size.fromHeight(controlH),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: isLoading
+                                ? const CircularProgressIndicator()
+                                : Text(
+                                    'ВОЙТИ В АККАУНТ',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12 * scale,
+                                      height: 1.0,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.48,
+                                      color: const Color(0xFFA83100),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: controlH,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RegisterPage(),
+                                ),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                color: Colors.white,
+                                width: 2,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(40),
+                              ),
+                              fixedSize: Size.fromHeight(controlH),
+                              padding: EdgeInsets.zero,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Text(
+                              'РЕГИСТРАЦИЯ',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12 * scale,
+                                fontWeight: FontWeight.w600,
+                                height: 1.0,
+                                letterSpacing: 0.48,
+                                color: Colors.white,
                               ),
                             ),
                           ),
                         ),
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _login(),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        key: const Key('loginSubmit'),
-                        onPressed: isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(40),
-                          ),
-                          fixedSize: const Size.fromHeight(56),
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: isLoading
-                            ? const CircularProgressIndicator()
-                            : const Text(
-                                'ВОЙТИ В АККАУНТ',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 12,
-                                  height: 1.0,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.48,
-                                  color: Color(0xFFA83100),
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const RegisterPage(),
-                            ),
-                          );
-                        },
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white, width: 2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(40),
-                          ),
-                          fixedSize: const Size.fromHeight(56),
-                          padding: EdgeInsets.zero,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text(
-                          'РЕГИСТРАЦИЯ',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            height: 1.0,
-                            letterSpacing: 0.48,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );

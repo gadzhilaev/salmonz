@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/responsive/app_breakpoints.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/core/theme/theme_controller.dart';
 import '../profile/legal/legal_text_page.dart';
 import '../profile/legal/legal_texts.dart';
 import '../profile/edit_profile_page.dart';
-import '../widgets/app_nav_bar.dart';
-import 'main_screen.dart';
-import 'orders.dart';
-import 'basket.dart';
 import '../profile/addresses_page.dart';
 import '../auth/login.dart';
 import '../profile/support_page.dart';
 import '../admin/admin_panel_page.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -85,11 +85,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = AppBreakpoints.typeScale(MediaQuery.sizeOf(context).width);
+    final tileH = AppBreakpoints.controlHeight(
+      MediaQuery.sizeOf(context).width,
+    );
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: AppPageContainer(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -130,7 +134,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         padding: EdgeInsets.zero,
                         children: [
                           const SizedBox(height: 24),
-
                           Row(
                             children: [
                               Expanded(
@@ -139,7 +142,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   style: TextStyle(
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 24,
+                                    fontSize: 24 * scale,
                                     height: 1.0,
                                     letterSpacing: ls24,
                                     color:
@@ -246,11 +249,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
                           const SizedBox(height: 24),
 
-                          _ThemeModeTile(key: const Key('themeToggle')),
+                          _ThemeModeTile(
+                            key: const Key('themeToggle'),
+                            height: tileH,
+                          ),
                           const SizedBox(height: 8),
                           _ProfileTile(
                             icon: Icons.account_circle_outlined,
                             text: 'Редактировать профиль',
+                            height: tileH,
                             onTap: () async {
                               final updated = await Navigator.push<bool>(
                                 context,
@@ -270,6 +277,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           _ProfileTile(
                             icon: Icons.home_outlined,
                             text: 'Мои адреса',
+                            height: tileH,
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -283,12 +291,14 @@ class _ProfilePageState extends State<ProfilePage> {
                           _ProfileTile(
                             icon: Icons.translate_rounded,
                             text: 'Изменить язык',
+                            height: tileH,
                             onTap: _openLanguageSheet,
                           ),
                           const SizedBox(height: 8),
                           _ProfileTile(
                             icon: Icons.description_outlined,
                             text: 'Политика конфиденциальности',
+                            height: tileH,
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -305,6 +315,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           _ProfileTile(
                             icon: Icons.description_outlined,
                             text: 'Пользовательское соглашение',
+                            height: tileH,
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -321,6 +332,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           _ProfileTile(
                             icon: Icons.contact_support_outlined,
                             text: 'Написать в поддержку',
+                            height: tileH,
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -336,6 +348,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               key: const Key('adminPanelEntry'),
                               icon: Icons.person_pin_circle_outlined,
                               text: 'Админ панель',
+                              height: tileH,
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -358,36 +371,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ),
-      bottomNavigationBar: AppNavBar(
-        current: AppTab.profile,
-        onTap: (tab) {
-          switch (tab) {
-            case AppTab.home:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const SuccessPage()),
-              );
-              break;
-            case AppTab.orders:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const OrdersPage()),
-              );
-              break;
-            case AppTab.basket:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const BasketPage()),
-              );
-              break;
-            case AppTab.profile:
-              break;
-          }
-        },
-      ),
     );
   }
-  // внутри _ProfilePageState:
 
   void _openLanguageSheet() async {
     final me = await _future;
@@ -441,9 +426,10 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class _ThemeModeTile extends StatelessWidget {
-  const _ThemeModeTile({super.key});
+  const _ThemeModeTile({super.key, this.height = 48});
 
   static const orange = Color(0xFFFF5E1C);
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -456,7 +442,7 @@ class _ThemeModeTile extends StatelessWidget {
           onTap: () => controller.cycle(),
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 4),
-            height: 48,
+            height: height,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: orange, width: 1),
@@ -497,11 +483,13 @@ class _ProfileTile extends StatelessWidget {
     super.key,
     required this.icon,
     required this.text,
+    this.height = 48,
     this.onTap,
   });
 
   final IconData icon;
   final String text;
+  final double height;
   final VoidCallback? onTap;
 
   static const orange = Color(0xFFFF5E1C);
@@ -514,7 +502,7 @@ class _ProfileTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
-        height: 48,
+        height: height,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: orange, width: 1),
@@ -565,18 +553,13 @@ class _LogoutConfirmDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 48),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       backgroundColor: Theme.of(context).colorScheme.surface,
-      surfaceTintColor: Colors.transparent, // убираем розовый тинт
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minWidth: 280,
-          maxWidth: 280,
-          minHeight: 172,
-          maxHeight: 172,
-        ),
+        constraints: const BoxConstraints(minWidth: 280, maxWidth: 420),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
           child: Column(
@@ -608,60 +591,55 @@ class _LogoutConfirmDialog extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Кнопка "Выйти" — как ОК (оранжевая)
-                  SizedBox(
-                    width: 116,
-                    height: 32,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF5E1C),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(40),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF5E1C),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(40),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 11),
-                      ),
-                      child: const Text(
-                        'ВЫЙТИ',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 10,
-                          height: 1.0,
-                          letterSpacing: 0.4, // 4% от 10
-                          color: Colors.white,
+                        child: const Text(
+                          'ВЫЙТИ',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            height: 1.0,
+                            letterSpacing: 0.4,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 8),
-
-                  // Кнопка "Отмена" — серая
-                  SizedBox(
-                    width: 116,
-                    height: 32,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF1F1F1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(40),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF1F1F1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(40),
+                          ),
+                          elevation: 0,
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 11),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'ОТМЕНА',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 10,
-                          height: 1.0,
-                          letterSpacing: 0.4, // 4% от 10
-                          color: Color(0xFF59523A),
+                        child: const Text(
+                          'ОТМЕНА',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            height: 1.0,
+                            letterSpacing: 0.4,
+                            color: Color(0xFF59523A),
+                          ),
                         ),
                       ),
                     ),

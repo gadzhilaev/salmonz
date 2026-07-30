@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:salmonz/core/di/app_services.dart';
@@ -154,59 +155,63 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
             IconButton(onPressed: _delete, icon: const Icon(Icons.delete)),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TextField(
-            controller: _nameCtrl,
-            decoration: const InputDecoration(labelText: 'Название'),
-          ),
-          TextField(
-            controller: _descCtrl,
-            decoration: const InputDecoration(labelText: 'Описание'),
-            maxLines: 3,
-          ),
-          TextField(
-            controller: _priceCtrl,
-            decoration: const InputDecoration(labelText: 'Цена'),
-            keyboardType: TextInputType.number,
-          ),
-          TextField(
-            controller: _weightCtrl,
-            decoration: const InputDecoration(labelText: 'Вес (г)'),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            initialValue: _categoryId,
-            items: _cats
-                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                .toList(),
-            onChanged: (v) => setState(() => _categoryId = v),
-            decoration: const InputDecoration(labelText: 'Категория'),
-          ),
-          SwitchListTile(
-            title: const Text('В наличии'),
-            value: _inStock,
-            onChanged: (v) => setState(() => _inStock = v),
-          ),
-          if ((_imageUrl ?? '').isNotEmpty)
-            Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
-          TextButton.icon(
-            onPressed: _pickAndUpload,
-            icon: const Icon(Icons.upload),
-            label: const Text('Загрузить фото'),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _saving ? null : _save,
-            style: ElevatedButton.styleFrom(backgroundColor: orange),
-            child: const Text(
-              'СОХРАНИТЬ',
-              style: TextStyle(color: Colors.white),
+      body: AppPageContainer.form(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            TextField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(labelText: 'Название'),
             ),
-          ),
-        ],
+            TextField(
+              controller: _descCtrl,
+              decoration: const InputDecoration(labelText: 'Описание'),
+              maxLines: 3,
+            ),
+            TextField(
+              controller: _priceCtrl,
+              decoration: const InputDecoration(labelText: 'Цена'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: _weightCtrl,
+              decoration: const InputDecoration(labelText: 'Вес (г)'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: _categoryId,
+              items: _cats
+                  .map(
+                    (c) => DropdownMenuItem(value: c.id, child: Text(c.name)),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _categoryId = v),
+              decoration: const InputDecoration(labelText: 'Категория'),
+            ),
+            SwitchListTile(
+              title: const Text('В наличии'),
+              value: _inStock,
+              onChanged: (v) => setState(() => _inStock = v),
+            ),
+            if ((_imageUrl ?? '').isNotEmpty)
+              Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
+            TextButton.icon(
+              onPressed: _pickAndUpload,
+              icon: const Icon(Icons.upload),
+              label: const Text('Загрузить фото'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(backgroundColor: orange),
+              child: const Text(
+                'СОХРАНИТЬ',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
-import 'package:salmonz/nav_bar/main_screen.dart';
+import 'package:salmonz/core/responsive/app_breakpoints.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
+import 'package:salmonz/widgets/app_root.dart';
 import 'login.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -67,7 +69,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const SuccessPage()),
+        MaterialPageRoute(builder: (_) => const AppRoot()),
         (route) => false,
       );
     } on ApiException catch (e) {
@@ -90,115 +92,133 @@ class _RegisterPageState extends State<RegisterPage> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(height: widget.topPadding),
-                      Center(
-                        child: Image.asset(
-                          'assets/icon/logo_salmonz.png',
-                          width: widget.imageWidth,
-                          height: widget.imageHeight,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-                      const _FieldLabel('Имя'),
-                      const SizedBox(height: 8),
-                      _FilledInput(
-                        controller: nameCtr,
-                        hint: 'Иван',
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 24),
-                      const _FieldLabel('Электронная почта'),
-                      const SizedBox(height: 8),
-                      _FilledInput(
-                        controller: emailCtr,
-                        hint: 'email@example.com',
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 24),
-                      const _FieldLabel('Пароль'),
-                      const SizedBox(height: 8),
-                      _PasswordInput(
-                        controller: passCtr,
-                        hint: 'Введите пароль',
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 24),
-                      const _FieldLabel('Повторите пароль'),
-                      const SizedBox(height: 8),
-                      _PasswordInput(
-                        controller: pass2Ctr,
-                        hint: 'Повторите пароль',
-                        textInputAction: TextInputAction.done,
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: isLoading ? null : _register,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(40),
-                            ),
-                            fixedSize: const Size.fromHeight(56),
-                            padding: EdgeInsets.zero,
+            final width = constraints.maxWidth;
+            final controlH = AppBreakpoints.controlHeight(width);
+            final scale = AppBreakpoints.typeScale(width);
+            final logoW = widget.imageWidth * scale;
+            final logoH = widget.imageHeight * scale;
+
+            return Center(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: AppPageContainer.form(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(height: widget.topPadding),
+                        Center(
+                          child: Image.asset(
+                            'assets/icon/logo_salmonz.png',
+                            width: logoW,
+                            height: logoH,
+                            fit: BoxFit.contain,
                           ),
-                          child: isLoading
-                              ? const CircularProgressIndicator()
-                              : const Text(
-                                  'ЗАРЕГИСТРИРОВАТЬСЯ',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.0,
-                                    letterSpacing: 0.48,
-                                    color: Color(0xFFA83100),
+                        ),
+                        const SizedBox(height: 48),
+                        const _FieldLabel('Имя'),
+                        const SizedBox(height: 8),
+                        _FilledInput(
+                          controller: nameCtr,
+                          hint: 'Иван',
+                          textInputAction: TextInputAction.next,
+                          height: controlH,
+                          scale: scale,
+                        ),
+                        const SizedBox(height: 24),
+                        const _FieldLabel('Электронная почта'),
+                        const SizedBox(height: 8),
+                        _FilledInput(
+                          controller: emailCtr,
+                          hint: 'email@example.com',
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          height: controlH,
+                          scale: scale,
+                        ),
+                        const SizedBox(height: 24),
+                        const _FieldLabel('Пароль'),
+                        const SizedBox(height: 8),
+                        _PasswordInput(
+                          controller: passCtr,
+                          hint: 'Введите пароль',
+                          textInputAction: TextInputAction.next,
+                          height: controlH,
+                          scale: scale,
+                        ),
+                        const SizedBox(height: 24),
+                        const _FieldLabel('Повторите пароль'),
+                        const SizedBox(height: 8),
+                        _PasswordInput(
+                          controller: pass2Ctr,
+                          hint: 'Повторите пароль',
+                          textInputAction: TextInputAction.done,
+                          height: controlH,
+                          scale: scale,
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: controlH,
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : _register,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(40),
+                              ),
+                              fixedSize: Size.fromHeight(controlH),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: isLoading
+                                ? const CircularProgressIndicator()
+                                : Text(
+                                    'ЗАРЕГИСТРИРОВАТЬСЯ',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12 * scale,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.0,
+                                      letterSpacing: 0.48,
+                                      color: const Color(0xFFA83100),
+                                    ),
                                   ),
-                                ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 32),
-                      Center(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (_) => const Login()),
-                            );
-                          },
-                          child: const Text(
-                            'У меня уже есть аккаунт',
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            softWrap: false,
-                            overflow: TextOverflow.visible,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w400,
-                              fontSize: 14,
-                              height: 1.7,
-                              letterSpacing: 0.0,
-                              color: Colors.white,
+                        const SizedBox(height: 32),
+                        Center(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const Login(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'У меня уже есть аккаунт',
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              softWrap: false,
+                              overflow: TextOverflow.visible,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,
+                                fontSize: 14 * scale,
+                                height: 1.7,
+                                letterSpacing: 0.0,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -238,12 +258,16 @@ class _FieldLabel extends StatelessWidget {
 class _FilledInput extends StatelessWidget {
   const _FilledInput({
     required this.hint,
+    required this.height,
+    required this.scale,
     this.controller,
     this.keyboardType,
     this.textInputAction,
   });
 
   final String hint;
+  final double height;
+  final double scale;
   final TextEditingController? controller;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -253,15 +277,15 @@ class _FilledInput extends StatelessWidget {
     const hintColor = Color(0xB2FFFFFF);
 
     return SizedBox(
-      height: 48,
+      height: height,
       width: double.infinity,
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
         textInputAction: textInputAction,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 14,
+          fontSize: 14 * scale,
           fontWeight: FontWeight.w500,
           height: 1.0,
           color: Colors.white,
@@ -276,9 +300,9 @@ class _FilledInput extends StatelessWidget {
             borderSide: BorderSide.none,
           ),
           hintText: hint,
-          hintStyle: const TextStyle(
+          hintStyle: TextStyle(
             fontFamily: 'Inter',
-            fontSize: 14,
+            fontSize: 14 * scale,
             fontWeight: FontWeight.w500,
             height: 1.0,
             color: hintColor,
@@ -293,11 +317,15 @@ class _PasswordInput extends StatefulWidget {
   const _PasswordInput({
     required this.hint,
     required this.controller,
+    required this.height,
+    required this.scale,
     this.textInputAction,
   });
 
   final String hint;
   final TextEditingController controller;
+  final double height;
+  final double scale;
   final TextInputAction? textInputAction;
 
   @override
@@ -312,16 +340,16 @@ class _PasswordInputState extends State<_PasswordInput> {
     const hintColor = Color(0xB2FFFFFF);
 
     return SizedBox(
-      height: 48,
+      height: widget.height,
       width: double.infinity,
       child: TextField(
         controller: widget.controller,
         obscureText: _obscure,
         obscuringCharacter: '•',
         textInputAction: widget.textInputAction,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 14,
+          fontSize: 14 * widget.scale,
           fontWeight: FontWeight.w500,
           height: 1.0,
           color: Colors.white,
@@ -336,16 +364,16 @@ class _PasswordInputState extends State<_PasswordInput> {
             borderSide: BorderSide.none,
           ),
           hintText: widget.hint,
-          hintStyle: const TextStyle(
+          hintStyle: TextStyle(
             fontFamily: 'Inter',
-            fontSize: 14,
+            fontSize: 14 * widget.scale,
             fontWeight: FontWeight.w500,
             height: 1.0,
             color: hintColor,
           ),
-          suffixIconConstraints: const BoxConstraints.tightFor(
-            width: 48,
-            height: 48,
+          suffixIconConstraints: BoxConstraints.tightFor(
+            width: widget.height,
+            height: widget.height,
           ),
           suffixIcon: Material(
             type: MaterialType.transparency,

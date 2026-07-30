@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
+import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
 
 class PromotionsListPage extends StatefulWidget {
@@ -42,42 +43,44 @@ class _PromotionsListPageState extends State<PromotionsListPage> {
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: RefreshIndicator(
-        onRefresh: _reload,
-        child: FutureBuilder<List<PromotionModel>>(
-          future: _future,
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final items = snap.data!;
-            return ListView.builder(
-              itemCount: items.length,
-              itemBuilder: (_, i) {
-                final promo = items[i];
-                return ListTile(
-                  leading: (promo.imageUrl ?? '').isEmpty
-                      ? null
-                      : Image.network(
-                          promo.imageUrl!,
-                          width: 48,
-                          height: 48,
-                          fit: BoxFit.cover,
+      body: AppPageContainer(
+        child: RefreshIndicator(
+          onRefresh: _reload,
+          child: FutureBuilder<List<PromotionModel>>(
+            future: _future,
+            builder: (context, snap) {
+              if (!snap.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final items = snap.data!;
+              return ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (_, i) {
+                  final promo = items[i];
+                  return ListTile(
+                    leading: (promo.imageUrl ?? '').isEmpty
+                        ? null
+                        : Image.network(
+                            promo.imageUrl!,
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.cover,
+                          ),
+                    title: Text(promo.title),
+                    onTap: () async {
+                      final ok = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PromotionEditorPage(existing: promo),
                         ),
-                  title: Text(promo.title),
-                  onTap: () async {
-                    final ok = await Navigator.push<bool>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PromotionEditorPage(existing: promo),
-                      ),
-                    );
-                    if (ok == true) await _reload();
-                  },
-                );
-              },
-            );
-          },
+                      );
+                      if (ok == true) await _reload();
+                    },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -183,32 +186,34 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
             IconButton(onPressed: _delete, icon: const Icon(Icons.delete)),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TextField(
-            controller: _title,
-            decoration: const InputDecoration(labelText: 'Заголовок'),
-          ),
-          TextField(
-            controller: _desc,
-            decoration: const InputDecoration(labelText: 'Описание'),
-            maxLines: 3,
-          ),
-          if ((_imageUrl ?? '').isNotEmpty)
-            Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
-          TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
-          ElevatedButton(
-            onPressed: _saving ? null : _save,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5E1C),
+      body: AppPageContainer.form(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            TextField(
+              controller: _title,
+              decoration: const InputDecoration(labelText: 'Заголовок'),
             ),
-            child: const Text(
-              'СОХРАНИТЬ',
-              style: TextStyle(color: Colors.white),
+            TextField(
+              controller: _desc,
+              decoration: const InputDecoration(labelText: 'Описание'),
+              maxLines: 3,
             ),
-          ),
-        ],
+            if ((_imageUrl ?? '').isNotEmpty)
+              Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
+            TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
+            ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5E1C),
+              ),
+              child: const Text(
+                'СОХРАНИТЬ',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
