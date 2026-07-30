@@ -22,7 +22,11 @@ import {
 } from '../common/utils/money.util';
 import { canTransitionOrderStatus } from '../common/utils/order-status.util';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateOrderDto, CreateOrderItemDto, QuoteOrderDto } from './dto/order.dto';
+import {
+  CreateOrderDto,
+  CreateOrderItemDto,
+  QuoteOrderDto,
+} from './dto/order.dto';
 
 type PricedLine = {
   productId: string;

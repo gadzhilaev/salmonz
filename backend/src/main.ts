@@ -24,7 +24,9 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const driver = (config.get<string>('storage.driver') ?? 'local').toLowerCase();
+  const driver = (
+    config.get<string>('storage.driver') ?? 'local'
+  ).toLowerCase();
   if (driver === 'local') {
     const uploadDir = join(
       process.cwd(),
