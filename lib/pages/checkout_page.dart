@@ -28,6 +28,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool _sending = false;
   bool _loading = true;
 
+  /// Stable across double-taps / retry after transient errors.
+  String? _idempotencyKey;
+
   OrderQuoteModel? _quote;
   bool _quoteLoading = false;
   String? _quoteError;
@@ -92,13 +95,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (!mounted || gen != _quoteGen) return;
       setState(() {
         _quoteLoading = false;
-        _quoteError = e.message;
+        _quoteError = e.userMessage;
       });
     } catch (e) {
       if (!mounted || gen != _quoteGen) return;
       setState(() {
         _quoteLoading = false;
-        _quoteError = 'Ошибка расчёта: $e';
+        _quoteError = ApiException.userMessageFrom(e);
       });
     }
   }
@@ -174,7 +177,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
-    setState(() => _sending = true);
+    // Lock only after validation so the button stays tappable on form errors.
+    _sending = true;
+    if (mounted) setState(() {});
+
+    _idempotencyKey ??= const Uuid().v4();
     try {
       final digits = phone.replaceAll(RegExp(r'\D'), '');
       final order = await AppServices.instance.orders.create(
@@ -184,9 +191,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         items: cart.items
             .map((e) => (productId: e.id, quantity: e.qty))
             .toList(),
-        idempotencyKey: const Uuid().v4(),
+        idempotencyKey: _idempotencyKey!,
       );
 
+      _idempotencyKey = null;
       await Cart.instance.clear();
       if (!mounted) return;
       _snack('Заказ успешно оформлен! Итого: ${order.total.formatRub()}');
@@ -198,11 +206,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
         (r) => false,
       );
     } on ApiException catch (e) {
-      _snack(e.message);
-    } catch (e) {
-      _snack('Ошибка: $e');
-    } finally {
       if (mounted) setState(() => _sending = false);
+      _snack(e.userMessage);
+    } catch (e) {
+      if (mounted) setState(() => _sending = false);
+      _snack(ApiException.userMessageFrom(e));
     }
   }
 
@@ -351,6 +359,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           const SizedBox(height: 12),
                           _OutlinedField(
                             controller: _phoneCtr,
+                            key: const Key('checkoutPhone'),
                             hint: '+7 900 000 00 00',
                             keyboardType: TextInputType.phone,
                             inputFormatters: [RuPhoneTextInputFormatter()],
@@ -690,6 +699,7 @@ class _Label extends StatelessWidget {
 
 class _OutlinedField extends StatelessWidget {
   const _OutlinedField({
+    super.key,
     required this.controller,
     required this.hint,
     this.keyboardType,

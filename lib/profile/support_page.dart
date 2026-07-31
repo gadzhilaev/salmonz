@@ -67,12 +67,12 @@ class _SupportPageState extends State<SupportPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      ).showSnackBar(SnackBar(content: Text(ApiException.userMessageFrom(e))));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -88,6 +88,7 @@ class _SupportPageState extends State<SupportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: AppPageContainer.form(
           child: Column(
@@ -146,6 +147,7 @@ class _SupportPageState extends State<SupportPage> {
               const SizedBox(height: 16),
               Expanded(
                 child: TextField(
+                  key: const Key('supportMessageField'),
                   controller: _controller,
                   maxLines: null,
                   expands: true,
@@ -168,6 +170,7 @@ class _SupportPageState extends State<SupportPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
+                  key: const Key('supportSendButton'),
                   onPressed: _sending ? null : _send,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: orange,
@@ -176,7 +179,10 @@ class _SupportPageState extends State<SupportPage> {
                     ),
                   ),
                   child: _sending
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const CircularProgressIndicator(
+                          key: Key('supportSendingIndicator'),
+                          color: Colors.white,
+                        )
                       : const Text(
                           'ОТПРАВИТЬ',
                           style: TextStyle(

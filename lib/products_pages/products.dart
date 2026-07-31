@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/money/money.dart';
 import 'package:salmonz/core/responsive/app_breakpoints.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/core/responsive/responsive_grid.dart';
 import 'package:salmonz/data/models/models.dart';
+import 'package:salmonz/widgets/app_error_view.dart';
 
 import 'product.dart';
 import '../widgets/cart.dart';
@@ -101,7 +103,14 @@ class _ProductsPageState extends State<ProductsPage> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (snap.hasError) {
-                      return Center(child: Text('Ошибка: ${snap.error}'));
+                      return Center(
+                        child: AppErrorView(
+                          message: ApiException.userMessageFrom(snap.error!),
+                          onRetry: () {
+                            setState(() => _future = _loadProducts());
+                          },
+                        ),
+                      );
                     }
                     final items = snap.data ?? [];
                     if (items.isEmpty) {

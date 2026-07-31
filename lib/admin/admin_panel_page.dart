@@ -7,6 +7,7 @@ import 'promotions/promotions_list_page.dart';
 import 'orders/admin_orders_page.dart';
 import 'categories/admin_categories_page.dart';
 import 'products/admin_products_page.dart';
+import 'support/admin_support_page.dart';
 
 class AdminPanelPage extends StatelessWidget {
   const AdminPanelPage({super.key});
@@ -19,11 +20,24 @@ class AdminPanelPage extends StatelessWidget {
   static const double ls24 = 0.96;
 
   static const _menuItems = [
-    _AdminMenuItem('Список акций', PromotionsListPage.new),
-    _AdminMenuItem('Список пользователей', UsersListPage.new),
-    _AdminMenuItem('Список заказов', AdminOrdersPage.new),
-    _AdminMenuItem('Список товаров', AdminProductsPage.new),
-    _AdminMenuItem('Список категорий', AdminCategoriesPage.new),
+    _AdminMenuItem(
+      'Список акций',
+      PromotionsListPage.new,
+      'adminMenuPromotions',
+    ),
+    _AdminMenuItem('Список пользователей', UsersListPage.new, 'adminMenuUsers'),
+    _AdminMenuItem('Список заказов', AdminOrdersPage.new, 'adminMenuOrders'),
+    _AdminMenuItem(
+      'Список товаров',
+      AdminProductsPage.new,
+      'adminMenuProducts',
+    ),
+    _AdminMenuItem(
+      'Список категорий',
+      AdminCategoriesPage.new,
+      'adminMenuCategories',
+    ),
+    _AdminMenuItem('Обращения', AdminSupportPage.new, 'adminMenuSupport'),
   ];
 
   @override
@@ -77,6 +91,7 @@ class AdminPanelPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
+                key: const Key('adminPanelTitle'),
                 'АДМИН ПАНЕЛЬ',
                 style: TextStyle(
                   fontFamily: 'Inter',
@@ -96,6 +111,7 @@ class AdminPanelPage extends StatelessWidget {
                             _AdminTile(
                               text: item.label,
                               height: tileH,
+                              semanticsKey: item.keyId,
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -120,6 +136,7 @@ class AdminPanelPage extends StatelessWidget {
                               return _AdminTile(
                                 text: item.label,
                                 height: tileH,
+                                semanticsKey: item.keyId,
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -142,50 +159,62 @@ class AdminPanelPage extends StatelessWidget {
 }
 
 class _AdminMenuItem {
-  const _AdminMenuItem(this.label, this.builder);
+  const _AdminMenuItem(this.label, this.builder, this.keyId);
   final String label;
   final Widget Function() builder;
+  final String keyId;
 }
 
 class _AdminTile extends StatelessWidget {
-  const _AdminTile({required this.text, required this.height, this.onTap});
+  const _AdminTile({
+    required this.text,
+    required this.height,
+    required this.semanticsKey,
+    this.onTap,
+  });
   final String text;
   final double height;
+  final String semanticsKey;
   final VoidCallback? onTap;
 
   static const orange = Color(0xFFFF5E1C);
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(10000),
-      onTap: onTap,
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10000),
-          border: Border.all(color: orange, width: 1),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 16),
-            const Icon(Icons.format_list_bulleted, size: 24, color: orange),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
-                  fontSize: 14,
-                  height: 1.0,
-                  letterSpacing: 0,
-                  color: Colors.black,
+    return Semantics(
+      button: true,
+      label: text,
+      child: InkWell(
+        key: Key(semanticsKey),
+        borderRadius: BorderRadius.circular(10000),
+        onTap: onTap,
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10000),
+            border: Border.all(color: orange, width: 1),
+          ),
+          child: Row(
+            children: [
+              const SizedBox(width: 16),
+              const Icon(Icons.format_list_bulleted, size: 24, color: orange),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  text,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14,
+                    height: 1.0,
+                    letterSpacing: 0,
+                    color: Colors.black,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-          ],
+              const SizedBox(width: 12),
+            ],
+          ),
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
+import 'package:salmonz/widgets/app_error_view.dart';
 
 class AddressesPage extends StatefulWidget {
   const AddressesPage({super.key});
@@ -127,6 +128,19 @@ class _AddressesPageState extends State<AddressesPage> {
                     if (!snap.hasData &&
                         snap.connectionState != ConnectionState.done) {
                       return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snap.hasError) {
+                      return Center(
+                        child: AppErrorView(
+                          message: ApiException.userMessageFrom(snap.error!),
+                          onRetry: () {
+                            setState(
+                              () => _future = AppServices.instance.addresses
+                                  .list(),
+                            );
+                          },
+                        ),
+                      );
                     }
                     final items = snap.data ?? [];
                     return ListView(
@@ -385,7 +399,7 @@ class _AddressFormPageState extends State<_AddressFormPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      ).showSnackBar(SnackBar(content: Text(ApiException.userMessageFrom(e))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

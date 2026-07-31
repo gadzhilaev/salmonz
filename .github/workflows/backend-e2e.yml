@@ -107,7 +107,6 @@ jobs:
 
   minio-upload:
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         working-directory: backend
@@ -125,18 +124,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-      minio:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        ports:
-          - 9000:9000
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 15
     env:
       DATABASE_URL: postgresql://salmonz:salmonz@localhost:5432/salmonz?schema=public
       JWT_ACCESS_SECRET: ci-access-secret-not-for-production
@@ -158,22 +145,56 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Start MinIO
+        run: |
+          docker run --detach --name salmonz-e2e-minio --network host \
+            --env MINIO_ROOT_USER=minioadmin \
+            --env MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio:latest server /data --console-address ":9001"
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
-      - name: Create MinIO bucket
+      - name: Wait for MinIO and initialize bucket
+        shell: bash
         run: |
-          docker run --rm --network host --entrypoint=/bin/sh minio/mc:latest -c '
-            for i in $(seq 1 30); do
-              mc alias set local http://127.0.0.1:9000 minioadmin minioadmin && break
-              sleep 1
-            done
-            mc mb --ignore-existing local/salmonz
-            mc anonymous set download local/salmonz
-          '
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            if (echo > /dev/tcp/127.0.0.1/9000) 2>/dev/null && \
+              timeout 5s docker run --rm --network host \
+                --env MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
+                minio/mc:latest ready local; then
+              echo "MinIO is ready"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "MinIO did not become ready"
+              docker logs salmonz-e2e-minio
+              exit 1
+            fi
+            sleep 1
+          done
+
+          for i in $(seq 1 30); do
+            if docker run --rm --network host \
+              --env MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
+              minio/mc:latest mb --ignore-existing local/salmonz && \
+              docker run --rm --network host \
+                --env MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
+                minio/mc:latest anonymous set download local/salmonz; then
+              echo "MinIO bucket is ready"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Unable to initialize MinIO bucket"
+              docker logs salmonz-e2e-minio
+              exit 1
+            fi
+            sleep 1
+          done
 
       - name: Install / migrate / seed / build
         run: |
@@ -183,16 +204,35 @@ jobs:
           npx tsx prisma/seed.ts
           npm run build
 
-      - name: Start API and run E2E
+      - name: Start API
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup node dist/src/main.js > /tmp/salmonz-api.log 2>&1 &
+          echo $! > /tmp/salmonz-api.pid
+          for i in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:3000/api/v1/health/live >/dev/null; then
+              echo "API is live"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API failed to start"
+          cat /tmp/salmonz-api.log
+          exit 1
+
+      - name: S3 upload E2E
         env:
           RUN_E2E: '1'
           API_URL: http://127.0.0.1:3000
         run: |
-          nohup node dist/src/main.js > /tmp/salmonz-api.log 2>&1 &
-          echo $! > /tmp/salmonz-api.pid
-          for i in $(seq 1 40); do
-            curl -sf http://127.0.0.1:3000/api/v1/health/live && break
-            sleep 1
-          done
           npm run test:e2e
-          kill "$(cat /tmp/salmonz-api.pid)" || true
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f /tmp/salmonz-api.pid ]; then kill "$(cat /tmp/salmonz-api.pid)" || true; fi
+
+      - name: Stop MinIO
+        if: always()
+        run: docker rm --force salmonz-e2e-minio || true

@@ -5,9 +5,16 @@
  */
 import request from 'supertest';
 import { randomUUID } from 'crypto';
+import {
+  DeleteObjectCommand,
+  HeadBucketCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 const enabled = process.env.RUN_E2E === '1';
 const describeE2e = enabled ? describe : describe.skip;
+const s3Enabled = enabled && process.env.STORAGE_DRIVER === 's3';
+const describeS3 = s3Enabled ? describe : describe.skip;
 // Prefer IPv4: on Windows `localhost` can resolve to ::1 and fail while Nest listens on 127.0.0.1.
 const api = process.env.API_URL ?? 'http://127.0.0.1:3000';
 
@@ -292,4 +299,93 @@ describeE2e('Salmonz live API e2e', () => {
       .send({ refreshToken: userRefresh });
     expect(res.status).toBeLessThan(300);
   });
+});
+
+describeS3('S3-backed upload e2e', () => {
+  const bucket = process.env.S3_BUCKET ?? 'salmonz';
+  const endpoint = process.env.S3_ENDPOINT;
+  const uploadedKeys: string[] = [];
+  const s3 = new S3Client({
+    endpoint,
+    region: process.env.S3_REGION ?? 'us-east-1',
+    forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== 'false',
+    credentials: {
+      accessKeyId: process.env.S3_ACCESS_KEY ?? 'minioadmin',
+      secretAccessKey: process.env.S3_SECRET_KEY ?? 'minioadmin',
+    },
+  });
+
+  afterAll(async () => {
+    await Promise.allSettled(
+      uploadedKeys.map((Key) =>
+        s3.send(new DeleteObjectCommand({ Bucket: bucket, Key })),
+      ),
+    );
+  });
+
+  it('uses a ready MinIO bucket for validated, publicly retrievable uploads', async () => {
+    expect(endpoint).toBeTruthy();
+
+    await request(api).get('/api/v1/health/live').expect(200);
+    const minioHealth = await fetch(
+      new URL('/minio/health/live', endpoint).toString(),
+    );
+    expect(minioHealth.ok).toBe(true);
+
+    await expect(
+      s3.send(new HeadBucketCommand({ Bucket: bucket })),
+    ).resolves.toBeDefined();
+
+    const adminLogin = await request(api)
+      .post('/api/v1/auth/login')
+      .send({
+        email: process.env.ADMIN_EMAIL ?? 'admin@example.com',
+        password: process.env.ADMIN_PASSWORD ?? 'ChangeMeAdmin123!',
+      })
+      .expect(201);
+    const adminAccess = adminLogin.body.accessToken;
+    expect(adminAccess).toBeTruthy();
+
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    const uploaded = await request(api)
+      .post('/api/v1/admin/uploads/product')
+      .set('Authorization', `Bearer ${adminAccess}`)
+      .attach('file', png, { filename: 's3-e2e.png', contentType: 'image/png' })
+      .expect(201);
+    const uploadedKey: unknown = uploaded.body.key;
+    const uploadedUrl: unknown = uploaded.body.url;
+    expect(typeof uploadedKey).toBe('string');
+    expect(typeof uploadedUrl).toBe('string');
+    if (typeof uploadedKey !== 'string' || typeof uploadedUrl !== 'string') {
+      throw new Error('Upload response did not include a key and public URL');
+    }
+    uploadedKeys.push(uploadedKey);
+
+    const object = await fetch(uploadedUrl);
+    expect(object.ok).toBe(true);
+    expect(await object.arrayBuffer()).toEqual(
+      png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength),
+    );
+
+    const invalid = await request(api)
+      .post('/api/v1/admin/uploads/product')
+      .set('Authorization', `Bearer ${adminAccess}`)
+      .attach('file', Buffer.from('not an image'), {
+        filename: 'invalid.txt',
+        contentType: 'text/plain',
+      });
+    expect(invalid.status).toBeGreaterThanOrEqual(400);
+
+    const oversized = await request(api)
+      .post('/api/v1/admin/uploads/product')
+      .set('Authorization', `Bearer ${adminAccess}`)
+      .attach('file', Buffer.alloc(5 * 1024 * 1024 + 1), {
+        filename: 'oversized.png',
+        contentType: 'image/png',
+      });
+    expect(oversized.status).toBeGreaterThanOrEqual(400);
+  }, 30000);
 });

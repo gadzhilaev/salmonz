@@ -72,6 +72,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               child: ElevatedButton(
+                                key: const Key('adminProductsAdd'),
                                 onPressed: () async {
                                   final ok = await Navigator.push<bool>(
                                     context,

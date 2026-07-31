@@ -56,6 +56,18 @@ Future<void> _login(
   await tester.pumpAndSettle(const Duration(seconds: 2));
 }
 
+Future<void> _waitFor(
+  WidgetTester tester,
+  Finder finder, {
+  int maxPumps = 60,
+}) async {
+  for (var i = 0; i < maxPumps; i++) {
+    await tester.pump(const Duration(milliseconds: 200));
+    if (finder.evaluate().isNotEmpty) return;
+  }
+  expect(finder, findsOneWidget);
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -95,27 +107,15 @@ void main() {
       email: 'admin@example.com',
       password: 'ChangeMeAdmin123!',
     );
-    await tester.tap(find.byKey(const Key('navProfile')));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
-    expect(find.byKey(const Key('adminPanelEntry')), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('adminPanelEntry')));
-    await tester.tap(find.byKey(const Key('adminPanelEntry')));
-    // Avoid pumpAndSettle hangs; wait for admin title frames.
-    for (var i = 0; i < 40; i++) {
-      await tester.pump(const Duration(milliseconds: 200));
-      if (find.textContaining('АДМИН').evaluate().isNotEmpty ||
-          find.textContaining('Список акций').evaluate().isNotEmpty) {
-        break;
-      }
-    }
-    expect(
-      find.textContaining('АДМИН').evaluate().isNotEmpty ||
-          find.textContaining('Админ').evaluate().isNotEmpty ||
-          find.textContaining('Список акций').evaluate().isNotEmpty ||
-          find.textContaining('категор').evaluate().isNotEmpty,
-      isTrue,
-      reason: 'Admin panel content should be visible after opening entry',
-    );
+    final profile = find.byKey(const Key('navProfile'));
+    await _waitFor(tester, profile);
+    await tester.ensureVisible(profile);
+    await tester.tap(profile);
+    final adminEntry = find.byKey(const Key('adminPanelEntry'));
+    await _waitFor(tester, adminEntry);
+    await tester.ensureVisible(adminEntry);
+    await tester.tap(adminEntry);
+    await _waitFor(tester, find.byKey(const Key('adminPanelTitle')));
   });
 
   testWidgets('address CRUD and orders tab', (tester) async {
@@ -139,11 +139,7 @@ void main() {
     final list = await addresses.list();
     expect(list.any((a) => a.id == created.id), isTrue);
 
-    await addresses.update(
-      created.id,
-      title: 'QA2',
-      apartment: '3',
-    );
+    await addresses.update(created.id, title: 'QA2', apartment: '3');
     await addresses.delete(created.id);
     final after = await addresses.list();
     expect(after.any((a) => a.id == created.id), isFalse);

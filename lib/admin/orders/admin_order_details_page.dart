@@ -79,6 +79,7 @@ class _AdminOrderDetailsPageState extends State<AdminOrderDetailsPage> {
                 children: statuses
                     .map(
                       (s) => ActionChip(
+                        key: Key('adminOrderStatus_$s'),
                         label: Text(s),
                         onPressed: () => _setStatus(s),
                       ),
