@@ -1,0 +1,72 @@
+# Run AFTER backend stopped. Home still has cached categories (do NOT refresh home first).
+appId: ru.gadzhilaev.salmonz
+---
+- tapOn: "ГЛАВНАЯ"
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element: "Роллы"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Роллы"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- assertNotVisible: "SocketException"
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_products
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 4000
+- scrollUntilVisible:
+    element: "Мои адреса"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Мои адреса"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- assertNotVisible: "SocketException"
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_addresses
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- scrollUntilVisible:
+    element: "Редактировать профиль"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Редактировать профиль"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_edit_profile
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- scrollUntilVisible:
+    element: "Написать в поддержку"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Написать в поддержку"
+- extendedWaitUntil:
+    visible: "ПОДДЕРЖКА"
+    timeout: 20000
+- tapOn: "Ваше сообщение"
+- inputText: "QA offline support message"
+- hideKeyboard
+- tapOn: "ОТПРАВИТЬ"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- assertNotVisible: "SocketException"
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_support
+- back

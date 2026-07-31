@@ -1,0 +1,24 @@
+appId: ru.gadzhilaev.salmonz
+---
+- extendedWaitUntil:
+    visible: "Отменить"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Фотография, 31 июля, 11:27"
+    commands:
+      - tapOn: "Фотография, 31 июля, 11:27"
+- runFlow:
+    when:
+      visible: "Отменить"
+    commands:
+      - tapOn:
+          point: "17%,35%"
+- runFlow:
+    when:
+      visible: "Добавить"
+    commands:
+      - tapOn: "Добавить"
+- extendedWaitUntil:
+    notVisible: "Отменить"
+    timeout: 20000

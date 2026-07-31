@@ -1,0 +1,22 @@
+appId: ru.gadzhilaev.salmonz
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "КОРЗИНА"
+    timeout: 20000
+- tapOn: "КОРЗИНА"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: docs/screenshots/qa/offline_cart
+- runFlow:
+    when:
+      visible: "Оформить"
+    commands:
+      - tapOn: "Оформить"
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - takeScreenshot: docs/screenshots/qa/offline_checkout_loading
+      - extendedWaitUntil:
+          visible: "ПОВТОРИТЬ"
+          timeout: 45000
+      - takeScreenshot: docs/screenshots/qa/offline_cart_quote

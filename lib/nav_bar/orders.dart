@@ -79,7 +79,9 @@ class _OrdersPageState extends State<OrdersPage> {
                     setState(() {
                       _future = AppServices.instance.orders.list();
                     });
-                    await _future;
+                    try {
+                      await _future;
+                    } catch (_) {}
                   },
                   child: FutureBuilder<List<OrderModel>>(
                     future: _future,

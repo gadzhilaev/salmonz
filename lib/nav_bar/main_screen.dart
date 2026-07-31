@@ -67,8 +67,12 @@ class _SuccessPageState extends State<SuccessPage> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
-                    setState(() => _future = _load());
-                    await _future;
+                    setState(() {
+                      _future = _load();
+                    });
+                    try {
+                      await _future;
+                    } catch (_) {}
                   },
                   child: FutureBuilder<_HomeData>(
                     future: _future,
@@ -78,8 +82,12 @@ class _SuccessPageState extends State<SuccessPage> {
                         scrollable: true,
                         waitForData: true,
                         onRetry: () async {
-                          setState(() => _future = _load());
-                          await _future;
+                          setState(() {
+                            _future = _load();
+                          });
+                          try {
+                            await _future;
+                          } catch (_) {}
                         },
                         loading: ListView(
                           physics: const AlwaysScrollableScrollPhysics(),

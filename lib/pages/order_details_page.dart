@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
+import 'package:salmonz/widgets/async_body.dart';
 
 class OrderDetailsPage extends StatefulWidget {
   const OrderDetailsPage({super.key, required this.orderId});
@@ -51,6 +52,15 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
     }
   }
 
+  Future<void> _reload() async {
+    setState(() {
+      _future = AppServices.instance.orders.get(widget.orderId);
+    });
+    try {
+      await _future;
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,82 +108,80 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                 child: FutureBuilder<OrderModel>(
                   future: _future,
                   builder: (context, snap) {
-                    if (snap.connectionState != ConnectionState.done) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snap.hasError) {
-                      return Center(child: Text('Ошибка: ${snap.error}'));
-                    }
-                    final o = snap.data!;
-                    return ListView(
-                      children: [
-                        const SizedBox(height: 24),
-                        Text(
-                          o.publicNumber.isNotEmpty
-                              ? o.publicNumber.toUpperCase()
-                              : 'ЗАКАЗ',
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w900,
-                            fontSize: 24,
-                            letterSpacing: ls24,
-                            color: titleDark,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _fmtDate(o.createdAt),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Статус: ${_statusRu(o.status)}',
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: Color(0xFFFF5E1C),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (o.addressText.isNotEmpty)
-                          Text('Адрес: ${o.addressText}'),
-                        Text('Телефон: ${o.phone}'),
-                        if ((o.comment ?? '').isNotEmpty)
-                          Text('Комментарий: ${o.comment}'),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'ПОЗИЦИИ',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w900,
-                            fontSize: 18,
-                            color: titleDark,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        for (final item in o.items) ...[
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(item.productName),
-                            subtitle: Text(
-                              '${item.quantity} × ${item.unitPrice.formatRub()}',
+                    return AsyncBody<OrderModel>(
+                      snapshot: snap,
+                      onRetry: _reload,
+                      scrollable: true,
+                      builder: (o) => ListView(
+                        children: [
+                          const SizedBox(height: 24),
+                          Text(
+                            o.publicNumber.isNotEmpty
+                                ? o.publicNumber.toUpperCase()
+                                : 'ЗАКАЗ',
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 24,
+                              letterSpacing: ls24,
+                              color: titleDark,
                             ),
-                            trailing: Text(item.lineTotal.formatRub()),
                           ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _fmtDate(o.createdAt),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Статус: ${_statusRu(o.status)}',
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: Color(0xFFFF5E1C),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (o.addressText.isNotEmpty)
+                            Text('Адрес: ${o.addressText}'),
+                          Text('Телефон: ${o.phone}'),
+                          if ((o.comment ?? '').isNotEmpty)
+                            Text('Комментарий: ${o.comment}'),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'ПОЗИЦИИ',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              color: titleDark,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          for (final item in o.items) ...[
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(item.productName),
+                              subtitle: Text(
+                                '${item.quantity} × ${item.unitPrice.formatRub()}',
+                              ),
+                              trailing: Text(item.lineTotal.formatRub()),
+                            ),
+                          ],
+                          const Divider(),
+                          Text('Товары: ${o.subtotal.formatRub()}'),
+                          Text('Доставка: ${o.deliveryFee.formatRub()}'),
+                          Text(
+                            'Итого: ${o.total.formatRub()}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
                         ],
-                        const Divider(),
-                        Text('Товары: ${o.subtotal.formatRub()}'),
-                        Text('Доставка: ${o.deliveryFee.formatRub()}'),
-                        Text(
-                          'Итого: ${o.total.formatRub()}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
+                      ),
                     );
                   },
                 ),

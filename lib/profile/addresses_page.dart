@@ -28,8 +28,12 @@ class _AddressesPageState extends State<AddressesPage> {
   }
 
   Future<void> _reload() async {
-    setState(() => _future = AppServices.instance.addresses.list());
-    await _future;
+    setState(() {
+      _future = AppServices.instance.addresses.list();
+    });
+    try {
+      await _future;
+    } catch (_) {}
   }
 
   Future<void> _add() async {
@@ -73,7 +77,7 @@ class _AddressesPageState extends State<AddressesPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     }
   }
 
@@ -394,7 +398,7 @@ class _AddressFormPageState extends State<_AddressFormPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

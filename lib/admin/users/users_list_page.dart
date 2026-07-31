@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
+import 'package:salmonz/widgets/app_error_view.dart';
 import 'admin_user_details_page.dart';
 
 class UsersListPage extends StatefulWidget {
@@ -19,6 +21,15 @@ class _UsersListPageState extends State<UsersListPage> {
     _future = AppServices.instance.admin.listUsers(limit: 100);
   }
 
+  Future<void> _reload() async {
+    setState(() {
+      _future = AppServices.instance.admin.listUsers(limit: 100);
+    });
+    try {
+      await _future;
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,6 +38,20 @@ class _UsersListPageState extends State<UsersListPage> {
         child: FutureBuilder<List<UserModel>>(
           future: _future,
           builder: (context, snap) {
+            if (snap.hasError) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.sizeOf(context).height * 0.5,
+                    child: AppErrorView(
+                      message: ApiException.userMessageFrom(snap.error!),
+                      onRetry: _reload,
+                    ),
+                  ),
+                ],
+              );
+            }
             if (!snap.hasData) {
               return const Center(child: CircularProgressIndicator());
             }

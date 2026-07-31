@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
+import 'package:salmonz/widgets/app_error_view.dart';
 import 'product_editor_page.dart';
 
 class AdminProductsPage extends StatefulWidget {
@@ -26,7 +28,9 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     setState(() {
       _future = AppServices.instance.admin.listProducts(limit: 100);
     });
-    await _future;
+    try {
+      await _future;
+    } catch (_) {}
   }
 
   @override
@@ -59,6 +63,14 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                   child: FutureBuilder<List<ProductModel>>(
                     future: _future,
                     builder: (context, snap) {
+                      if (snap.hasError) {
+                        return Center(
+                          child: AppErrorView(
+                            message: ApiException.userMessageFrom(snap.error!),
+                            onRetry: _reload,
+                          ),
+                        );
+                      }
                       if (!snap.hasData &&
                           snap.connectionState != ConnectionState.done) {
                         return const Center(child: CircularProgressIndicator());
@@ -71,27 +83,32 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                           if (i == items.length) {
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: ElevatedButton(
-                                key: const Key('adminProductsAdd'),
-                                onPressed: () async {
-                                  final ok = await Navigator.push<bool>(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ProductEditorPage(),
+                              child: Semantics(
+                                identifier: 'adminProductsAdd',
+                                button: true,
+                                child: ElevatedButton(
+                                  key: const Key('adminProductsAdd'),
+                                  onPressed: () async {
+                                    final ok = await Navigator.push<bool>(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ProductEditorPage(),
+                                      ),
+                                    );
+                                    if (ok == true) await _reload();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: orange,
+                                    minimumSize: const Size.fromHeight(56),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(40),
                                     ),
-                                  );
-                                  if (ok == true) await _reload();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: orange,
-                                  minimumSize: const Size.fromHeight(56),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(40),
                                   ),
-                                ),
-                                child: const Text(
-                                  'ДОБАВИТЬ',
-                                  style: TextStyle(color: Colors.white),
+                                  child: const Text(
+                                    'ДОБАВИТЬ',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
                               ),
                             );

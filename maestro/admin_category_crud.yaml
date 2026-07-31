@@ -1,0 +1,50 @@
+appId: ru.gadzhilaev.salmonz
+---
+# Create + edit category QA_1785494087_cat (image optional but attempted)
+- runFlow: login_admin.yaml
+- runFlow: open_admin_panel.yaml
+- tapOn:
+    id: "adminMenuCategories"
+- extendedWaitUntil:
+    visible: "Категории"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/qa/admin_categories_list
+- tapOn:
+    id: "adminCategoriesAdd"
+- extendedWaitUntil:
+    visible: "Новая категория"
+    timeout: 10000
+- tapOn:
+    id: "categoryNameField"
+- inputText: "QA_1785494087_cat"
+- tapOn:
+    id: "categorySlugField"
+- inputText: "qa-1785494087-cat"
+- tapOn:
+    id: "categoryUploadImage"
+- runFlow: pick_gallery_photo.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: docs/screenshots/qa/admin_category_create
+- tapOn:
+    id: "categorySaveButton"
+- extendedWaitUntil:
+    visible: "QA_1785494087_cat"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/qa/admin_category_created
+# Edit name
+- tapOn: "QA_1785494087_cat"
+- extendedWaitUntil:
+    visible: "Категория"
+    timeout: 10000
+- tapOn:
+    id: "categoryNameField"
+- eraseText
+- inputText: "QA_1785494087_cat_edit"
+- takeScreenshot: docs/screenshots/qa/admin_category_edit
+- tapOn:
+    id: "categorySaveButton"
+- extendedWaitUntil:
+    visible: "QA_1785494087_cat_edit"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/qa/admin_category_edited

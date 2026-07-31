@@ -48,10 +48,15 @@ From the repo root:
 ```bash
 cp docker-compose.example.env .env
 # set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET (long random strings)
+# If host port 5432 is busy, keep POSTGRES_PORT=55432 from the example.
 docker compose up --build
 ```
 
 Services: `postgres`, `minio`, `minio-init`, `backend`.
+
+`POSTGRES_PORT` only changes the **host** mapping (`localhost:<POSTGRES_PORT>→5432`).
+Containers still talk over the Compose network as `postgres:5432`. CI jobs use
+service containers and do not depend on a free host `5432`.
 
 The backend container runs **Prisma migrate deploy** and **seed** on start (`docker-entrypoint.sh`), then serves the API with `STORAGE_DRIVER=s3` (MinIO) by default.
 

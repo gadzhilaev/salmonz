@@ -13,6 +13,7 @@ import '../profile/addresses_page.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import '../widgets/app_root.dart';
 import '../widgets/app_nav_bar.dart';
+import '../widgets/app_error_view.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -422,24 +423,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     const SizedBox(height: 16),
                                   ],
                                   if (_quoteError != null) ...[
-                                    Text(
-                                      _quoteError!,
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 14,
-                                        color: cs.error,
-                                      ),
+                                    AppErrorView(
+                                      message: _quoteError!,
+                                      onRetry: _fetchQuote,
                                     ),
-                                    const SizedBox(height: 8),
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: TextButton(
-                                        key: const Key('checkoutRetry'),
-                                        onPressed: _fetchQuote,
-                                        child: const Text('Повторить расчёт'),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 16),
                                   ],
                                   if (_quoteLoading && _quote == null)
                                     const Padding(

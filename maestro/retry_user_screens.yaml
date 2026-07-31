@@ -1,0 +1,70 @@
+# Run AFTER backend is started again. App should still show error + ПОВТОРИТЬ.
+appId: ru.gadzhilaev.salmonz
+---
+- tapOn: "ГЛАВНАЯ"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+      - extendedWaitUntil:
+          visible: "Роллы"
+          timeout: 45000
+      - takeScreenshot: docs/screenshots/qa/retry_home
+- runFlow:
+    when:
+      visible: "Роллы"
+    commands:
+      - takeScreenshot: docs/screenshots/qa/retry_home
+      - takeScreenshot: docs/screenshots/qa/retry_categories
+
+- tapOn: "ЗАКАЗЫ"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    visible: "ЗАКАЗЫ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- takeScreenshot: docs/screenshots/qa/retry_orders
+
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    visible: "ПРОФИЛЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_profile
+
+# Cart quote retry if still on error from earlier session
+- tapOn: "КОРЗИНА"
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      visible: "ОФОРМИТЬ ЗАКАЗ"
+    commands:
+      - tapOn: "ОФОРМИТЬ ЗАКАЗ"
+      - waitForAnimationToEnd:
+          timeout: 4000
+      - runFlow:
+          when:
+            visible: "ПОВТОРИТЬ"
+          commands:
+            - tapOn: "ПОВТОРИТЬ"
+      - extendedWaitUntil:
+          visible: "ИТОГО"
+          timeout: 45000
+      - takeScreenshot: docs/screenshots/qa/retry_cart_quote
+      - back

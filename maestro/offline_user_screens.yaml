@@ -1,0 +1,63 @@
+# Run AFTER backend stopped. Triggers pull-to-refresh on cached tabs + checkout quote.
+appId: ru.gadzhilaev.salmonz
+---
+- tapOn: "ГЛАВНАЯ"
+- waitForAnimationToEnd:
+    timeout: 3000
+- swipe:
+    start: "50%,28%"
+    end: "50%,78%"
+    duration: 900
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- assertNotVisible: "SocketException"
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_home
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_categories
+
+- tapOn: "ЗАКАЗЫ"
+- waitForAnimationToEnd:
+    timeout: 3000
+- swipe:
+    start: "50%,28%"
+    end: "50%,78%"
+    duration: 900
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- assertNotVisible: "SocketException"
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_orders
+
+- tapOn: "КОРЗИНА"
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow:
+    when:
+      visible: "ОФОРМИТЬ ЗАКАЗ"
+    commands:
+      - tapOn: "ОФОРМИТЬ ЗАКАЗ"
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - extendedWaitUntil:
+          visible: "ПОВТОРИТЬ"
+          timeout: 60000
+      - assertNotVisible: "DioException"
+      - assertNotVisible: "SocketException"
+      - takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_cart_quote
+      - back
+
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 3000
+- swipe:
+    start: "50%,28%"
+    end: "50%,78%"
+    duration: 900
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- assertNotVisible: "SocketException"
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_profile

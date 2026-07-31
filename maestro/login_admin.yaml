@@ -1,0 +1,39 @@
+appId: ru.gadzhilaev.salmonz
+---
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 8000
+- runFlow:
+    when:
+      visible: "ПРОФИЛЬ"
+    commands:
+      - tapOn: "ПРОФИЛЬ"
+      - waitForAnimationToEnd:
+          timeout: 4000
+      - tapOn:
+          id: "logoutButton"
+      - extendedWaitUntil:
+          visible: "ВЫЙТИ"
+          timeout: 10000
+      - tapOn: "ВЫЙТИ"
+      - extendedWaitUntil:
+          visible:
+            id: "loginSubmit"
+          timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "loginSubmit"
+    timeout: 30000
+- tapOn:
+    id: "loginEmail"
+- inputText: "admin@example.com"
+- tapOn:
+    id: "loginPassword"
+- inputText: "ChangeMeAdmin123"
+- inputText: "!"
+- hideKeyboard
+- tapOn:
+    id: "loginSubmit"
+- extendedWaitUntil:
+    visible: "ПРОФИЛЬ"
+    timeout: 30000

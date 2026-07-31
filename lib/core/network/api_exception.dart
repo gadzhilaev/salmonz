@@ -82,9 +82,9 @@ class ApiException implements Exception {
     }
 
     if (status == 401) {
-      message = message.isEmpty || _isTechnicalMessage(message)
-          ? 'Требуется авторизация'
-          : message;
+      message = 'Требуется авторизация';
+    } else if (status != null && status >= 500) {
+      message = 'Ошибка сервера';
     }
 
     return ApiException(

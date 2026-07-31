@@ -1,0 +1,90 @@
+# Run AFTER backend is up. Start from АДМИН ПАНЕЛЬ with last offline support error, or re-open each.
+appId: ru.gadzhilaev.salmonz
+---
+- extendedWaitUntil:
+    visible: "АДМИН ПАНЕЛЬ"
+    timeout: 20000
+
+- tapOn: "Список категорий"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    notVisible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_categories
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Список товаров"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    notVisible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_products
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Список акций"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    notVisible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_promotions
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Список заказов"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    notVisible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_orders
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Список пользователей"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    notVisible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_users
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Обращения"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    notVisible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_support
+- back

@@ -1,0 +1,66 @@
+# Run AFTER backend is stopped. Admin already on АДМИН ПАНЕЛЬ.
+appId: ru.gadzhilaev.salmonz
+---
+- extendedWaitUntil:
+    visible: "АДМИН ПАНЕЛЬ"
+    timeout: 20000
+
+- tapOn: "Список категорий"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- assertNotVisible: "SocketException"
+- takeScreenshot: docs/screenshots/qa/offline_admin_categories
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Список товаров"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- takeScreenshot: docs/screenshots/qa/offline_admin_products
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Список акций"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- takeScreenshot: docs/screenshots/qa/offline_admin_promotions
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Список заказов"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- takeScreenshot: docs/screenshots/qa/offline_admin_orders
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Список пользователей"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- takeScreenshot: docs/screenshots/qa/offline_admin_users
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn: "Обращения"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- assertNotVisible: "DioException"
+- assertNotVisible: "SocketException"
+- takeScreenshot: docs/screenshots/qa/offline_admin_support
+- back

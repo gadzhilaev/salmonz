@@ -1,0 +1,30 @@
+appId: ru.gadzhilaev.salmonz
+---
+# USER catalog sees QA category/product/promo created by admin
+- runFlow: login_user.yaml
+- tapOn: "ГЛАВНАЯ"
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element: "QA_1785494087_cat_edit"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: docs/screenshots/qa/admin_user_sees_category
+- assertVisible: "QA_1785494087_cat_edit"
+- tapOn: "QA_1785494087_cat_edit"
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "QA_1785494087_prod"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/qa/admin_user_sees_product
+- assertVisible: "QA_1785494087_prod"
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element: "QA_1785494087_promo"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: docs/screenshots/qa/admin_user_sees_promo
+- assertVisible: "QA_1785494087_promo"

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
+import 'package:salmonz/widgets/app_error_view.dart';
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
@@ -19,6 +20,7 @@ class _SupportPageState extends State<SupportPage> {
 
   final _controller = TextEditingController();
   bool _sending = false;
+  String? _sendError;
   String _name = '';
   String _email = '';
 
@@ -52,6 +54,7 @@ class _SupportPageState extends State<SupportPage> {
     setState(() => _sending = true);
     try {
       await AppServices.instance.support.create(message: text);
+      if (mounted) setState(() => _sendError = null);
       if (!mounted) return;
       await showDialog(
         context: context,
@@ -65,11 +68,13 @@ class _SupportPageState extends State<SupportPage> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      setState(() => _sendError = e.userMessage);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     } catch (e) {
       if (!mounted) return;
+      setState(() => _sendError = ApiException.userMessageFrom(e));
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(ApiException.userMessageFrom(e))));
@@ -146,24 +151,26 @@ class _SupportPageState extends State<SupportPage> {
                 ),
               const SizedBox(height: 16),
               Expanded(
-                child: TextField(
-                  key: const Key('supportMessageField'),
-                  controller: _controller,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  decoration: InputDecoration(
-                    hintText: 'Ваше сообщение',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: orange),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: orange),
-                    ),
-                  ),
-                ),
+                child: _sendError != null
+                    ? AppErrorView(message: _sendError!, onRetry: _send)
+                    : TextField(
+                        key: const Key('supportMessageField'),
+                        controller: _controller,
+                        maxLines: null,
+                        expands: true,
+                        textAlignVertical: TextAlignVertical.top,
+                        decoration: InputDecoration(
+                          hintText: 'Ваше сообщение',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: orange),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: orange),
+                          ),
+                        ),
+                      ),
               ),
               const SizedBox(height: 16),
               SizedBox(

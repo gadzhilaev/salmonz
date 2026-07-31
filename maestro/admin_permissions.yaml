@@ -1,0 +1,35 @@
+appId: ru.gadzhilaev.salmonz
+---
+- runFlow: login_user.yaml
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: docs/screenshots/qa/admin_user_no_panel
+- assertNotVisible:
+    id: "adminPanelEntry"
+- assertNotVisible: "Админ панель"
+- runFlow: logout.yaml
+- extendedWaitUntil:
+    visible:
+      id: "loginSubmit"
+    timeout: 20000
+- tapOn:
+    id: "loginEmail"
+- eraseText
+- inputText: "admin@example.com"
+- tapOn:
+    id: "loginPassword"
+- eraseText
+- inputText: "ChangeMeAdmin123!"
+- hideKeyboard
+- tapOn:
+    id: "loginSubmit"
+- extendedWaitUntil:
+    visible: "ПРОФИЛЬ"
+    timeout: 30000
+- runFlow: open_admin_panel.yaml
+- assertVisible: "Список категорий"
+- assertVisible: "Список товаров"
+- assertVisible: "Список акций"
+- assertVisible: "Список заказов"
+- takeScreenshot: docs/screenshots/qa/admin_access_ok

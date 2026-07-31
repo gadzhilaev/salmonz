@@ -107,41 +107,45 @@ class _LoginState extends State<Login> {
                         SizedBox(
                           height: controlH,
                           width: double.infinity,
-                          child: TextField(
-                            key: const Key('loginEmail'),
-                            controller: emailCtr,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 14 * scale,
-                              fontWeight: FontWeight.w500,
-                              height: 1.0,
-                              color: Colors.white,
-                            ),
-                            cursorColor: Colors.white,
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.fromLTRB(
-                                20,
-                                17,
-                                20,
-                                17,
-                              ),
-                              filled: true,
-                              fillColor: const Color(0x29FFFFFF),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                borderSide: BorderSide.none,
-                              ),
-                              hintText: 'email@example.com',
-                              hintStyle: TextStyle(
+                          child: Semantics(
+                            identifier: 'loginEmail',
+                            textField: true,
+                            child: TextField(
+                              key: const Key('loginEmail'),
+                              controller: emailCtr,
+                              style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 14 * scale,
                                 fontWeight: FontWeight.w500,
                                 height: 1.0,
-                                color: hintColor,
+                                color: Colors.white,
                               ),
+                              cursorColor: Colors.white,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  17,
+                                  20,
+                                  17,
+                                ),
+                                filled: true,
+                                fillColor: const Color(0x29FFFFFF),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                  borderSide: BorderSide.none,
+                                ),
+                                hintText: 'email@example.com',
+                                hintStyle: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 14 * scale,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.0,
+                                  color: hintColor,
+                                ),
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
                             ),
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -150,95 +154,103 @@ class _LoginState extends State<Login> {
                         SizedBox(
                           height: controlH,
                           width: double.infinity,
-                          child: TextField(
-                            key: const Key('loginPassword'),
-                            controller: passCtr,
-                            obscureText: _obscurePass,
-                            obscuringCharacter: '•',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 14 * scale,
-                              fontWeight: FontWeight.w500,
-                              height: 1.0,
-                              color: Colors.white,
-                            ),
-                            cursorColor: Colors.white,
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.fromLTRB(
-                                20,
-                                17,
-                                20,
-                                17,
-                              ),
-                              filled: true,
-                              fillColor: const Color(0x29FFFFFF),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                borderSide: BorderSide.none,
-                              ),
-                              hintText: 'Введите пароль',
-                              hintStyle: const TextStyle(
+                          child: Semantics(
+                            identifier: 'loginPassword',
+                            textField: true,
+                            child: TextField(
+                              key: const Key('loginPassword'),
+                              controller: passCtr,
+                              obscureText: _obscurePass,
+                              obscuringCharacter: '•',
+                              style: TextStyle(
                                 fontFamily: 'Inter',
-                                fontSize: 14,
+                                fontSize: 14 * scale,
                                 fontWeight: FontWeight.w500,
                                 height: 1.0,
-                                color: hintColor,
+                                color: Colors.white,
                               ),
-                              suffixIconConstraints: BoxConstraints.tightFor(
-                                width: controlH,
-                                height: controlH,
-                              ),
-                              suffixIcon: Material(
-                                type: MaterialType.transparency,
-                                child: InkWell(
+                              cursorColor: Colors.white,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  17,
+                                  20,
+                                  17,
+                                ),
+                                filled: true,
+                                fillColor: const Color(0x29FFFFFF),
+                                border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(24),
-                                  onTap: () => setState(
-                                    () => _obscurePass = !_obscurePass,
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      _obscurePass
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                      size: 20,
-                                      color: hintColor,
+                                  borderSide: BorderSide.none,
+                                ),
+                                hintText: 'Введите пароль',
+                                hintStyle: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.0,
+                                  color: hintColor,
+                                ),
+                                suffixIconConstraints: BoxConstraints.tightFor(
+                                  width: controlH,
+                                  height: controlH,
+                                ),
+                                suffixIcon: Material(
+                                  type: MaterialType.transparency,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(24),
+                                    onTap: () => setState(
+                                      () => _obscurePass = !_obscurePass,
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        _obscurePass
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                        size: 20,
+                                        color: hintColor,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => _login(),
                             ),
-                            textInputAction: TextInputAction.done,
-                            onSubmitted: (_) => _login(),
                           ),
                         ),
                         const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
                           height: controlH,
-                          child: ElevatedButton(
-                            key: const Key('loginSubmit'),
-                            onPressed: isLoading ? null : _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(40),
+                          child: Semantics(
+                            identifier: 'loginSubmit',
+                            button: true,
+                            child: ElevatedButton(
+                              key: const Key('loginSubmit'),
+                              onPressed: isLoading ? null : _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(40),
+                                ),
+                                fixedSize: Size.fromHeight(controlH),
+                                padding: EdgeInsets.zero,
                               ),
-                              fixedSize: Size.fromHeight(controlH),
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: isLoading
-                                ? const CircularProgressIndicator()
-                                : Text(
-                                    'ВОЙТИ В АККАУНТ',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 12 * scale,
-                                      height: 1.0,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.48,
-                                      color: const Color(0xFFA83100),
+                              child: isLoading
+                                  ? const CircularProgressIndicator()
+                                  : Text(
+                                      'ВОЙТИ В АККАУНТ',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12 * scale,
+                                        height: 1.0,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.48,
+                                        color: const Color(0xFFA83100),
+                                      ),
                                     ),
-                                  ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),

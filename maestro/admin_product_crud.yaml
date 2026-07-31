@@ -1,0 +1,57 @@
+appId: ru.gadzhilaev.salmonz
+---
+# Create product in QA category (assumes QA_1785494087_cat_edit exists)
+- runFlow: login_admin.yaml
+- runFlow: open_admin_panel.yaml
+- tapOn:
+    id: "adminMenuProducts"
+- extendedWaitUntil:
+    visible: "ВСЕ ТОВАРЫ"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/qa/admin_products_list
+- scrollUntilVisible:
+    element:
+      id: "adminProductsAdd"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "adminProductsAdd"
+- extendedWaitUntil:
+    visible: "Новый товар"
+    timeout: 15000
+- tapOn:
+    id: "productNameField"
+- inputText: "QA_1785494087_prod"
+- tapOn: "Описание"
+- inputText: "QA product for final QA"
+- tapOn:
+    id: "productPriceField"
+- inputText: "999"
+- tapOn: "Категория"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn: "QA_1785494087_cat_edit"
+- waitForAnimationToEnd:
+    timeout: 2000
+- scrollUntilVisible:
+    element:
+      id: "productUploadImage"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "productUploadImage"
+- runFlow: pick_gallery_photo.yaml
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: docs/screenshots/qa/admin_product_create
+- scrollUntilVisible:
+    element:
+      id: "productSaveButton"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "productSaveButton"
+- extendedWaitUntil:
+    visible: "QA_1785494087_prod"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/qa/admin_product_created
