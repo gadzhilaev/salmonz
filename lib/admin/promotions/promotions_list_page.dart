@@ -5,6 +5,7 @@ import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
+import 'package:salmonz/widgets/app_error_view.dart';
 
 class PromotionsListPage extends StatefulWidget {
   const PromotionsListPage({super.key});
@@ -25,24 +26,31 @@ class _PromotionsListPageState extends State<PromotionsListPage> {
     setState(() {
       _future = AppServices.instance.admin.listPromotions(limit: 100);
     });
-    await _future;
+    try {
+      await _future;
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Акции')),
-      floatingActionButton: FloatingActionButton(
-        key: const Key('adminPromotionsAdd'),
-        backgroundColor: const Color(0xFFFF5E1C),
-        onPressed: () async {
-          final ok = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(builder: (_) => const PromotionEditorPage()),
-          );
-          if (ok == true) await _reload();
-        },
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Semantics(
+        identifier: 'adminPromotionsAdd',
+        button: true,
+        label: 'Добавить акцию',
+        child: FloatingActionButton(
+          key: const Key('adminPromotionsAdd'),
+          backgroundColor: const Color(0xFFFF5E1C),
+          onPressed: () async {
+            final ok = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(builder: (_) => const PromotionEditorPage()),
+            );
+            if (ok == true) await _reload();
+          },
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
       body: AppPageContainer(
         child: RefreshIndicator(
@@ -50,6 +58,20 @@ class _PromotionsListPageState extends State<PromotionsListPage> {
           child: FutureBuilder<List<PromotionModel>>(
             future: _future,
             builder: (context, snap) {
+              if (snap.hasError) {
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.sizeOf(context).height * 0.5,
+                      child: AppErrorView(
+                        message: ApiException.userMessageFrom(snap.error!),
+                        onRetry: _reload,
+                      ),
+                    ),
+                  ],
+                );
+              }
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -125,14 +147,24 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
   Future<void> _upload() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked == null) return;
-    final up = await AppServices.instance.admin.uploadPromotionImage(
-      filePath: picked.path,
-      filename: p.basename(picked.path),
-    );
-    setState(() {
-      _imageKey = up.key;
-      _imageUrl = up.url;
-    });
+    try {
+      final up = await AppServices.instance.admin.uploadPromotionImage(
+        filePath: picked.path,
+        filename: p.basename(picked.path),
+      );
+      if (mounted) {
+        setState(() {
+          _imageKey = up.key;
+          _imageUrl = up.url;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ApiException.userMessageFrom(e))),
+        );
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -164,7 +196,7 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -172,9 +204,17 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
 
   Future<void> _delete() async {
     if (widget.existing == null) return;
-    await AppServices.instance.admin.deletePromotion(widget.existing!.id);
-    if (!mounted) return;
-    Navigator.pop(context, true);
+    try {
+      await AppServices.instance.admin.deletePromotion(widget.existing!.id);
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ApiException.userMessageFrom(e))),
+        );
+      }
+    }
   }
 
   @override
@@ -184,17 +224,30 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
         title: Text(widget.existing == null ? 'Новая акция' : 'Акция'),
         actions: [
           if (widget.existing != null)
-            IconButton(onPressed: _delete, icon: const Icon(Icons.delete)),
+            Semantics(
+              identifier: 'promotionDeleteButton',
+              button: true,
+              label: 'Удалить',
+              child: IconButton(
+                key: const Key('promotionDeleteButton'),
+                onPressed: _delete,
+                icon: const Icon(Icons.delete),
+              ),
+            ),
         ],
       ),
       body: AppPageContainer.form(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            TextField(
-              key: const Key('promotionTitleField'),
-              controller: _title,
-              decoration: const InputDecoration(labelText: 'Заголовок'),
+            Semantics(
+              identifier: 'promotionTitleField',
+              textField: true,
+              child: TextField(
+                key: const Key('promotionTitleField'),
+                controller: _title,
+                decoration: const InputDecoration(labelText: 'Заголовок'),
+              ),
             ),
             TextField(
               controller: _desc,
@@ -203,16 +256,28 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
             ),
             if ((_imageUrl ?? '').isNotEmpty)
               Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
-            TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
-            ElevatedButton(
-              key: const Key('promotionSaveButton'),
-              onPressed: _saving ? null : _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5E1C),
+            Semantics(
+              identifier: 'promotionUploadImage',
+              button: true,
+              child: TextButton(
+                key: const Key('promotionUploadImage'),
+                onPressed: _upload,
+                child: const Text('Загрузить фото'),
               ),
-              child: const Text(
-                'СОХРАНИТЬ',
-                style: TextStyle(color: Colors.white),
+            ),
+            Semantics(
+              identifier: 'promotionSaveButton',
+              button: true,
+              child: ElevatedButton(
+                key: const Key('promotionSaveButton'),
+                onPressed: _saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF5E1C),
+                ),
+                child: const Text(
+                  'СОХРАНИТЬ',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ],

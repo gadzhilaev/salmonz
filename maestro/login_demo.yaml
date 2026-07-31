@@ -1,0 +1,21 @@
+appId: ru.gadzhilaev.salmonz
+---
+- launchApp
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: loginSubmit
+    timeout: 60000
+- tapOn:
+    id: loginEmail
+- inputText: "demo@example.com"
+- tapOn:
+    id: loginPassword
+- inputText: "ChangeMeDemo123!"
+- hideKeyboard
+- tapOn:
+    id: loginSubmit
+- extendedWaitUntil:
+    visible: "АКЦИИ"
+    timeout: 60000
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_user_logged_in

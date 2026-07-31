@@ -107,7 +107,9 @@ class _ProductsPageState extends State<ProductsPage> {
                         child: AppErrorView(
                           message: ApiException.userMessageFrom(snap.error!),
                           onRetry: () {
-                            setState(() => _future = _loadProducts());
+                            setState(() {
+                              _future = _loadProducts();
+                            });
                           },
                         ),
                       );

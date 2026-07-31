@@ -1,0 +1,73 @@
+appId: ru.gadzhilaev.salmonz
+---
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 8000
+- extendedWaitUntil:
+    visible: "ПРОФИЛЬ"
+    timeout: 20000
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: docs/screenshots/qa/avatar_profile_tab
+- tapOn:
+    id: "editProfileEntry"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Сохранить"
+- takeScreenshot: docs/screenshots/qa/avatar_edit_before
+- tapOn:
+    id: "avatarChangeButton"
+- extendedWaitUntil:
+    visible: "Отменить"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/qa/avatar_picker_open
+- tapOn: "Отменить"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: "avatarChangeButton"
+- tapOn:
+    id: "avatarChangeButton"
+- extendedWaitUntil:
+    visible: "Отменить"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/qa/avatar_picker_reopen
+# Newest QA photo — solid orange cell
+- tapOn:
+    text: "Фотография, 31 июля, 11:27"
+- waitForAnimationToEnd:
+    timeout: 8000
+- runFlow:
+    when:
+      visible: "Отменить"
+    commands:
+      - tapOn:
+          text: "Фотография, 31 июля, 10:50"
+      - waitForAnimationToEnd:
+          timeout: 8000
+- runFlow:
+    when:
+      visible: "Отменить"
+    commands:
+      - tapOn:
+          point: "17%,35%"
+      - waitForAnimationToEnd:
+          timeout: 8000
+- runFlow:
+    when:
+      visible: "Добавить"
+    commands:
+      - tapOn: "Добавить"
+- extendedWaitUntil:
+    notVisible: "Отменить"
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "avatarImage"
+    timeout: 60000
+- takeScreenshot: docs/screenshots/qa/avatar_upload_result
+- back
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: docs/screenshots/qa/avatar_profile_after

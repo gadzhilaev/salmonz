@@ -10,6 +10,7 @@ import '../profile/addresses_page.dart';
 import '../auth/login.dart';
 import '../profile/support_page.dart';
 import '../admin/admin_panel_page.dart';
+import '../widgets/async_body.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.embedded = false});
@@ -47,24 +48,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<_UserVm> _loadMe() async {
-    try {
-      final user = await AppServices.instance.profile.getMe();
-      return _UserVm(
-        email: user.email,
-        name: user.name,
-        img: user.avatarUrl ?? '',
-        isAdmin: user.isAdmin,
-        lang: 'ru',
-      );
-    } catch (_) {
-      return const _UserVm(
-        email: '',
-        name: '',
-        img: '',
-        isAdmin: false,
-        lang: 'ru',
-      );
-    }
+    final user = await AppServices.instance.profile.getMe();
+    return _UserVm(
+      email: user.email,
+      name: user.name,
+      img: user.avatarUrl ?? '',
+      isAdmin: user.isAdmin,
+      lang: 'ru',
+    );
   }
 
   void _logout() async {
@@ -106,263 +97,268 @@ class _ProfilePageState extends State<ProfilePage> {
                   fit: BoxFit.contain,
                 ),
               ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'ПРОФИЛЬ',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w900,
+                        fontSize: 24 * scale,
+                        height: 1.0,
+                        letterSpacing: ls24,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).colorScheme.onSurface
+                            : titleDark,
+                      ),
+                    ),
+                  ),
+                  Semantics(
+                    identifier: 'logoutButton',
+                    button: true,
+                    label: 'Выйти',
+                    child: IconButton(
+                      key: const Key('logoutButton'),
+                      onPressed: _logout,
+                      icon: const Icon(
+                        Icons.logout_outlined,
+                        size: 24,
+                        color: orange,
+                      ),
+                      tooltip: 'Выйти',
+                    ),
+                  ),
+                ],
+              ),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
                     setState(() {
                       _future = _loadMe();
                     });
-                    await _future;
+                    try {
+                      await _future;
+                    } catch (_) {}
                   },
                   child: FutureBuilder<_UserVm>(
                     future: _future,
                     builder: (context, snap) {
-                      if (snap.connectionState != ConnectionState.done) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      final me =
-                          snap.data ??
-                          const _UserVm(
-                            email: '',
-                            name: '',
-                            img: '',
-                            isAdmin: false,
-                            lang: 'ru',
-                          );
-
-                      return ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'ПРОФИЛЬ',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 24 * scale,
-                                    height: 1.0,
-                                    letterSpacing: ls24,
-                                    color:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface
-                                        : titleDark,
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                key: const Key('logoutButton'),
-                                onPressed: _logout,
-                                icon: const Icon(
-                                  Icons.logout_outlined,
-                                  size: 24,
-                                  color: orange,
-                                ),
-                                tooltip: 'Выйти',
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // Аватар + имя/почта
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // круг 120x120 с кнопкой смены
-                              Stack(
-                                alignment: Alignment.bottomRight,
-                                children: [
-                                  ClipOval(
-                                    child: InkWell(
-                                      child: Container(
-                                        width: 120,
-                                        height: 120,
-                                        color: const Color(0xFFEFEFEF),
-                                        child: (me.img.isNotEmpty)
-                                            ? Image.network(
-                                                me.img,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) =>
-                                                    const Icon(
-                                                      Icons.person,
-                                                      size: 56,
-                                                      color: secondary,
-                                                    ),
-                                              )
-                                            : const Icon(
-                                                Icons.person,
-                                                size: 56,
-                                                color: secondary,
-                                              ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                      return AsyncBody<_UserVm>(
+                        snapshot: snap,
+                        onRetry: () async {
+                          setState(() {
+                            _future = _loadMe();
+                          });
+                          try {
+                            await _future;
+                          } catch (_) {}
+                        },
+                        scrollable: true,
+                        builder: (me) => ListView(
+                          padding: EdgeInsets.zero,
+                          children: [
+                            const SizedBox(height: 8),
+                            // Аватар + имя/почта
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // круг 120x120 с кнопкой смены
+                                Stack(
+                                  alignment: Alignment.bottomRight,
                                   children: [
-                                    Text(
-                                      (me.name.isNotEmpty
-                                              ? me.name
-                                              : 'Без имени')
-                                          .toUpperCase(),
-                                      key: _nameKey,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 18,
-                                        height: 23 / 18,
-                                        color: secondary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    Text(
-                                      me.email,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14,
-                                        height: 1.0,
-                                        color: grayText,
+                                    ClipOval(
+                                      child: InkWell(
+                                        child: Container(
+                                          width: 120,
+                                          height: 120,
+                                          color: const Color(0xFFEFEFEF),
+                                          child: (me.img.isNotEmpty)
+                                              ? Image.network(
+                                                  me.img,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) =>
+                                                      const Icon(
+                                                        Icons.person,
+                                                        size: 56,
+                                                        color: secondary,
+                                                      ),
+                                                )
+                                              : const Icon(
+                                                  Icons.person,
+                                                  size: 56,
+                                                  color: secondary,
+                                                ),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
 
-                          const SizedBox(height: 24),
-
-                          _ThemeModeTile(
-                            key: const Key('themeToggle'),
-                            height: tileH,
-                          ),
-                          const SizedBox(height: 8),
-                          _ProfileTile(
-                            icon: Icons.account_circle_outlined,
-                            text: 'Редактировать профиль',
-                            height: tileH,
-                            onTap: () async {
-                              final updated = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const EditProfilePage(),
-                                ),
-                              );
-                              if (updated == true && mounted) {
-                                setState(() {
-                                  _future =
-                                      _loadMe(); // <-- заново грузим данные
-                                });
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _ProfileTile(
-                            icon: Icons.home_outlined,
-                            text: 'Мои адреса',
-                            height: tileH,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AddressesPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _ProfileTile(
-                            icon: Icons.translate_rounded,
-                            text: 'Изменить язык',
-                            height: tileH,
-                            onTap: _openLanguageSheet,
-                          ),
-                          const SizedBox(height: 8),
-                          _ProfileTile(
-                            icon: Icons.description_outlined,
-                            text: 'Политика конфиденциальности',
-                            height: tileH,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const LegalTextPage(
-                                    caption: privacyCaption,
-                                    body: privacyBody,
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        (me.name.isNotEmpty
+                                                ? me.name
+                                                : 'Без имени')
+                                            .toUpperCase(),
+                                        key: _nameKey,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 18,
+                                          height: 23 / 18,
+                                          color: secondary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      Text(
+                                        me.email,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                          height: 1.0,
+                                          color: grayText,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _ProfileTile(
-                            icon: Icons.description_outlined,
-                            text: 'Пользовательское соглашение',
-                            height: tileH,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const LegalTextPage(
-                                    caption: termsCaption,
-                                    body: termsBody,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _ProfileTile(
-                            key: const Key('supportEntry'),
-                            icon: Icons.contact_support_outlined,
-                            text: 'Написать в поддержку',
-                            height: tileH,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SupportPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          if (me.isAdmin)
+                              ],
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            _ThemeModeTile(
+                              key: const Key('themeToggle'),
+                              height: tileH,
+                            ),
+                            const SizedBox(height: 8),
                             _ProfileTile(
-                              key: const Key('adminPanelEntry'),
-                              icon: Icons.person_pin_circle_outlined,
-                              text: 'Админ панель',
+                              key: const Key('editProfileEntry'),
+                              semanticsId: 'editProfileEntry',
+                              icon: Icons.account_circle_outlined,
+                              text: 'Редактировать профиль',
+                              height: tileH,
+                              onTap: () async {
+                                final updated = await Navigator.push<bool>(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const EditProfilePage(),
+                                  ),
+                                );
+                                if (updated == true && mounted) {
+                                  setState(() {
+                                    _future =
+                                        _loadMe(); // <-- заново грузим данные
+                                  });
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            _ProfileTile(
+                              icon: Icons.home_outlined,
+                              text: 'Мои адреса',
                               height: tileH,
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => const AdminPanelPage(),
+                                    builder: (_) => const AddressesPage(),
                                   ),
                                 );
                               },
                             ),
-                          if (me.isAdmin) const SizedBox(height: 8),
+                            const SizedBox(height: 8),
+                            _ProfileTile(
+                              icon: Icons.translate_rounded,
+                              text: 'Изменить язык',
+                              height: tileH,
+                              onTap: _openLanguageSheet,
+                            ),
+                            const SizedBox(height: 8),
+                            _ProfileTile(
+                              icon: Icons.description_outlined,
+                              text: 'Политика конфиденциальности',
+                              height: tileH,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LegalTextPage(
+                                      caption: privacyCaption,
+                                      body: privacyBody,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            _ProfileTile(
+                              icon: Icons.description_outlined,
+                              text: 'Пользовательское соглашение',
+                              height: tileH,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LegalTextPage(
+                                      caption: termsCaption,
+                                      body: termsBody,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            _ProfileTile(
+                              key: const Key('supportEntry'),
+                              semanticsId: 'supportEntry',
+                              icon: Icons.contact_support_outlined,
+                              text: 'Написать в поддержку',
+                              height: tileH,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const SupportPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            if (me.isAdmin)
+                              _ProfileTile(
+                                key: const Key('adminPanelEntry'),
+                                semanticsId: 'adminPanelEntry',
+                                icon: Icons.person_pin_circle_outlined,
+                                text: 'Админ панель',
+                                height: tileH,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const AdminPanelPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            if (me.isAdmin) const SizedBox(height: 8),
 
-                          const SizedBox(height: 16),
-                        ],
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -486,12 +482,14 @@ class _ProfileTile extends StatelessWidget {
     required this.text,
     this.height = 48,
     this.onTap,
+    this.semanticsId,
   });
 
   final IconData icon;
   final String text;
   final double height;
   final VoidCallback? onTap;
+  final String? semanticsId;
 
   static const orange = Color(0xFFFF5E1C);
 
@@ -499,6 +497,7 @@ class _ProfileTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final textColor = Theme.of(context).colorScheme.onSurface;
     return Semantics(
+      identifier: semanticsId,
       button: true,
       label: text,
       child: Material(

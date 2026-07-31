@@ -1,0 +1,16 @@
+appId: ru.gadzhilaev.salmonz
+---
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 4000
+- scrollUntilVisible:
+    element:
+      id: "adminPanelEntry"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "adminPanelEntry"
+- extendedWaitUntil:
+    visible: "АДМИН ПАНЕЛЬ"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/qa/admin_dashboard

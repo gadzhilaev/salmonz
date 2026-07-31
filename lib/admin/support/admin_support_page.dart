@@ -25,7 +25,9 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
     setState(() {
       _future = AppServices.instance.admin.listSupport(limit: 100);
     });
-    await _future;
+    try {
+      await _future;
+    } catch (_) {}
   }
 
   @override

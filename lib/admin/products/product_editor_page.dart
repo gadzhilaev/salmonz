@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/data/models/models.dart';
+import 'package:salmonz/widgets/app_error_view.dart';
 
 class ProductEditorPage extends StatefulWidget {
   const ProductEditorPage({super.key, this.existing});
@@ -27,6 +28,8 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
   String? _categoryId;
   bool _inStock = true;
   bool _saving = false;
+  bool _catsLoading = true;
+  Object? _catsError;
   List<CategoryModel> _cats = [];
 
   @override
@@ -47,13 +50,24 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
   }
 
   Future<void> _loadCats() async {
-    final cats = await AppServices.instance.admin.listCategories(limit: 100);
     setState(() {
-      _cats = cats;
-      if (_categoryId == null && cats.isNotEmpty) {
-        _categoryId = cats.first.id;
-      }
+      _catsLoading = true;
+      _catsError = null;
     });
+    try {
+      final cats = await AppServices.instance.admin.listCategories(limit: 100);
+      if (!mounted) return;
+      setState(() {
+        _cats = cats;
+        if (_categoryId == null && cats.isNotEmpty) {
+          _categoryId = cats.first.id;
+        }
+      });
+    } catch (e) {
+      if (mounted) setState(() => _catsError = e);
+    } finally {
+      if (mounted) setState(() => _catsLoading = false);
+    }
   }
 
   @override
@@ -81,7 +95,7 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     }
   }
 
@@ -96,7 +110,7 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(err.message)));
+      ).showSnackBar(SnackBar(content: Text(err.userMessage)));
     }
   }
 
@@ -138,7 +152,7 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -152,70 +166,108 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
         title: Text(widget.existing == null ? 'Новый товар' : 'Товар'),
         actions: [
           if (widget.existing != null)
-            IconButton(onPressed: _delete, icon: const Icon(Icons.delete)),
-        ],
-      ),
-      body: AppPageContainer.form(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            TextField(
-              key: const Key('productNameField'),
-              controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Название'),
-            ),
-            TextField(
-              controller: _descCtrl,
-              decoration: const InputDecoration(labelText: 'Описание'),
-              maxLines: 3,
-            ),
-            TextField(
-              key: const Key('productPriceField'),
-              controller: _priceCtrl,
-              decoration: const InputDecoration(labelText: 'Цена'),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: _weightCtrl,
-              decoration: const InputDecoration(labelText: 'Вес (г)'),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _categoryId,
-              items: _cats
-                  .map(
-                    (c) => DropdownMenuItem(value: c.id, child: Text(c.name)),
-                  )
-                  .toList(),
-              onChanged: (v) => setState(() => _categoryId = v),
-              decoration: const InputDecoration(labelText: 'Категория'),
-            ),
-            SwitchListTile(
-              title: const Text('В наличии'),
-              value: _inStock,
-              onChanged: (v) => setState(() => _inStock = v),
-            ),
-            if ((_imageUrl ?? '').isNotEmpty)
-              Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
-            TextButton.icon(
-              onPressed: _pickAndUpload,
-              icon: const Icon(Icons.upload),
-              label: const Text('Загрузить фото'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              key: const Key('productSaveButton'),
-              onPressed: _saving ? null : _save,
-              style: ElevatedButton.styleFrom(backgroundColor: orange),
-              child: const Text(
-                'СОХРАНИТЬ',
-                style: TextStyle(color: Colors.white),
+            Semantics(
+              identifier: 'productDeleteButton',
+              button: true,
+              label: 'Удалить',
+              child: IconButton(
+                key: const Key('productDeleteButton'),
+                onPressed: _delete,
+                icon: const Icon(Icons.delete),
               ),
             ),
-          ],
-        ),
+        ],
       ),
+      body: _catsError != null
+          ? Center(
+              child: AppErrorView(
+                message: ApiException.userMessageFrom(_catsError!),
+                onRetry: _loadCats,
+              ),
+            )
+          : _catsLoading
+          ? const Center(child: CircularProgressIndicator())
+          : AppPageContainer.form(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  Semantics(
+                    identifier: 'productNameField',
+                    textField: true,
+                    child: TextField(
+                      key: const Key('productNameField'),
+                      controller: _nameCtrl,
+                      decoration: const InputDecoration(labelText: 'Название'),
+                    ),
+                  ),
+                  TextField(
+                    controller: _descCtrl,
+                    decoration: const InputDecoration(labelText: 'Описание'),
+                    maxLines: 3,
+                  ),
+                  Semantics(
+                    identifier: 'productPriceField',
+                    textField: true,
+                    child: TextField(
+                      key: const Key('productPriceField'),
+                      controller: _priceCtrl,
+                      decoration: const InputDecoration(labelText: 'Цена'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  TextField(
+                    controller: _weightCtrl,
+                    decoration: const InputDecoration(labelText: 'Вес (г)'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: _categoryId,
+                    items: _cats
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c.id,
+                            child: Text(c.name),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _categoryId = v),
+                    decoration: const InputDecoration(labelText: 'Категория'),
+                  ),
+                  SwitchListTile(
+                    title: const Text('В наличии'),
+                    value: _inStock,
+                    onChanged: (v) => setState(() => _inStock = v),
+                  ),
+                  if ((_imageUrl ?? '').isNotEmpty)
+                    Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
+                  Semantics(
+                    identifier: 'productUploadImage',
+                    button: true,
+                    child: TextButton.icon(
+                      key: const Key('productUploadImage'),
+                      onPressed: _pickAndUpload,
+                      icon: const Icon(Icons.upload),
+                      label: const Text('Загрузить фото'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Semantics(
+                    identifier: 'productSaveButton',
+                    button: true,
+                    child: ElevatedButton(
+                      key: const Key('productSaveButton'),
+                      onPressed: _saving ? null : _save,
+                      style: ElevatedButton.styleFrom(backgroundColor: orange),
+                      child: const Text(
+                        'СОХРАНИТЬ',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

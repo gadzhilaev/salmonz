@@ -1,0 +1,33 @@
+appId: ru.gadzhilaev.salmonz
+---
+# Create promotion QA_1785494087_promo
+- runFlow: login_admin.yaml
+- runFlow: open_admin_panel.yaml
+- tapOn:
+    id: "adminMenuPromotions"
+- extendedWaitUntil:
+    visible: "Акции"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/qa/admin_promotions_list
+- tapOn:
+    id: "adminPromotionsAdd"
+- extendedWaitUntil:
+    visible: "Новая акция"
+    timeout: 10000
+- tapOn:
+    id: "promotionTitleField"
+- inputText: "QA_1785494087_promo"
+- tapOn: "Описание"
+- inputText: "QA promo for final QA"
+- tapOn:
+    id: "promotionUploadImage"
+- runFlow: pick_gallery_photo.yaml
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: docs/screenshots/qa/admin_promotion_create
+- tapOn:
+    id: "promotionSaveButton"
+- extendedWaitUntil:
+    visible: "QA_1785494087_promo"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/qa/admin_promotion_created

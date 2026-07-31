@@ -1,0 +1,30 @@
+appId: ru.gadzhilaev.salmonz
+---
+- tapOn: "ГЛАВНАЯ"
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element: "Роллы"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Роллы"
+- extendedWaitUntil:
+    visible: "ФИЛАДЕЛЬФИЯ"
+    timeout: 25000
+- tapOn: "ФИЛАДЕЛЬФИЯ"
+- waitForAnimationToEnd:
+    timeout: 4000
+- extendedWaitUntil:
+    visible: "ДОБАВИТЬ В КОРЗИНУ"
+    timeout: 15000
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_product_card_static
+- tapOn: "ДОБАВИТЬ В КОРЗИНУ"
+- waitForAnimationToEnd:
+    timeout: 3000
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_seed_cart_done

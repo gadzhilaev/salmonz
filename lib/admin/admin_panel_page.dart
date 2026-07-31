@@ -182,6 +182,7 @@ class _AdminTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      identifier: semanticsKey,
       button: true,
       label: text,
       child: InkWell(

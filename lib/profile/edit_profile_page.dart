@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
+import 'package:salmonz/widgets/app_error_view.dart';
 import '../utils/ru_phone_formatter.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -28,6 +29,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   String _img = '';
   bool _loading = true;
+  Object? _loadError;
   bool _saving = false;
   bool _uploading = false;
 
@@ -40,20 +42,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _loadMe() async {
     try {
       final u = await AppServices.instance.profile.getMe();
+      if (!mounted) return;
       _nameC.text = u.name;
       _emailC.text = u.email;
       _phoneC.text = RuPhoneFormatter.pretty(u.phone ?? '');
       _img = u.avatarUrl ?? '';
+    } catch (e) {
+      if (mounted) setState(() => _loadError = e);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _changeAvatar({bool camera = false}) async {
+  Future<void> _changeAvatar() async {
     if (_uploading) return;
-    final source = camera ? ImageSource.camera : ImageSource.gallery;
     final picked = await _picker.pickImage(
-      source: source,
+      source: ImageSource.gallery,
       maxWidth: 1080,
       imageQuality: 88,
     );
@@ -70,7 +74,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        ).showSnackBar(SnackBar(content: Text(e.userMessage)));
       }
     } catch (e) {
       if (mounted) {
@@ -98,7 +102,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -124,6 +128,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
+            : _loadError != null
+            ? AppErrorView(
+                message: ApiException.userMessageFrom(_loadError!),
+                onRetry: () {
+                  setState(() {
+                    _loading = true;
+                    _loadError = null;
+                  });
+                  _loadMe();
+                },
+              )
             : AppPageContainer.form(
                 child: ListView(
                   children: [
@@ -169,52 +184,64 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     const SizedBox(height: 24),
                     Center(
-                      child: GestureDetector(
-                        key: const Key('avatarChangeButton'),
-                        onTap: () => _changeAvatar(),
-                        onLongPress: () => _changeAvatar(camera: true),
-                        child: Stack(
-                          alignment: Alignment.bottomRight,
-                          children: [
-                            ClipOval(
-                              child: Container(
-                                width: 120,
-                                height: 120,
-                                color: const Color(0xFFEFEFEF),
-                                child: _uploading
-                                    ? const Center(
-                                        child: CircularProgressIndicator(
-                                          key: Key('avatarUploadIndicator'),
-                                        ),
-                                      )
-                                    : (_img.isNotEmpty
-                                          ? Image.network(
-                                              key: const Key('avatarImage'),
-                                              _img,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  const Icon(
-                                                    Icons.person,
-                                                    size: 56,
-                                                  ),
-                                            )
-                                          : const Icon(
-                                              Icons.person,
-                                              key: Key('avatarImage'),
-                                              size: 56,
-                                            )),
+                      child: Semantics(
+                        identifier: 'avatarChangeButton',
+                        button: true,
+                        label: 'Сменить аватар',
+                        child: GestureDetector(
+                          key: const Key('avatarChangeButton'),
+                          onTap: () => _changeAvatar(),
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              ClipOval(
+                                child: Container(
+                                  width: 120,
+                                  height: 120,
+                                  color: const Color(0xFFEFEFEF),
+                                  child: _uploading
+                                      ? const Center(
+                                          child: CircularProgressIndicator(
+                                            key: Key('avatarUploadIndicator'),
+                                          ),
+                                        )
+                                      : (_img.isNotEmpty
+                                            ? Semantics(
+                                                identifier: 'avatarImage',
+                                                label: 'avatarImage',
+                                                child: Image.network(
+                                                  key: const Key('avatarImage'),
+                                                  _img,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) =>
+                                                      const Icon(
+                                                        Icons.person,
+                                                        size: 56,
+                                                      ),
+                                                ),
+                                              )
+                                            : Semantics(
+                                                identifier: 'avatarPlaceholder',
+                                                label: 'avatarPlaceholder',
+                                                child: const Icon(
+                                                  Icons.person,
+                                                  key: Key('avatarPlaceholder'),
+                                                  size: 56,
+                                                ),
+                                              )),
+                                ),
                               ),
-                            ),
-                            const CircleAvatar(
-                              radius: 16,
-                              backgroundColor: orange,
-                              child: Icon(
-                                Icons.camera_alt,
-                                size: 16,
-                                color: Colors.white,
+                              const CircleAvatar(
+                                radius: 16,
+                                backgroundColor: orange,
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

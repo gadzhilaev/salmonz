@@ -14,7 +14,11 @@ Future<void> _frames(WidgetTester tester, int n) async {
   }
 }
 
-Future<void> _waitFor(WidgetTester tester, Finder finder, {int max = 80}) async {
+Future<void> _waitFor(
+  WidgetTester tester,
+  Finder finder, {
+  int max = 80,
+}) async {
   for (var i = 0; i < max; i++) {
     await tester.pump(const Duration(milliseconds: 200));
     if (finder.evaluate().isNotEmpty) return;
@@ -53,7 +57,10 @@ Future<void> _openAdmin(WidgetTester tester) async {
     await tester.drag(scrollable.last, const Offset(0, -220));
     await tester.pump(const Duration(milliseconds: 100));
   }
-  await tester.tap(find.byKey(const Key('adminPanelEntry')), warnIfMissed: false);
+  await tester.tap(
+    find.byKey(const Key('adminPanelEntry')),
+    warnIfMissed: false,
+  );
   await _frames(tester, 15);
   if (find.byKey(const Key('adminPanelTitle')).evaluate().isEmpty) {
     final label = find.text('Админ панель');
@@ -100,7 +107,10 @@ void main() {
     }
     await tester.tap(find.byKey(const Key('adminMenuProducts')));
     await _waitFor(tester, find.byKey(const Key('adminProductsAdd')));
-    await tester.tap(find.byKey(const Key('adminProductsAdd')), warnIfMissed: false);
+    await tester.tap(
+      find.byKey(const Key('adminProductsAdd')),
+      warnIfMissed: false,
+    );
     await _frames(tester, 15);
     if (find.byKey(const Key('productNameField')).evaluate().isEmpty) {
       await tester.tap(find.byIcon(Icons.add), warnIfMissed: false);

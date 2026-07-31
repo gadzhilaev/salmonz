@@ -1,0 +1,53 @@
+appId: ru.gadzhilaev.salmonz
+---
+# Change order SZ-MS8NI1AG-MBD7 NEW→CONFIRMED; invalid transition; USER verifies
+- runFlow: login_admin.yaml
+- runFlow: open_admin_panel.yaml
+- tapOn:
+    id: "adminMenuOrders"
+- extendedWaitUntil:
+    visible: "Заказы"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/qa/order_status_admin_list
+- tapOn: "SZ-MS8NI1AG-MBD7"
+- extendedWaitUntil:
+    visible: "Сменить статус:"
+    timeout: 15000
+- assertVisible: "Статус: NEW"
+- takeScreenshot: docs/screenshots/qa/order_status_before
+# Invalid: NEW → COMPLETED should fail (SnackBar) and keep NEW
+- tapOn:
+    id: "adminOrderStatus_COMPLETED"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: docs/screenshots/qa/order_status_invalid_attempt
+- assertVisible: "Статус: NEW"
+# Valid: NEW → CONFIRMED
+- tapOn:
+    id: "adminOrderStatus_CONFIRMED"
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Статус: CONFIRMED"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/qa/order_status_after_admin
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow: logout.yaml
+- runFlow: login_user.yaml
+- tapOn: "ЗАКАЗЫ"
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "SZ-MS8NI1AG-MBD7"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/qa/order_status_user_list
+- tapOn: "SZ-MS8NI1AG-MBD7"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Подтверждён"
+- takeScreenshot: docs/screenshots/qa/order_status_user_confirmed

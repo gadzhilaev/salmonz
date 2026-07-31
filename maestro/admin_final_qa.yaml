@@ -1,0 +1,10 @@
+appId: ru.gadzhilaev.salmonz
+---
+# Full admin FINAL QA suite (permissions → CRUD → user catalog → order status → cleanup)
+- runFlow: admin_permissions.yaml
+- runFlow: admin_category_crud.yaml
+- runFlow: admin_product_crud.yaml
+- runFlow: admin_promotion_crud.yaml
+- runFlow: admin_user_catalog_verify.yaml
+- runFlow: admin_order_status.yaml
+- runFlow: admin_cleanup.yaml

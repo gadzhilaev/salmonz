@@ -1,0 +1,108 @@
+# After backend restart: retry deep screens that still show AppErrorView, or re-open.
+appId: ru.gadzhilaev.salmonz
+---
+- tapOn: "ГЛАВНАЯ"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+      - extendedWaitUntil:
+          visible: "Роллы"
+          timeout: 45000
+- runFlow:
+    when:
+      visible: "Роллы"
+    commands:
+      - tapOn: "Роллы"
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - runFlow:
+          when:
+            visible: "ПОВТОРИТЬ"
+          commands:
+            - tapOn: "ПОВТОРИТЬ"
+      - extendedWaitUntil:
+          visible: "Филадельфия"
+          timeout: 45000
+      - takeScreenshot: docs/screenshots/qa/retry_products
+      - tapOn: "Филадельфия"
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - takeScreenshot: docs/screenshots/qa/retry_product_card
+      - back
+      - back
+
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    visible: "ПРОФИЛЬ"
+    timeout: 45000
+
+- scrollUntilVisible:
+    element: "Мои адреса"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Мои адреса"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    notVisible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_addresses
+- back
+
+- scrollUntilVisible:
+    element:
+      id: "editProfileEntry"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "editProfileEntry"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    visible: "Сохранить"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_edit_profile
+- back
+
+- scrollUntilVisible:
+    element:
+      id: "supportEntry"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "supportEntry"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+      - takeScreenshot: docs/screenshots/qa/retry_support
+- runFlow:
+    when:
+      visible: "ПОДДЕРЖКА"
+    commands:
+      - takeScreenshot: docs/screenshots/qa/retry_support
+- back

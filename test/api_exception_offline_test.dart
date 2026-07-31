@@ -67,6 +67,25 @@ void main() {
 
       expect(e.isUnauthorized, isTrue);
       expect(e.isNetwork, isFalse);
+      expect(e.userMessage, 'Требуется авторизация');
+      expect(e.userMessage, isNot(contains('Unauthorized')));
+    });
+
+    test('maps 500 responses to a safe Russian message', () {
+      final e = ApiException.fromDio(
+        DioException(
+          requestOptions: RequestOptions(path: '/x'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/x'),
+            statusCode: 500,
+            data: const {'message': 'Internal server error'},
+          ),
+          type: DioExceptionType.badResponse,
+        ),
+      );
+
+      expect(e.userMessage, 'Ошибка сервера');
+      expect(e.userMessage, isNot(contains('Internal server error')));
     });
 
     test('userMessageFrom never exposes raw Dio errors', () {

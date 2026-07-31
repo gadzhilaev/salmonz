@@ -1,0 +1,136 @@
+appId: ru.gadzhilaev.salmonz
+---
+# Cleanup QA_* entities via ADMIN UI (and leftover QA Category * from prior runs)
+- runFlow: login_admin.yaml
+- runFlow: open_admin_panel.yaml
+# Delete QA product
+- tapOn:
+    id: "adminMenuProducts"
+- extendedWaitUntil:
+    visible: "ВСЕ ТОВАРЫ"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "QA_1785494087_prod"
+    commands:
+      - tapOn: "QA_1785494087_prod"
+      - extendedWaitUntil:
+          visible: "Товар"
+          timeout: 10000
+      - tapOn:
+          id: "productDeleteButton"
+      - waitForAnimationToEnd:
+          timeout: 5000
+- takeScreenshot: docs/screenshots/qa/admin_cleanup_products
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+# Delete QA promotion
+- runFlow:
+    when:
+      visible: "АДМИН ПАНЕЛЬ"
+    commands: []
+- runFlow:
+    when:
+      notVisible: "АДМИН ПАНЕЛЬ"
+    commands:
+      - runFlow: open_admin_panel.yaml
+- tapOn:
+    id: "adminMenuPromotions"
+- extendedWaitUntil:
+    visible: "Акции"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "QA_1785494087_promo"
+    commands:
+      - tapOn: "QA_1785494087_promo"
+      - extendedWaitUntil:
+          visible: "Акция"
+          timeout: 10000
+      - tapOn:
+          id: "promotionDeleteButton"
+      - waitForAnimationToEnd:
+          timeout: 5000
+- takeScreenshot: docs/screenshots/qa/admin_cleanup_promotions
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+# Delete QA categories (new + leftovers)
+- runFlow:
+    when:
+      notVisible: "АДМИН ПАНЕЛЬ"
+    commands:
+      - runFlow: open_admin_panel.yaml
+- tapOn:
+    id: "adminMenuCategories"
+- extendedWaitUntil:
+    visible: "Категории"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "QA_1785494087_cat_edit"
+    commands:
+      - tapOn: "QA_1785494087_cat_edit"
+      - extendedWaitUntil:
+          visible: "Категория"
+          timeout: 10000
+      - tapOn:
+          id: "categoryDeleteButton"
+      - waitForAnimationToEnd:
+          timeout: 5000
+- runFlow:
+    when:
+      visible: "QA Category 19484"
+    commands:
+      - tapOn: "QA Category 19484"
+      - extendedWaitUntil:
+          visible: "Категория"
+          timeout: 10000
+      - tapOn:
+          id: "categoryDeleteButton"
+      - waitForAnimationToEnd:
+          timeout: 5000
+- runFlow:
+    when:
+      visible: "QA Category 309284"
+    commands:
+      - tapOn: "QA Category 309284"
+      - extendedWaitUntil:
+          visible: "Категория"
+          timeout: 10000
+      - tapOn:
+          id: "categoryDeleteButton"
+      - waitForAnimationToEnd:
+          timeout: 5000
+- runFlow:
+    when:
+      visible: "QA Category 715060"
+    commands:
+      - tapOn: "QA Category 715060"
+      - extendedWaitUntil:
+          visible: "Категория"
+          timeout: 10000
+      - tapOn:
+          id: "categoryDeleteButton"
+      - waitForAnimationToEnd:
+          timeout: 5000
+- runFlow:
+    when:
+      visible: "QA Category 852879"
+    commands:
+      - tapOn: "QA Category 852879"
+      - extendedWaitUntil:
+          visible: "Категория"
+          timeout: 10000
+      - tapOn:
+          id: "categoryDeleteButton"
+      - waitForAnimationToEnd:
+          timeout: 5000
+- takeScreenshot: docs/screenshots/qa/admin_cleanup_categories
+- assertVisible: "Роллы"
+- assertVisible: "Сеты"
+- assertVisible: "Напитки"
+- assertNotVisible: "QA_1785494087_cat_edit"
+- assertNotVisible: "QA Category 19484"
+- assertNotVisible: "QA Category 309284"

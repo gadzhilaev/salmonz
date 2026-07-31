@@ -1,0 +1,15 @@
+appId: ru.gadzhilaev.salmonz
+---
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 4000
+- tapOn:
+    id: "logoutButton"
+- extendedWaitUntil:
+    visible: "ВЫЙТИ"
+    timeout: 10000
+- tapOn: "ВЫЙТИ"
+- extendedWaitUntil:
+    visible:
+      id: "loginSubmit"
+    timeout: 20000

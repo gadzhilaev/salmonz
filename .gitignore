@@ -79,3 +79,4 @@ backend/skills-lock.json
 backend/uploads/
 backend/*.tsbuildinfo
 artifacts/
+tmp/

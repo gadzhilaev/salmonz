@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:salmonz/core/di/app_services.dart';
+import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
+import 'package:salmonz/widgets/app_error_view.dart';
 import 'admin_order_details_page.dart';
 
 class AdminOrdersPage extends StatefulWidget {
@@ -24,7 +26,9 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     setState(() {
       _future = AppServices.instance.admin.listOrders(limit: 100);
     });
-    await _future;
+    try {
+      await _future;
+    } catch (_) {}
   }
 
   @override
@@ -37,6 +41,20 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
           child: FutureBuilder<List<OrderModel>>(
             future: _future,
             builder: (context, snap) {
+              if (snap.hasError) {
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.sizeOf(context).height * 0.5,
+                      child: AppErrorView(
+                        message: ApiException.userMessageFrom(snap.error!),
+                        onRetry: _reload,
+                      ),
+                    ),
+                  ],
+                );
+              }
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }

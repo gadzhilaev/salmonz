@@ -5,6 +5,7 @@ import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
+import 'package:salmonz/widgets/async_body.dart';
 
 class AdminCategoriesPage extends StatefulWidget {
   const AdminCategoriesPage({super.key});
@@ -25,24 +26,31 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
     setState(() {
       _future = AppServices.instance.admin.listCategories(limit: 100);
     });
-    await _future;
+    try {
+      await _future;
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Категории')),
-      floatingActionButton: FloatingActionButton(
-        key: const Key('adminCategoriesAdd'),
-        backgroundColor: const Color(0xFFFF5E1C),
-        onPressed: () async {
-          final ok = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(builder: (_) => const CategoryEditorPage()),
-          );
-          if (ok == true) await _reload();
-        },
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Semantics(
+        identifier: 'adminCategoriesAdd',
+        button: true,
+        label: 'Добавить категорию',
+        child: FloatingActionButton(
+          key: const Key('adminCategoriesAdd'),
+          backgroundColor: const Color(0xFFFF5E1C),
+          onPressed: () async {
+            final ok = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(builder: (_) => const CategoryEditorPage()),
+            );
+            if (ok == true) await _reload();
+          },
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
       body: AppPageContainer(
         child: RefreshIndicator(
@@ -50,28 +58,36 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
           child: FutureBuilder<List<CategoryModel>>(
             future: _future,
             builder: (context, snap) {
-              if (!snap.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final items = snap.data!;
-              return ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (_, i) {
-                  final c = items[i];
-                  return ListTile(
-                    title: Text(c.name),
-                    subtitle: Text(c.slug),
-                    onTap: () async {
-                      final ok = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CategoryEditorPage(existing: c),
-                        ),
-                      );
-                      if (ok == true) await _reload();
-                    },
-                  );
-                },
+              return AsyncBody<List<CategoryModel>>(
+                snapshot: snap,
+                onRetry: _reload,
+                scrollable: true,
+                empty: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: const [
+                    SizedBox(height: 160),
+                    Center(child: Text('Категорий пока нет')),
+                  ],
+                ),
+                builder: (items) => ListView.builder(
+                  itemCount: items.length,
+                  itemBuilder: (_, i) {
+                    final c = items[i];
+                    return ListTile(
+                      title: Text(c.name),
+                      subtitle: Text(c.slug),
+                      onTap: () async {
+                        final ok = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CategoryEditorPage(existing: c),
+                          ),
+                        );
+                        if (ok == true) await _reload();
+                      },
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -118,14 +134,24 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
   Future<void> _upload() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked == null) return;
-    final up = await AppServices.instance.admin.uploadCategoryImage(
-      filePath: picked.path,
-      filename: p.basename(picked.path),
-    );
-    setState(() {
-      _imageKey = up.key;
-      _imageUrl = up.url;
-    });
+    try {
+      final up = await AppServices.instance.admin.uploadCategoryImage(
+        filePath: picked.path,
+        filename: p.basename(picked.path),
+      );
+      if (mounted) {
+        setState(() {
+          _imageKey = up.key;
+          _imageUrl = up.url;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ApiException.userMessageFrom(e))),
+        );
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -150,7 +176,7 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -158,9 +184,17 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
 
   Future<void> _delete() async {
     if (widget.existing == null) return;
-    await AppServices.instance.admin.deleteCategory(widget.existing!.id);
-    if (!mounted) return;
-    Navigator.pop(context, true);
+    try {
+      await AppServices.instance.admin.deleteCategory(widget.existing!.id);
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ApiException.userMessageFrom(e))),
+        );
+      }
+    }
   }
 
   @override
@@ -170,35 +204,64 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
         title: Text(widget.existing == null ? 'Новая категория' : 'Категория'),
         actions: [
           if (widget.existing != null)
-            IconButton(onPressed: _delete, icon: const Icon(Icons.delete)),
+            Semantics(
+              identifier: 'categoryDeleteButton',
+              button: true,
+              label: 'Удалить',
+              child: IconButton(
+                key: const Key('categoryDeleteButton'),
+                onPressed: _delete,
+                icon: const Icon(Icons.delete),
+              ),
+            ),
         ],
       ),
       body: AppPageContainer.form(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            TextField(
-              key: const Key('categoryNameField'),
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'Название'),
+            Semantics(
+              identifier: 'categoryNameField',
+              textField: true,
+              child: TextField(
+                key: const Key('categoryNameField'),
+                controller: _name,
+                decoration: const InputDecoration(labelText: 'Название'),
+              ),
             ),
-            TextField(
-              key: const Key('categorySlugField'),
-              controller: _slug,
-              decoration: const InputDecoration(labelText: 'Slug'),
+            Semantics(
+              identifier: 'categorySlugField',
+              textField: true,
+              child: TextField(
+                key: const Key('categorySlugField'),
+                controller: _slug,
+                decoration: const InputDecoration(labelText: 'Slug'),
+              ),
             ),
             if ((_imageUrl ?? '').isNotEmpty)
               Image.network(_imageUrl!, height: 120, fit: BoxFit.cover),
-            TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
-            ElevatedButton(
-              key: const Key('categorySaveButton'),
-              onPressed: _saving ? null : _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5E1C),
+            Semantics(
+              identifier: 'categoryUploadImage',
+              button: true,
+              child: TextButton(
+                key: const Key('categoryUploadImage'),
+                onPressed: _upload,
+                child: const Text('Загрузить фото'),
               ),
-              child: const Text(
-                'СОХРАНИТЬ',
-                style: TextStyle(color: Colors.white),
+            ),
+            Semantics(
+              identifier: 'categorySaveButton',
+              button: true,
+              child: ElevatedButton(
+                key: const Key('categorySaveButton'),
+                onPressed: _saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF5E1C),
+                ),
+                child: const Text(
+                  'СОХРАНИТЬ',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ],
