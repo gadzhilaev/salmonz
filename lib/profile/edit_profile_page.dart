@@ -74,9 +74,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ApiException.userMessageFrom(e))),
+        );
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -103,7 +103,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      ).showSnackBar(SnackBar(content: Text(ApiException.userMessageFrom(e))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -170,6 +170,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     const SizedBox(height: 24),
                     Center(
                       child: GestureDetector(
+                        key: const Key('avatarChangeButton'),
                         onTap: () => _changeAvatar(),
                         onLongPress: () => _changeAvatar(camera: true),
                         child: Stack(
@@ -182,10 +183,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 color: const Color(0xFFEFEFEF),
                                 child: _uploading
                                     ? const Center(
-                                        child: CircularProgressIndicator(),
+                                        child: CircularProgressIndicator(
+                                          key: Key('avatarUploadIndicator'),
+                                        ),
                                       )
                                     : (_img.isNotEmpty
                                           ? Image.network(
+                                              key: const Key('avatarImage'),
                                               _img,
                                               fit: BoxFit.cover,
                                               errorBuilder: (_, __, ___) =>
@@ -194,7 +198,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                                     size: 56,
                                                   ),
                                             )
-                                          : const Icon(Icons.person, size: 56)),
+                                          : const Icon(
+                                              Icons.person,
+                                              key: Key('avatarImage'),
+                                              size: 56,
+                                            )),
                               ),
                             ),
                             const CircleAvatar(
@@ -223,6 +231,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     SizedBox(
                       height: 56,
                       child: ElevatedButton(
+                        key: const Key('editProfileSaveButton'),
                         onPressed: _saving ? null : _save,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: orange,

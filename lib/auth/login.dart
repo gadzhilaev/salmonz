@@ -56,9 +56,9 @@ class _LoginState extends State<Login> {
         (route) => false,
       );
     } on ApiException catch (e) {
-      if (mounted) _showSnack(e.message);
+      if (mounted) _showSnack(e.userMessage);
     } catch (e) {
-      if (mounted) _showSnack('Ошибка: $e');
+      if (mounted) _showSnack(ApiException.userMessageFrom(e));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }

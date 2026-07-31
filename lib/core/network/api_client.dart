@@ -36,7 +36,7 @@ class ApiClient {
   final OnSessionExpired? onSessionExpired;
 
   /// In-flight refresh; shared so parallel 401s wait on one refresh.
-  Future<bool>? _refreshFuture;
+  Future<_RefreshOutcome>? _refreshFuture;
 
   Dio get raw => _dio;
 
@@ -126,8 +126,13 @@ class ApiClient {
       return;
     }
 
-    final refreshed = await _refreshSingleFlight();
-    if (!refreshed) {
+    final outcome = await _refreshSingleFlight();
+    if (outcome == _RefreshOutcome.networkFailed) {
+      // Keep secure session when refresh fails due to connectivity.
+      handler.next(err);
+      return;
+    }
+    if (outcome != _RefreshOutcome.ok) {
       await _tokenStore.clear();
       onSessionExpired?.call();
       handler.next(err);
@@ -146,15 +151,17 @@ class ApiClient {
     }
   }
 
-  Future<bool> _refreshSingleFlight() {
+  Future<_RefreshOutcome> _refreshSingleFlight() {
     return _refreshFuture ??= _doRefresh().whenComplete(() {
       _refreshFuture = null;
     });
   }
 
-  Future<bool> _doRefresh() async {
+  Future<_RefreshOutcome> _doRefresh() async {
     final refresh = await _tokenStore.readRefreshToken();
-    if (refresh == null || refresh.isEmpty) return false;
+    if (refresh == null || refresh.isEmpty) {
+      return _RefreshOutcome.authFailed;
+    }
 
     try {
       final res = await _dio.post<Map<String, dynamic>>(
@@ -163,22 +170,28 @@ class ApiClient {
         options: Options(extra: {'skipAuth': true}),
       );
       final data = res.data;
-      if (data == null) return false;
+      if (data == null) return _RefreshOutcome.authFailed;
       final access = data['accessToken'] as String?;
       final newRefresh = data['refreshToken'] as String?;
       if (access == null ||
           access.isEmpty ||
           newRefresh == null ||
           newRefresh.isEmpty) {
-        return false;
+        return _RefreshOutcome.authFailed;
       }
       await _tokenStore.saveTokens(
         accessToken: access,
         refreshToken: newRefresh,
       );
-      return true;
+      return _RefreshOutcome.ok;
+    } on DioException catch (e) {
+      final mapped = ApiException.fromDio(e);
+      if (mapped.isNetwork) return _RefreshOutcome.networkFailed;
+      return _RefreshOutcome.authFailed;
     } catch (_) {
-      return false;
+      return _RefreshOutcome.authFailed;
     }
   }
 }
+
+enum _RefreshOutcome { ok, authFailed, networkFailed }

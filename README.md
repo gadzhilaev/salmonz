@@ -37,9 +37,11 @@
 |---|---|---|
 | ![login ipad](docs/screenshots/09_ipad.png) | ![home ipad](docs/screenshots/11_ipad_home_landscape.png) | ![admin ipad](docs/screenshots/13_ipad_admin.png) |
 
-| Cart (iPad) | Category (iPad) | Before (old iPad) |
+| Cart (iPad) | Category (iPad) | Offline / Retry (iPhone) |
 |---|---|---|
-| ![cart ipad](docs/screenshots/14_ipad_cart.png) | ![category ipad](docs/screenshots/15_ipad_category.png) | ![before](docs/screenshots/before/09_ipad.png) |
+| ![cart ipad](docs/screenshots/14_ipad_cart.png) | ![category ipad](docs/screenshots/15_ipad_category.png) | ![offline](docs/screenshots/qa/iphone_offline_home.png) |
+
+Дополнительные QA-кадры: [`docs/screenshots/qa/`](docs/screenshots/qa/) (session relaunch, recovery, iPad home).
 
 Снято на iOS Simulator (iPhone 17 Pro / iPad Pro 13" M5, iOS 26.5) против локального Docker API. На iPad ≥840 логических pt используется `NavigationRail`.
 

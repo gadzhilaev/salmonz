@@ -160,6 +160,7 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
           padding: EdgeInsets.zero,
           children: [
             TextField(
+              key: const Key('productNameField'),
               controller: _nameCtrl,
               decoration: const InputDecoration(labelText: 'Название'),
             ),
@@ -169,6 +170,7 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
               maxLines: 3,
             ),
             TextField(
+              key: const Key('productPriceField'),
               controller: _priceCtrl,
               decoration: const InputDecoration(labelText: 'Цена'),
               keyboardType: TextInputType.number,
@@ -203,6 +205,7 @@ class _ProductEditorPageState extends State<ProductEditorPage> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
+              key: const Key('productSaveButton'),
               onPressed: _saving ? null : _save,
               style: ElevatedButton.styleFrom(backgroundColor: orange),
               child: const Text(

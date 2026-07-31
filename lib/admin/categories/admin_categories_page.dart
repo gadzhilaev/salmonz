@@ -33,6 +33,7 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Категории')),
       floatingActionButton: FloatingActionButton(
+        key: const Key('adminCategoriesAdd'),
         backgroundColor: const Color(0xFFFF5E1C),
         onPressed: () async {
           final ok = await Navigator.push<bool>(
@@ -177,10 +178,12 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
           padding: EdgeInsets.zero,
           children: [
             TextField(
+              key: const Key('categoryNameField'),
               controller: _name,
               decoration: const InputDecoration(labelText: 'Название'),
             ),
             TextField(
+              key: const Key('categorySlugField'),
               controller: _slug,
               decoration: const InputDecoration(labelText: 'Slug'),
             ),
@@ -188,6 +191,7 @@ class _CategoryEditorPageState extends State<CategoryEditorPage> {
               Image.network(_imageUrl!, height: 120, fit: BoxFit.cover),
             TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
             ElevatedButton(
+              key: const Key('categorySaveButton'),
               onPressed: _saving ? null : _save,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF5E1C),

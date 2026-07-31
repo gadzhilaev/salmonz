@@ -33,6 +33,7 @@ class _PromotionsListPageState extends State<PromotionsListPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Акции')),
       floatingActionButton: FloatingActionButton(
+        key: const Key('adminPromotionsAdd'),
         backgroundColor: const Color(0xFFFF5E1C),
         onPressed: () async {
           final ok = await Navigator.push<bool>(
@@ -191,6 +192,7 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
           padding: EdgeInsets.zero,
           children: [
             TextField(
+              key: const Key('promotionTitleField'),
               controller: _title,
               decoration: const InputDecoration(labelText: 'Заголовок'),
             ),
@@ -203,6 +205,7 @@ class _PromotionEditorPageState extends State<PromotionEditorPage> {
               Image.network(_imageUrl!, height: 160, fit: BoxFit.cover),
             TextButton(onPressed: _upload, child: const Text('Загрузить фото')),
             ElevatedButton(
+              key: const Key('promotionSaveButton'),
               onPressed: _saving ? null : _save,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF5E1C),

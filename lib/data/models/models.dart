@@ -419,6 +419,9 @@ class SupportMessageModel {
     required this.status,
     required this.createdAt,
     this.subject,
+    this.userId,
+    this.userEmail,
+    this.userName,
   });
 
   final String id;
@@ -426,17 +429,26 @@ class SupportMessageModel {
   final String message;
   final String status;
   final DateTime createdAt;
+  final String? userId;
+  final String? userEmail;
+  final String? userName;
 
-  factory SupportMessageModel.fromJson(Map<String, dynamic> json) =>
-      SupportMessageModel(
-        id: asString(json['id']) ?? '',
-        subject: asString(json['subject']),
-        message: asString(json['message']) ?? '',
-        status: asString(json['status']) ?? 'NEW',
-        createdAt:
-            DateTime.tryParse(asString(json['createdAt']) ?? '') ??
-            DateTime.now(),
-      );
+  factory SupportMessageModel.fromJson(Map<String, dynamic> json) {
+    final user = json['user'];
+    final userMap = user is Map ? Map<String, dynamic>.from(user) : null;
+    return SupportMessageModel(
+      id: asString(json['id']) ?? '',
+      subject: asString(json['subject']),
+      message: asString(json['message']) ?? '',
+      status: asString(json['status']) ?? 'NEW',
+      createdAt:
+          DateTime.tryParse(asString(json['createdAt']) ?? '') ??
+          DateTime.now(),
+      userId: asString(json['userId']) ?? asString(userMap?['id']),
+      userEmail: asString(userMap?['email']),
+      userName: asString(userMap?['name']),
+    );
+  }
 }
 
 class Paginated<T> {

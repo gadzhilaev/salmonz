@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/di/app_services.dart';
 import 'package:salmonz/core/responsive/app_breakpoints.dart';
 import 'package:salmonz/core/responsive/app_page_container.dart';
 import 'package:salmonz/data/models/models.dart';
 import '../pages/order_details_page.dart';
+import '../widgets/app_error_view.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key, this.embedded = false});
@@ -86,7 +88,16 @@ class _OrdersPageState extends State<OrdersPage> {
                         return const Center(child: CircularProgressIndicator());
                       }
                       if (snap.hasError) {
-                        return Center(child: Text('Ошибка: ${snap.error}'));
+                        return Center(
+                          child: AppErrorView(
+                            message: ApiException.userMessageFrom(snap.error!),
+                            onRetry: () {
+                              setState(() {
+                                _future = AppServices.instance.orders.list();
+                              });
+                            },
+                          ),
+                        );
                       }
                       final orders = snap.data ?? [];
                       if (orders.isEmpty) {

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/network/token_store.dart';
 import '../models/models.dart';
 
@@ -70,6 +71,9 @@ class AuthRepository {
       try {
         final result = await refresh();
         return result.user;
+      } on ApiException catch (e) {
+        if (e.isNetwork) return _currentUser;
+        // Auth failure — try access token once more below.
       } catch (_) {
         // fall through to /auth/me
       }
@@ -77,6 +81,14 @@ class AuthRepository {
 
     try {
       return await me();
+    } on ApiException catch (e) {
+      if (e.isNetwork) {
+        // Keep secure session when backend is unreachable.
+        return _currentUser;
+      }
+      await _tokens.clear();
+      _currentUser = null;
+      return null;
     } catch (_) {
       await _tokens.clear();
       _currentUser = null;

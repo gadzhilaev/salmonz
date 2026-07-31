@@ -330,6 +330,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           const SizedBox(height: 8),
                           _ProfileTile(
+                            key: const Key('supportEntry'),
                             icon: Icons.contact_support_outlined,
                             text: 'Написать в поддержку',
                             height: tileH,
@@ -497,35 +498,42 @@ class _ProfileTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = Theme.of(context).colorScheme.onSurface;
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        height: height,
-        decoration: BoxDecoration(
+    return Semantics(
+      button: true,
+      label: text,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: orange, width: 1),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 16),
-            Icon(icon, size: 24, color: orange),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
-                  fontSize: 14,
-                  height: 1.0,
-                  color: textColor,
-                ),
-              ),
+          onTap: onTap,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            height: height,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: orange, width: 1),
             ),
-            const SizedBox(width: 16),
-          ],
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                Icon(icon, size: 24, color: orange),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      height: 1.0,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ],
+            ),
+          ),
         ),
       ),
     );

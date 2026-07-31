@@ -6,6 +6,7 @@ import 'package:salmonz/core/responsive/responsive_grid.dart';
 import 'package:salmonz/data/models/models.dart';
 import 'package:salmonz/products_pages/products.dart';
 import 'package:salmonz/widgets/app_network_image.dart';
+import 'package:salmonz/widgets/async_body.dart';
 
 class SuccessPage extends StatefulWidget {
   const SuccessPage({super.key, this.embedded = false});
@@ -72,154 +73,153 @@ class _SuccessPageState extends State<SuccessPage> {
                   child: FutureBuilder<_HomeData>(
                     future: _future,
                     builder: (context, snap) {
-                      if (!snap.hasData &&
-                          snap.connectionState != ConnectionState.done) {
-                        return ListView(
+                      return AsyncBody<_HomeData>(
+                        snapshot: snap,
+                        scrollable: true,
+                        waitForData: true,
+                        onRetry: () async {
+                          setState(() => _future = _load());
+                          await _future;
+                        },
+                        loading: ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           children: const [
                             SizedBox(height: 160),
                             Center(child: CircularProgressIndicator()),
                           ],
-                        );
-                      }
-                      if (snap.hasError) {
-                        return ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            const SizedBox(height: 160),
-                            Center(child: Text('Ошибка: ${snap.error}')),
-                          ],
-                        );
-                      }
+                        ),
+                        builder: (data) {
+                          final items = data.categories;
+                          if (items.isEmpty) {
+                            return ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [
+                                SizedBox(height: 160),
+                                Center(child: Text('Категорий пока нет')),
+                              ],
+                            );
+                          }
 
-                      final data =
-                          snap.data ??
-                          const _HomeData(categories: [], promotions: []);
-                      final items = data.categories;
+                          final width = MediaQuery.sizeOf(context).width;
+                          final scale = AppBreakpoints.typeScale(width);
+                          final categoryHeight =
+                              width >= AppBreakpoints.compactMax
+                              ? 190.0
+                              : 160.0;
 
-                      if (items.isEmpty) {
-                        return ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            SizedBox(height: 160),
-                            Center(child: Text('Категорий пока нет')),
-                          ],
-                        );
-                      }
-
-                      final width = MediaQuery.sizeOf(context).width;
-                      final scale = AppBreakpoints.typeScale(width);
-                      final categoryHeight = width >= AppBreakpoints.compactMax
-                          ? 190.0
-                          : 160.0;
-
-                      return ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: [
-                          const SizedBox(height: 12),
-                          if (data.promotions.isNotEmpty) ...[
-                            Text(
-                              'АКЦИИ',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w900,
-                                fontSize: 20 * scale,
-                                letterSpacing: 0.8,
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Theme.of(context).colorScheme.onSurface
-                                    : textDark,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _PromosSection(
-                              promos: data.promotions,
-                              controllerBuilder: (viewportFraction) {
-                                if (_promoPC == null ||
-                                    _promoViewport != viewportFraction) {
-                                  _promoPC?.dispose();
-                                  _promoViewport = viewportFraction;
-                                  _promoPC = PageController(
-                                    viewportFraction: viewportFraction,
-                                  );
-                                }
-                                return _promoPC!;
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                          ],
-                          Text(
-                            'МЕНЮ',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w900,
-                              fontSize: 20 * scale,
-                              letterSpacing: 0.8,
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Theme.of(context).colorScheme.onSurface
-                                  : textDark,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ResponsiveGrid(
-                            itemCount: items.length,
-                            minCardWidth: width >= AppBreakpoints.compactMax
-                                ? 300
-                                : 240,
-                            maxColumns: width >= AppBreakpoints.mediumMax
-                                ? 4
-                                : 3,
-                            itemHeight: categoryHeight,
-                            itemBuilder: (context, i, tileW) {
-                              final it = items[i];
-                              final isFirst = i == 0;
-                              final isDark =
-                                  Theme.of(context).brightness ==
-                                  Brightness.dark;
-                              final tileBg = isDark
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest
-                                  : tileLight;
-                              final mutedTitle = isDark
-                                  ? Theme.of(context).colorScheme.onSurface
-                                  : textDark;
-
-                              return InkWell(
-                                key: i == 0 ? const Key('homeCategory') : null,
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => ProductsPage(
-                                      title: it.name,
-                                      categoryId: it.id,
-                                    ),
+                          return ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              const SizedBox(height: 12),
+                              if (data.promotions.isNotEmpty) ...[
+                                Text(
+                                  'АКЦИИ',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 20 * scale,
+                                    letterSpacing: 0.8,
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface
+                                        : textDark,
                                   ),
                                 ),
-                                child: _CategoryCard(
-                                  title: it.name,
-                                  imageUrl: it.imageUrl,
-                                  slug: it.slug,
-                                  radius: 12,
-                                  bgColor: isFirst ? orange : tileBg,
-                                  titleColor: isFirst
-                                      ? Colors.white
-                                      : mutedTitle,
-                                  fontWeight: isFirst
-                                      ? FontWeight.w900
-                                      : FontWeight.w700,
-                                  letterSpacing: 0.72,
-                                  titleScale: scale,
+                                const SizedBox(height: 12),
+                                _PromosSection(
+                                  promos: data.promotions,
+                                  controllerBuilder: (viewportFraction) {
+                                    if (_promoPC == null ||
+                                        _promoViewport != viewportFraction) {
+                                      _promoPC?.dispose();
+                                      _promoViewport = viewportFraction;
+                                      _promoPC = PageController(
+                                        viewportFraction: viewportFraction,
+                                      );
+                                    }
+                                    return _promoPC!;
+                                  },
                                 ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+                                const SizedBox(height: 24),
+                              ],
+                              Text(
+                                'МЕНЮ',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 20 * scale,
+                                  letterSpacing: 0.8,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Theme.of(context).colorScheme.onSurface
+                                      : textDark,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ResponsiveGrid(
+                                itemCount: items.length,
+                                minCardWidth: width >= AppBreakpoints.compactMax
+                                    ? 300
+                                    : 240,
+                                maxColumns: width >= AppBreakpoints.mediumMax
+                                    ? 4
+                                    : 3,
+                                itemHeight: categoryHeight,
+                                itemBuilder: (context, i, tileW) {
+                                  final it = items[i];
+                                  final isFirst = i == 0;
+                                  final isDark =
+                                      Theme.of(context).brightness ==
+                                      Brightness.dark;
+                                  final tileBg = isDark
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest
+                                      : tileLight;
+                                  final mutedTitle = isDark
+                                      ? Theme.of(context).colorScheme.onSurface
+                                      : textDark;
+
+                                  return InkWell(
+                                    key: i == 0
+                                        ? const Key('homeCategory')
+                                        : null,
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ProductsPage(
+                                          title: it.name,
+                                          categoryId: it.id,
+                                        ),
+                                      ),
+                                    ),
+                                    child: _CategoryCard(
+                                      title: it.name,
+                                      imageUrl: it.imageUrl,
+                                      slug: it.slug,
+                                      radius: 12,
+                                      bgColor: isFirst ? orange : tileBg,
+                                      titleColor: isFirst
+                                          ? Colors.white
+                                          : mutedTitle,
+                                      fontWeight: isFirst
+                                          ? FontWeight.w900
+                                          : FontWeight.w700,
+                                      letterSpacing: 0.72,
+                                      titleScale: scale,
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          );
+                        },
                       );
                     },
                   ),
