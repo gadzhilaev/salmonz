@@ -32,6 +32,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Object? _loadError;
   bool _saving = false;
   bool _uploading = false;
+  String? _avatarError;
 
   @override
   void initState() {
@@ -63,24 +64,33 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
     if (picked == null) return;
 
-    setState(() => _uploading = true);
+    setState(() {
+      _uploading = true;
+      _avatarError = null;
+    });
     try {
       final user = await AppServices.instance.profile.uploadAvatar(
         filePath: picked.path,
         filename: p.basename(picked.path),
       );
-      setState(() => _img = user.avatarUrl ?? '');
+      setState(() {
+        _img = user.avatarUrl ?? '';
+        _avatarError = null;
+      });
     } on ApiException catch (e) {
       if (mounted) {
+        setState(() => _avatarError = e.userMessage);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.userMessage)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ApiException.userMessageFrom(e))),
-        );
+        final msg = ApiException.userMessageFrom(e);
+        setState(() => _avatarError = msg);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -245,6 +255,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ),
                       ),
                     ),
+                    if (_avatarError != null) ...[
+                      const SizedBox(height: 16),
+                      AppErrorView(
+                        message: _avatarError!,
+                        onRetry: _changeAvatar,
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     _field('Имя', _nameC),
                     _field('Email', _emailC, enabled: false),

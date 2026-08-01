@@ -1,0 +1,21 @@
+appId: ru.gadzhilaev.salmonz
+---
+- launchApp:
+    clearState: false
+    stopApp: false
+- extendedWaitUntil:
+    visible: "АКЦИИ"
+    timeout: 30000
+- setOrientation: PORTRAIT
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: docs/screenshots/qa/ipad_home_portrait
+- setOrientation: LANDSCAPE_LEFT
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: docs/screenshots/qa/ipad_home_landscape
+- setOrientation: LANDSCAPE_RIGHT
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: docs/screenshots/qa/ipad_home_landscape_right
+- setOrientation: PORTRAIT

@@ -1,0 +1,38 @@
+appId: ru.gadzhilaev.salmonz
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "ПРОФИЛЬ"
+    timeout: 20000
+- tapOn: "ПРОФИЛЬ"
+- tapOn:
+    id: "editProfileEntry"
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+      - waitForAnimationToEnd:
+          timeout: 8000
+- tapOn:
+    id: "avatarChangeButton"
+- extendedWaitUntil:
+    visible: "Отменить"
+    timeout: 15000
+- tapOn:
+    text: ".*Фотография, 31 июля.*"
+- waitForAnimationToEnd:
+    timeout: 8000
+- runFlow:
+    when:
+      visible: "Отменить"
+    commands:
+      - tapOn:
+          point: "17%,35%"
+- extendedWaitUntil:
+    visible:
+      id: "avatarImage"
+    timeout: 60000
+- takeScreenshot: docs/screenshots/qa/avatar_offline_retry_ok

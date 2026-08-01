@@ -90,16 +90,20 @@ class AdminPanelPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                key: const Key('adminPanelTitle'),
-                'АДМИН ПАНЕЛЬ',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w900,
-                  fontSize: 24 * scale,
-                  height: 1.0,
-                  letterSpacing: ls24,
-                  color: titleDark,
+              Semantics(
+                identifier: 'adminPanelTitle',
+                label: 'АДМИН ПАНЕЛЬ',
+                child: Text(
+                  key: const Key('adminPanelTitle'),
+                  'АДМИН ПАНЕЛЬ',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 24 * scale,
+                    height: 1.0,
+                    letterSpacing: ls24,
+                    color: titleDark,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),

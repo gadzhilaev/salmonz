@@ -80,3 +80,6 @@ backend/uploads/
 backend/*.tsbuildinfo
 artifacts/
 tmp/
+*.apk
+*.ipa
+samples/

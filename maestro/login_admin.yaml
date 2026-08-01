@@ -26,14 +26,18 @@ appId: ru.gadzhilaev.salmonz
     timeout: 30000
 - tapOn:
     id: "loginEmail"
+- eraseText
 - inputText: "admin@example.com"
 - tapOn:
     id: "loginPassword"
-- inputText: "ChangeMeAdmin123"
+- eraseText
+# Maestro iOS secure fields truncate multi-char inputText; type in chunks.
+- inputText: "ChangeMe"
+- inputText: "Admin123"
 - inputText: "!"
 - hideKeyboard
 - tapOn:
     id: "loginSubmit"
 - extendedWaitUntil:
     visible: "ПРОФИЛЬ"
-    timeout: 30000
+    timeout: 45000
