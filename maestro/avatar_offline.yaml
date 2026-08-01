@@ -1,0 +1,48 @@
+appId: ru.gadzhilaev.salmonz
+---
+# Do NOT kill the app — backend is already stopped by host.
+- launchApp:
+    clearState: false
+    stopApp: false
+- extendedWaitUntil:
+    visible: "ПРОФИЛЬ"
+    timeout: 15000
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "editProfileEntry"
+- waitForAnimationToEnd:
+    timeout: 8000
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      # load error on edit profile is also valid offline evidence
+      - takeScreenshot: docs/screenshots/qa/avatar_offline_edit_load_error
+- runFlow:
+    when:
+      visible:
+        id: "avatarChangeButton"
+    commands:
+      - takeScreenshot: docs/screenshots/qa/avatar_offline_before
+      - tapOn:
+          id: "avatarChangeButton"
+      - extendedWaitUntil:
+          visible: "Отменить"
+          timeout: 15000
+      - takeScreenshot: docs/screenshots/qa/avatar_offline_picker
+      - tapOn:
+          text: ".*Фотография, 31 июля.*"
+      - waitForAnimationToEnd:
+          timeout: 8000
+      - runFlow:
+          when:
+            visible: "Отменить"
+          commands:
+            - tapOn:
+                point: "17%,35%"
+      - extendedWaitUntil:
+          visible: ".*сервер.*|.*соединен.*|.*сеть.*|Не удалось|Ошибка"
+          timeout: 45000
+      - takeScreenshot: docs/screenshots/qa/avatar_offline_error

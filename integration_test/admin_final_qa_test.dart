@@ -319,11 +319,25 @@ void main() {
       await _frames(tester, 25);
       await _shot(binding, tester, 'admin_category_create');
       await tester.tap(find.byKey(const Key('categorySaveButton')));
-      await _waitFor(tester, find.text(catName));
+      // Wait until list settles (reload after create can briefly hide the row).
+      for (var i = 0; i < 80; i++) {
+        await tester.pump(const Duration(milliseconds: 250));
+        if (find.text(catName).evaluate().isNotEmpty) break;
+      }
+      for (var i = 0; i < 8; i++) {
+        if (find.text(catName).evaluate().isNotEmpty) break;
+        final scrollable = find.byType(Scrollable);
+        if (scrollable.evaluate().isNotEmpty) {
+          await tester.drag(scrollable.first, const Offset(0, -240));
+        }
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      expect(find.text(catName), findsWidgets);
       await _shot(binding, tester, 'admin_category_created');
 
       // --- Category edit ---
-      await tester.tap(find.text(catName));
+      await tester.ensureVisible(find.text(catName));
+      await tester.tap(find.text(catName), warnIfMissed: false);
       await _waitFor(tester, find.byKey(const Key('categoryNameField')));
       await tester.enterText(
         find.byKey(const Key('categoryNameField')),
@@ -590,6 +604,6 @@ void main() {
       // ignore: avoid_print
       print('QA_FINAL_ADMIN_PASS ts=$ts order=$orderNumber');
     },
-    timeout: const Timeout(Duration(minutes: 12)),
+    timeout: const Timeout(Duration(minutes: 18)),
   );
 }

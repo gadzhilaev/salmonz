@@ -1,0 +1,66 @@
+appId: ru.gadzhilaev.salmonz
+---
+- launchApp:
+    clearState: false
+    stopApp: false
+- extendedWaitUntil:
+    visible: "АДМИН ПАНЕЛЬ"
+    timeout: 15000
+
+- tapOn:
+    id: "adminMenuCategories"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/offline_admin_categories
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuProducts"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/offline_admin_products
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuPromotions"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/offline_admin_promotions
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuOrders"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/offline_admin_orders
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuUsers"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/offline_admin_users
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuSupport"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/offline_admin_support
+- back

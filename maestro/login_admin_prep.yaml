@@ -31,13 +31,3 @@ appId: ru.gadzhilaev.salmonz
 - tapOn:
     id: "loginPassword"
 - eraseText
-# Maestro iOS secure fields truncate multi-char inputText; type in chunks.
-- inputText: "ChangeMe"
-- inputText: "Admin123"
-- inputText: "!"
-- hideKeyboard
-- tapOn:
-    id: "loginSubmit"
-- extendedWaitUntil:
-    visible: "ПРОФИЛЬ"
-    timeout: 45000

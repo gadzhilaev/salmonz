@@ -1,0 +1,94 @@
+appId: ru.gadzhilaev.salmonz
+---
+- launchApp:
+    clearState: false
+    stopApp: false
+- extendedWaitUntil:
+    visible: "АДМИН ПАНЕЛЬ"
+    timeout: 20000
+
+- tapOn:
+    id: "adminMenuCategories"
+- extendedWaitUntil:
+    visible: "ПОВТОРИТЬ"
+    timeout: 30000
+- tapOn: "ПОВТОРИТЬ"
+- extendedWaitUntil:
+    notVisible: "ПОВТОРИТЬ"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_categories
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuProducts"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+      - extendedWaitUntil:
+          notVisible: "ПОВТОРИТЬ"
+          timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_products
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuPromotions"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+      - extendedWaitUntil:
+          notVisible: "ПОВТОРИТЬ"
+          timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_promotions
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuOrders"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+      - extendedWaitUntil:
+          notVisible: "ПОВТОРИТЬ"
+          timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_orders
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuUsers"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+      - extendedWaitUntil:
+          notVisible: "ПОВТОРИТЬ"
+          timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_users
+- back
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: "adminMenuSupport"
+- runFlow:
+    when:
+      visible: "ПОВТОРИТЬ"
+    commands:
+      - tapOn: "ПОВТОРИТЬ"
+      - extendedWaitUntil:
+          notVisible: "ПОВТОРИТЬ"
+          timeout: 45000
+- takeScreenshot: docs/screenshots/qa/retry_admin_support

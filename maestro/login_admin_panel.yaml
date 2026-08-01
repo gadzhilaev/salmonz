@@ -31,13 +31,30 @@ appId: ru.gadzhilaev.salmonz
 - tapOn:
     id: "loginPassword"
 - eraseText
-# Maestro iOS secure fields truncate multi-char inputText; type in chunks.
-- inputText: "ChangeMe"
-- inputText: "Admin123"
-- inputText: "!"
 - hideKeyboard
+# Password is typed by the host script via osascript (Maestro iOS secure fields truncate).
+- evalScript: ${output.passwordReady = true}
+- extendedWaitUntil:
+    visible:
+      id: "loginSubmit"
+    timeout: 5000
 - tapOn:
     id: "loginSubmit"
 - extendedWaitUntil:
     visible: "ПРОФИЛЬ"
     timeout: 45000
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 4000
+- scrollUntilVisible:
+    element:
+      id: "adminPanelEntry"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "adminPanelEntry"
+- extendedWaitUntil:
+    visible:
+      id: "adminMenuCategories"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/qa/offline_admin_panel

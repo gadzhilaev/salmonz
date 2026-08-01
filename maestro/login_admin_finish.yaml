@@ -1,0 +1,23 @@
+appId: ru.gadzhilaev.salmonz
+---
+- tapOn: "Salmonz"
+- tapOn:
+    id: "loginSubmit"
+- extendedWaitUntil:
+    visible: "ПРОФИЛЬ"
+    timeout: 45000
+- tapOn: "ПРОФИЛЬ"
+- waitForAnimationToEnd:
+    timeout: 4000
+- scrollUntilVisible:
+    element:
+      id: "adminPanelEntry"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "adminPanelEntry"
+- extendedWaitUntil:
+    visible:
+      id: "adminMenuCategories"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/qa/offline_admin_panel
