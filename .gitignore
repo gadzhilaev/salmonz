@@ -83,3 +83,6 @@ tmp/
 *.apk
 *.ipa
 samples/
+
+# Client correspondence — sibling *-private/ only, never this git repo
+docs/correspondence/
