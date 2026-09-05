@@ -1,6 +1,9 @@
 ---
 description: Architecture, testing and quality rules for Flutter projects
-globs: "**/*.dart,**/pubspec.yaml,**/analysis_options.yaml"
+globs:
+  - "**/*.dart"
+  - "**/pubspec.yaml"
+  - "**/analysis_options.yaml"
 alwaysApply: true
 ---
 
