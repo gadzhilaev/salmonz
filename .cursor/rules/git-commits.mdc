@@ -1,61 +1,77 @@
 ---
-description: Стиль git-коммитов — русский, по сути, без AI-трейлеров
+description: Жёсткий стиль git-коммитов — русский «Добавил/Поправил», без AI-трейлеров
 alwaysApply: true
 ---
 
-# Сообщения коммитов
+# Сообщения коммитов (жёстко)
 
-## Запрещено
+## Запрещено навсегда
 
-- Любые AI-подписи и трейлеры в сообщении коммита и PR:  
-  `Co-authored-by: Cursor …`, `Co-authored-by: …`, `Made-with: Cursor`, `Made with Cursor`.
-- Канцелярит / conventional-commit префиксы как единственный стиль: `docs:`, `fix:`, `feat(ci):` + сухой английский/перевод.
-- Переписывать всю историю всех репозиториев ради старых трейлеров (массовый rebase/filter-branch + force-push).
+В теле коммита и PR **нельзя** ни одной строки:
 
-## Важно: Cursor сам дописывает трейлер
+- `Co-authored-by: Cursor …`
+- `Co-authored-by: cursoragent@cursor.com`
+- любой другой `Co-authored-by:` от AI/Agent/Bot
+- `Made-with: Cursor` / `Made with Cursor`
+- `--trailer` с AI-подписью
 
-Правило модели **не всегда останавливает** инъекцию: Cursor Agent / tooling может добавить  
-`Co-authored-by: Cursor <cursoragent@cursor.com>` **после** `git commit -m`.
+Также нельзя: `docs:`, `fix:`, `feat:` как единственный стиль + сухой английский.
 
-### Обязательный чеклист агента после каждого `git commit`
+## Стиль сообщения
 
-1. `git log -1 --format='%B'` — проверить тело.
-2. Если есть `Co-authored-by` / `Made-with` / `Made with Cursor` — **сразу** `git commit --amend` только сообщением без трейлера (HEREDOC), **до** `git push`.
-3. На пуш с трейлером не уходить.
-4. Отключить attribution в IDE: **Cursor Settings → Git & PRs → Attribution** (Commit / PR) — выкл.  
-   CLI: в `~/.cursor/cli-config.json` → `"attribution": { "attributeCommitsToAgent": false, "attributePRsToAgent": false }`.
-
-Amend уже запушенного на `main`/`master` — только если пользователь явно просит исправить сообщение; тогда `--force-with-lease` и краткое предупреждение.
-
-## Как надо
-
-- **На русском**, коротко, **что сделал** (как в чате: «Убрал…», «Поправил…», «Добавил…»).
-- Одна–две строки; без пустого тела ради трейлеров.
-- Чистый текст — только смысл изменений.
-- Сообщение передавать через HEREDOC; **не** добавлять `--trailer`.
+- **На русском**, коротко, глагол в прошедшем: «Добавил…», «Поправил…», «Убрал…», «Сделал…».
+- 1–2 строки, только смысл изменений.
+- Передавать через HEREDOC. **Не** добавлять трейлеры вручную.
 
 ### Плохо
 
 ```
-docs: убрать ссылку на удалённый launch-qa canvas
+docs: add flutter architecture rule
 
 Co-authored-by: Cursor <cursoragent@cursor.com>
-```
-
-```
-fix(ci): deep link without auth import
 ```
 
 ### Хорошо
 
 ```
-Убрал soft-prompt пушей в client и business
+Добавил правило Flutter-архитектуры для Cursor
 ```
 
-```
-Починил CI: deep link тесты без api_secrets.local
+## Cursor сам дописывает трейлер — защита
+
+Даже при выключенном Attribution IDE может вставить `Co-authored-by` после `git commit`.
+
+### Обязательно после каждого `git commit` (до push)
+
+```bash
+git log -1 --format='%B'
 ```
 
+Если есть запрещённый трейлер и коммит **ещё не запушен**:
+
+```bash
+git commit --amend -m "$(cat <<'EOF'
+Чистое сообщение без трейлера
+EOF
+)"
 ```
-Убрал ссылку на удалённый launch-qa canvas из чеклиста
+
+Потом снова проверить `git log -1 --format='%B'`. **Пушить с трейлером нельзя.**
+
+Amend уже запушенного `main`/`master` — только по явной просьбе пользователя (`--force-with-lease`).
+
+### IDE / CLI
+
+- Cursor Settings → Agent / Git → Attribution для commits и PR → **выкл**
+- `~/.cursor/cli-config.json`:
+
+```json
+{
+  "attribution": {
+    "attributeCommitsToAgent": false,
+    "attributePRsToAgent": false
+  }
+}
 ```
+
+В репозиториях стоит `commit-msg` hook, который **вырезает** AI-трейлеры автоматически — правило модели всё равно соблюдать.
