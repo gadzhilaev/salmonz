@@ -1,0 +1,61 @@
+---
+description: Стиль git-коммитов — русский, по сути, без AI-трейлеров
+alwaysApply: true
+---
+
+# Сообщения коммитов
+
+## Запрещено
+
+- Любые AI-подписи и трейлеры в сообщении коммита и PR:  
+  `Co-authored-by: Cursor …`, `Co-authored-by: …`, `Made-with: Cursor`, `Made with Cursor`.
+- Канцелярит / conventional-commit префиксы как единственный стиль: `docs:`, `fix:`, `feat(ci):` + сухой английский/перевод.
+- Переписывать всю историю всех репозиториев ради старых трейлеров (массовый rebase/filter-branch + force-push).
+
+## Важно: Cursor сам дописывает трейлер
+
+Правило модели **не всегда останавливает** инъекцию: Cursor Agent / tooling может добавить  
+`Co-authored-by: Cursor <cursoragent@cursor.com>` **после** `git commit -m`.
+
+### Обязательный чеклист агента после каждого `git commit`
+
+1. `git log -1 --format='%B'` — проверить тело.
+2. Если есть `Co-authored-by` / `Made-with` / `Made with Cursor` — **сразу** `git commit --amend` только сообщением без трейлера (HEREDOC), **до** `git push`.
+3. На пуш с трейлером не уходить.
+4. Отключить attribution в IDE: **Cursor Settings → Git & PRs → Attribution** (Commit / PR) — выкл.  
+   CLI: в `~/.cursor/cli-config.json` → `"attribution": { "attributeCommitsToAgent": false, "attributePRsToAgent": false }`.
+
+Amend уже запушенного на `main`/`master` — только если пользователь явно просит исправить сообщение; тогда `--force-with-lease` и краткое предупреждение.
+
+## Как надо
+
+- **На русском**, коротко, **что сделал** (как в чате: «Убрал…», «Поправил…», «Добавил…»).
+- Одна–две строки; без пустого тела ради трейлеров.
+- Чистый текст — только смысл изменений.
+- Сообщение передавать через HEREDOC; **не** добавлять `--trailer`.
+
+### Плохо
+
+```
+docs: убрать ссылку на удалённый launch-qa canvas
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+```
+
+```
+fix(ci): deep link without auth import
+```
+
+### Хорошо
+
+```
+Убрал soft-prompt пушей в client и business
+```
+
+```
+Починил CI: deep link тесты без api_secrets.local
+```
+
+```
+Убрал ссылку на удалённый launch-qa canvas из чеклиста
+```
