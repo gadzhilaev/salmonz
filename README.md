@@ -124,14 +124,16 @@ cp config/local.example.json config/local.json
 # Android emulator:        http://10.0.2.2:3000
 
 flutter pub get
-flutter run --dart-define-from-file=config/local.json
+flutter run
+# optional override (Android emulator / device LAN):
+# flutter run --dart-define-from-file=config/local.json
 ```
 
 Demo-учётки после seed (только локально, **смените** перед любым shared env):
 
 | Role | Email | Password |
 |------|-------|----------|
-| USER | `demo@example.com` | `ChangeMeDemo123!` |
+| USER | `t@test.ru` | `12345678` |
 | ADMIN | `admin@example.com` | `ChangeMeAdmin123!` |
 
 Секреты не коммитятся: `.env`, `backend/.env`, `config/local.json` в `.gitignore`.

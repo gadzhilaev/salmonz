@@ -115,11 +115,6 @@ export class AuthService {
       throw new UnauthorizedException('User inactive');
     }
 
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revokedAt: new Date() },
-    });
-
     const user = {
       id: stored.user.id,
       email: stored.user.email,
@@ -130,8 +125,28 @@ export class AuthService {
       createdAt: stored.user.createdAt,
     };
 
-    const tokens = await this.issueTokens(user, meta);
-    return { user, ...tokens };
+    // Atomic revoke + issue in one transaction so concurrent refresh
+    // cannot produce two independent active refresh tokens.
+    try {
+      const tokens = await this.prisma.$transaction(async (tx) => {
+        const revoked = await tx.refreshToken.updateMany({
+          where: { id: stored.id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        if (revoked.count !== 1) {
+          await tx.refreshToken.updateMany({
+            where: { userId: stored.userId, revokedAt: null },
+            data: { revokedAt: new Date() },
+          });
+          throw new UnauthorizedException('Refresh token reuse detected');
+        }
+        return this.issueTokensWith(tx, user, meta);
+      });
+      return { user, ...tokens };
+    } catch (e) {
+      if (e instanceof UnauthorizedException) throw e;
+      throw e;
+    }
   }
 
   async logout(refreshToken: string) {
@@ -174,6 +189,26 @@ export class AuthService {
     user: { id: string; email: string; role: Role },
     meta?: { userAgent?: string; ip?: string },
   ) {
+    return this.issueTokensWith(this.prisma, user, meta);
+  }
+
+  private async issueTokensWith(
+    db: {
+      refreshToken: {
+        create: (args: {
+          data: {
+            userId: string;
+            tokenHash: string;
+            expiresAt: Date;
+            userAgent?: string;
+            ip?: string;
+          };
+        }) => Promise<unknown>;
+      };
+    },
+    user: { id: string; email: string; role: Role },
+    meta?: { userAgent?: string; ip?: string },
+  ) {
     const accessTtl = this.config.get<string>('jwt.accessTtl') ?? '15m';
     const refreshTtl = this.config.get<string>('jwt.refreshTtl') ?? '30d';
 
@@ -189,7 +224,7 @@ export class AuthService {
     const tokenHash = hashToken(refreshToken);
     const expiresAt = new Date(Date.now() + parseDurationToMs(refreshTtl));
 
-    await this.prisma.refreshToken.create({
+    await db.refreshToken.create({
       data: {
         userId: user.id,
         tokenHash,

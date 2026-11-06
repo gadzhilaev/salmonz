@@ -412,6 +412,33 @@ class OrderModel {
   );
 }
 
+class SupportReplyModel {
+  const SupportReplyModel({
+    required this.id,
+    required this.body,
+    required this.isStaff,
+    required this.createdAt,
+    this.authorUserId,
+  });
+
+  final String id;
+  final String body;
+  final bool isStaff;
+  final DateTime createdAt;
+  final String? authorUserId;
+
+  factory SupportReplyModel.fromJson(Map<String, dynamic> json) =>
+      SupportReplyModel(
+        id: asString(json['id']) ?? '',
+        body: asString(json['body']) ?? '',
+        isStaff: asBool(json['isStaff']),
+        createdAt:
+            DateTime.tryParse(asString(json['createdAt']) ?? '') ??
+            DateTime.now(),
+        authorUserId: asString(json['authorUserId']),
+      );
+}
+
 class SupportMessageModel {
   const SupportMessageModel({
     required this.id,
@@ -422,6 +449,7 @@ class SupportMessageModel {
     this.userId,
     this.userEmail,
     this.userName,
+    this.replies = const [],
   });
 
   final String id;
@@ -432,6 +460,7 @@ class SupportMessageModel {
   final String? userId;
   final String? userEmail;
   final String? userName;
+  final List<SupportReplyModel> replies;
 
   factory SupportMessageModel.fromJson(Map<String, dynamic> json) {
     final user = json['user'];
@@ -447,6 +476,9 @@ class SupportMessageModel {
       userId: asString(json['userId']) ?? asString(userMap?['id']),
       userEmail: asString(userMap?['email']),
       userName: asString(userMap?['name']),
+      replies: asMapList(
+        json['replies'],
+      ).map(SupportReplyModel.fromJson).toList(),
     );
   }
 }

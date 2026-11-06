@@ -2,6 +2,9 @@
 ///
 /// Values are injected at compile/run time via `--dart-define` or
 /// `--dart-define-from-file`. No secrets belong in source control.
+///
+/// Plain `flutter run` uses [defaultLocalApiBaseUrl] (iOS simulator / desktop).
+/// Override for Android emulator (`http://10.0.2.2:3000`) or a device LAN IP.
 class AppConfig {
   const AppConfig({
     required this.apiBaseUrl,
@@ -18,6 +21,10 @@ class AppConfig {
   /// When true, UI/docs may treat the backend as a disposable demo.
   final bool isDemo;
 
+  /// Loopback API used when no `--dart-define=API_BASE_URL` is passed.
+  /// Not a production host — safe demo default for simulator/desktop.
+  static const defaultLocalApiBaseUrl = 'http://127.0.0.1:3000';
+
   /// Full REST prefix including version.
   String get apiV1Base => '${apiBaseUrl.replaceAll(RegExp(r'/+$'), '')}/api/v1';
 
@@ -27,10 +34,13 @@ class AppConfig {
 
   /// Reads configuration from compile-time environment defines.
   ///
-  /// Throws [AppConfigException] when required values are missing.
-  /// Never embeds or falls back to a production URL.
+  /// Missing defines fall back to local demo defaults (not production).
+  /// Explicit empty `API_BASE_URL=` still fails validation in [fromValues].
   factory AppConfig.fromEnvironment() {
-    const url = String.fromEnvironment(_urlDefine);
+    const url = String.fromEnvironment(
+      _urlDefine,
+      defaultValue: defaultLocalApiBaseUrl,
+    );
     const appEnv = String.fromEnvironment(_envDefine, defaultValue: 'local');
     const isDemo = bool.fromEnvironment(_demoDefine, defaultValue: true);
 
@@ -52,7 +62,8 @@ class AppConfig {
     if (url.isEmpty) {
       throw const AppConfigException(
         'Missing API_BASE_URL. Pass --dart-define=API_BASE_URL=... '
-        'or --dart-define-from-file=config/local.json',
+        'or --dart-define-from-file=config/local.json '
+        '(plain flutter run defaults to http://127.0.0.1:3000)',
       );
     }
 

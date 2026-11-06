@@ -16,6 +16,11 @@ dependencies:
   shared_preferences: ^2.2.2
   image_picker: ^1.0.7
   path: ^1.9.0
+  google_fonts: ^9.0.0
+  cached_network_image: ^4.0.6
+  url_launcher: ^6.3.3
+  flutter_bloc: ^9.1.1
+  equatable: ^3.0.0
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
@@ -38,8 +43,8 @@ flutter_native_splash:
   ios: true
   web: false
 
-  color: "#FF5E1C"
-  color_dark: "#FF5E1C"
+  color: "#E8683A"
+  color_dark: "#E8683A"
 
   image: assets/splash/splash.png
   image_dark: assets/splash/splash.png
@@ -50,7 +55,7 @@ flutter_native_splash:
   # Для Android 12+ (на всякий случай):
   android_12:
     image: assets/splash/splash.png
-    icon_background_color: "#FF5E1C"
+    icon_background_color: "#E8683A"
 
 flutter:
   uses-material-design: true

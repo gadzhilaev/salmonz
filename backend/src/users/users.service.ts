@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import {
   BadRequestException,
   Inject,
@@ -120,5 +120,53 @@ export class UsersService {
       ...user,
       avatarUrl: this.storage.getPublicUrl(key),
     };
+  }
+
+  /**
+   * Soft-delete / anonymize the account.
+   * Orders are retained (legal/ops history) but PII is stripped and sessions revoked.
+   */
+  async deleteMe(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('Admin accounts cannot be self-deleted');
+    }
+
+    const tombstoneEmail = `deleted+${userId.replace(/-/g, '')}@invalid.local`;
+    const dummyHash = createHash('sha256')
+      .update(randomBytes(32))
+      .digest('hex');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      await tx.address.deleteMany({ where: { userId } });
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          email: tombstoneEmail,
+          passwordHash: `deleted:${dummyHash}`,
+          name: 'Удалённый пользователь',
+          phone: null,
+          avatarKey: null,
+          isActive: false,
+        },
+      });
+    });
+
+    if (user.avatarKey) {
+      try {
+        await this.storage.delete(user.avatarKey);
+      } catch {
+        // best-effort
+      }
+    }
+
+    return { ok: true };
   }
 }

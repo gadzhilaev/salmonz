@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Patch,
   Post,
   UploadedFile,
@@ -53,5 +55,11 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.users.uploadAvatar(user.id, file);
+  }
+
+  @Delete('me')
+  @HttpCode(200)
+  deleteMe(@CurrentUser() user: AuthUser) {
+    return this.users.deleteMe(user.id);
   }
 }

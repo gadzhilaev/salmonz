@@ -381,29 +381,11 @@ void main() {
       );
       await tester.tap(find.byKey(const Key('navProfile')));
       await tester.pumpAndSettle(const Duration(seconds: 2));
-      await tester.ensureVisible(find.byKey(const Key('adminPanelEntry')));
-      await tester.tap(find.byKey(const Key('adminPanelEntry')));
-      await tester.pumpAndSettle(const Duration(seconds: 2));
-      expect(find.byKey(const Key('adminPanelTitle')), findsOneWidget);
-      await _shot(tester, 'offline_admin_panel');
+      // Flutter admin UI removed — ADMIN uses admin-web only.
+      expect(find.byKey(const Key('adminPanelEntry')), findsNothing);
+      await _shot(tester, 'offline_no_flutter_admin');
 
       await _waitBackendDown(tester);
-
-      Future<void> openAdminOffline(String label, String shot) async {
-        await tester.tap(find.text(label));
-        await tester.pumpAndSettle(const Duration(seconds: 1));
-        await _waitForError(tester);
-        _assertFriendlyError();
-        await _shot(tester, shot);
-        await _pop(tester);
-      }
-
-      await openAdminOffline('Список категорий', 'offline_admin_categories');
-      await openAdminOffline('Список товаров', 'offline_admin_products');
-      await openAdminOffline('Список акций', 'offline_admin_promotions');
-      await openAdminOffline('Список заказов', 'offline_admin_orders');
-      await openAdminOffline('Список пользователей', 'offline_admin_users');
-      await openAdminOffline('Обращения', 'offline_admin_support');
 
       await _waitBackendUp(tester);
 

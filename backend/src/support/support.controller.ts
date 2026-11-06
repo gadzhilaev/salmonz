@@ -12,7 +12,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CreateSupportMessageDto } from './dto/support.dto';
+import {
+  CreateSupportMessageDto,
+  CreateSupportReplyDto,
+} from './dto/support.dto';
 import { SupportService } from './support.service';
 
 @ApiTags('support')
@@ -35,5 +38,14 @@ export class SupportController {
   @Get(':id')
   get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.support.getMine(user.id, id);
+  }
+
+  @Post(':id/replies')
+  reply(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: CreateSupportReplyDto,
+  ) {
+    return this.support.replyAsUser(user.id, id, dto);
   }
 }

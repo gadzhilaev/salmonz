@@ -33,4 +33,12 @@ class SupportRepository {
     final res = await _api.get('/support/$id');
     return SupportMessageModel.fromJson(asMap(res.data));
   }
+
+  Future<SupportMessageModel> reply({
+    required String id,
+    required String body,
+  }) async {
+    final res = await _api.post('/support/$id/replies', data: {'body': body});
+    return SupportMessageModel.fromJson(asMap(res.data));
+  }
 }

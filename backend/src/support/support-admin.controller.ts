@@ -4,17 +4,23 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 import { Role, SupportStatus } from '../../generated/prisma/enums';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { UpdateSupportStatusDto } from './dto/support.dto';
+import {
+  CreateSupportReplyDto,
+  UpdateSupportStatusDto,
+} from './dto/support.dto';
 import { SupportService } from './support.service';
 
 class AdminSupportQueryDto extends PaginationDto {
@@ -35,6 +41,20 @@ export class SupportAdminController {
   @Get()
   list(@Query() query: AdminSupportQueryDto) {
     return this.support.adminList(query);
+  }
+
+  @Get(':id')
+  get(@Param('id') id: string) {
+    return this.support.adminGet(id);
+  }
+
+  @Post(':id/replies')
+  reply(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: CreateSupportReplyDto,
+  ) {
+    return this.support.replyAsAdmin(user.id, id, dto);
   }
 
   @Patch(':id/status')

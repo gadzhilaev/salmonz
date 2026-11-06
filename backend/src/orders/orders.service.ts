@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -27,6 +28,7 @@ import {
   CreateOrderItemDto,
   QuoteOrderDto,
 } from './dto/order.dto';
+import { orderIdempotencyHash } from './order-idempotency.util';
 
 type PricedLine = {
   productId: string;
@@ -69,6 +71,8 @@ export class OrdersService {
   }
 
   async create(userId: string, dto: CreateOrderDto) {
+    const payloadHash = orderIdempotencyHash(dto);
+
     const existing = await this.prisma.order.findUnique({
       where: {
         userId_idempotencyKey: {
@@ -79,6 +83,10 @@ export class OrdersService {
       include: { items: true },
     });
     if (existing) {
+      this.assertIdempotentPayload(
+        existing.idempotencyPayloadHash,
+        payloadHash,
+      );
       return this.serializeOrder(existing);
     }
 
@@ -112,29 +120,49 @@ export class OrdersService {
     };
 
     try {
-      const order = await this.prisma.order.create({
-        data: {
-          publicNumber,
-          userId,
-          addressSnapshot,
-          phone: dto.phone,
-          comment: dto.comment,
-          status: OrderStatus.NEW,
-          subtotal: money.subtotal,
-          deliveryFee: money.deliveryFee,
-          total: money.total,
-          idempotencyKey: dto.idempotencyKey,
-          items: {
-            create: priced.map((line, idx) => ({
-              productId: line.productId,
-              productNameSnapshot: line.productName,
-              unitPrice: money.lines[idx].unitPrice,
-              quantity: money.lines[idx].quantity,
-              lineTotal: money.lines[idx].lineTotal,
-            })),
+      const order = await this.prisma.$transaction(async (tx) => {
+        const again = await tx.order.findUnique({
+          where: {
+            userId_idempotencyKey: {
+              userId,
+              idempotencyKey: dto.idempotencyKey,
+            },
           },
-        },
-        include: { items: true },
+          include: { items: true },
+        });
+        if (again) {
+          this.assertIdempotentPayload(
+            again.idempotencyPayloadHash,
+            payloadHash,
+          );
+          return again;
+        }
+
+        return tx.order.create({
+          data: {
+            publicNumber,
+            userId,
+            addressSnapshot,
+            phone: dto.phone,
+            comment: dto.comment,
+            status: OrderStatus.NEW,
+            subtotal: money.subtotal,
+            deliveryFee: money.deliveryFee,
+            total: money.total,
+            idempotencyKey: dto.idempotencyKey,
+            idempotencyPayloadHash: payloadHash,
+            items: {
+              create: priced.map((line, idx) => ({
+                productId: line.productId,
+                productNameSnapshot: line.productName,
+                unitPrice: money.lines[idx].unitPrice,
+                quantity: money.lines[idx].quantity,
+                lineTotal: money.lines[idx].lineTotal,
+              })),
+            },
+          },
+          include: { items: true },
+        });
       });
       return this.serializeOrder(order);
     } catch (e) {
@@ -151,7 +179,13 @@ export class OrdersService {
           },
           include: { items: true },
         });
-        if (again) return this.serializeOrder(again);
+        if (again) {
+          this.assertIdempotentPayload(
+            again.idempotencyPayloadHash,
+            payloadHash,
+          );
+          return this.serializeOrder(again);
+        }
       }
       throw e;
     }
@@ -234,12 +268,34 @@ export class OrdersService {
         `Forbidden status transition: ${order.status} → ${status}`,
       );
     }
-    const updated = await this.prisma.order.update({
-      where: { id },
+
+    // Optimistic concurrency: only one transition from the observed status wins.
+    const result = await this.prisma.order.updateMany({
+      where: { id, status: order.status },
       data: { status },
+    });
+    if (result.count !== 1) {
+      throw new ConflictException(
+        'Order status was changed concurrently; refresh and retry',
+      );
+    }
+
+    const updated = await this.prisma.order.findUniqueOrThrow({
+      where: { id },
       include: { items: true },
     });
     return this.serializeOrder(updated);
+  }
+
+  private assertIdempotentPayload(
+    storedHash: string | null | undefined,
+    incomingHash: string,
+  ) {
+    if (storedHash && storedHash !== incomingHash) {
+      throw new ConflictException(
+        'Idempotency key reused with a different payload',
+      );
+    }
   }
 
   private async buildPricedLines(
@@ -278,6 +334,7 @@ export class OrdersService {
     deliveryFee: Prisma.Decimal | number;
     total: Prisma.Decimal | number;
     idempotencyKey: string;
+    idempotencyPayloadHash?: string | null;
     createdAt: Date;
     updatedAt: Date;
     items: Array<{

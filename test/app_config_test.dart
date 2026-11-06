@@ -48,5 +48,18 @@ void main() {
         expect(e.message, isNot(contains('vwerkkbccwosrnkozgza')));
       }
     });
+
+    test('local default is loopback for simulator/desktop', () {
+      expect(AppConfig.defaultLocalApiBaseUrl, 'http://127.0.0.1:3000');
+      expect(
+        AppConfig.defaultLocalApiBaseUrl.toLowerCase(),
+        isNot(contains('supabase')),
+      );
+
+      final config = AppConfig.fromValues(
+        apiBaseUrl: AppConfig.defaultLocalApiBaseUrl,
+      );
+      expect(config.apiV1Base, 'http://127.0.0.1:3000/api/v1');
+    });
   });
 }

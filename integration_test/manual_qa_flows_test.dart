@@ -91,7 +91,9 @@ void main() {
     );
   });
 
-  testWidgets('admin panel visible only for admin', (tester) async {
+  testWidgets('admin panel is not available in Flutter (admin-web only)', (
+    tester,
+  ) async {
     await _pump(tester);
     await _login(
       tester,
@@ -111,11 +113,8 @@ void main() {
     await _waitFor(tester, profile);
     await tester.ensureVisible(profile);
     await tester.tap(profile);
-    final adminEntry = find.byKey(const Key('adminPanelEntry'));
-    await _waitFor(tester, adminEntry);
-    await tester.ensureVisible(adminEntry);
-    await tester.tap(adminEntry);
-    await _waitFor(tester, find.byKey(const Key('adminPanelTitle')));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+    expect(find.byKey(const Key('adminPanelEntry')), findsNothing);
   });
 
   testWidgets('address CRUD and orders tab', (tester) async {

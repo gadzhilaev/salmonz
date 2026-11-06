@@ -37,15 +37,14 @@ void main() {
     expect(RegExp(r"url:\s*'https?://").hasMatch(source), isFalse);
   });
 
-  test('admin editors do not call signInAnonymously', () {
-    final files = [
-      'lib/admin/categories/category_editor_page.dart',
-      'lib/admin/products/product_editor_page.dart',
-      'lib/admin/promotions/promotion_editor_page.dart',
-    ];
-    for (final path in files) {
-      final source = File(path).readAsStringSync();
-      expect(source.contains('signInAnonymously'), isFalse);
-    }
+  test('Flutter app no longer ships in-app admin UI', () {
+    expect(Directory('lib/admin').existsSync(), isFalse);
+    expect(
+      File('lib/data/repositories/admin_repository.dart').existsSync(),
+      isFalse,
+    );
+    final profile = File('lib/nav_bar/profile.dart').readAsStringSync();
+    expect(profile.contains('adminPanelEntry'), isFalse);
+    expect(profile.contains('AdminPanelPage'), isFalse);
   });
 }

@@ -27,3 +27,11 @@ export class UpdateSupportStatusDto {
   @IsEnum(SupportStatus)
   status!: SupportStatus;
 }
+
+export class CreateSupportReplyDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(4000)
+  body!: string;
+}

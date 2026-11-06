@@ -2,7 +2,6 @@ import '../config/app_config.dart';
 import '../network/api_client.dart';
 import '../network/token_store.dart';
 import '../../data/repositories/addresses_repository.dart';
-import '../../data/repositories/admin_repository.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/catalog_repository.dart';
 import '../../data/repositories/orders_repository.dart';
@@ -23,7 +22,6 @@ class AppServices {
   late final OrdersRepository orders = OrdersRepository(api);
   late final SupportRepository support = SupportRepository(api);
   late final ProfileRepository profile = ProfileRepository(api);
-  late final AdminRepository admin = AdminRepository(api);
 
   static AppServices? _instance;
 

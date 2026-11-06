@@ -86,3 +86,9 @@ samples/
 
 # Client correspondence — sibling *-private/ only, never this git repo
 docs/correspondence/
+
+# Next.js admin
+admin-web/node_modules/
+admin-web/.next/
+admin-web/.env
+admin-web/.env.local

@@ -64,6 +64,9 @@ For a **host-run** Nest process with only DB/MinIO in Compose, start `postgres` 
 
 ## Flutter
 
+Plain `flutter run` uses the built-in local default `http://127.0.0.1:3000`
+(iOS simulator / desktop). Override when needed:
+
 ```bash
 cp config/local.example.json config/local.json
 ```
@@ -73,12 +76,13 @@ Set `API_BASE_URL` (scheme + host + port, **without** `/api/v1`):
 | Target | Example |
 |--------|---------|
 | Android emulator | `http://10.0.2.2:3000` |
-| iOS simulator / desktop | `http://127.0.0.1:3000` |
+| iOS simulator / desktop | `http://127.0.0.1:3000` (default) |
 | Physical device | `http://<lan-ip>:3000` |
 
 ```bash
 flutter pub get
-flutter run --dart-define-from-file=config/local.json
+flutter run
+# or: flutter run --dart-define-from-file=config/local.json
 ```
 
 Tokens use **flutter_secure_storage**. Cart remains in SharedPreferences (device-local).

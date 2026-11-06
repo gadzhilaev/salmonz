@@ -59,6 +59,48 @@ class Cart extends ChangeNotifier {
   // Convenience for UI that still wants a double.
   double get totalSumDouble => totalSum.asDouble;
 
+  /// Total units across all lines (for nav badge).
+  int get totalQuantity => _items.values.fold<int>(0, (s, e) => s + e.qty);
+
+  int quantityOf(String productId) => _items[productId]?.qty ?? 0;
+
+  /// Set absolute quantity; 0 removes the line.
+  void setQuantity(String id, int qty) {
+    if (qty <= 0) {
+      remove(id);
+      return;
+    }
+    final it = _items[id];
+    if (it == null) return;
+    it.qty = qty;
+    _save();
+    notifyListeners();
+  }
+
+  /// Add [item] if missing, then set quantity.
+  void upsert(CartItem item, int qty) {
+    if (qty <= 0) {
+      remove(item.id);
+      return;
+    }
+    final exist = _items[item.id];
+    if (exist == null) {
+      _items[item.id] = CartItem(
+        id: item.id,
+        name: item.name,
+        img: item.img,
+        price: item.price,
+        gramm: item.gramm,
+        amount: item.amount,
+        qty: qty,
+      );
+    } else {
+      exist.qty = qty;
+    }
+    _save();
+    notifyListeners();
+  }
+
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = prefs.getString('cart');

@@ -35,4 +35,8 @@ class ProfileRepository {
     );
     return UserModel.fromJson(asMap(res.data));
   }
+
+  Future<void> deleteAccount() async {
+    await _api.delete('/users/me');
+  }
 }

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../config/app_config.dart';
 import 'api_exception.dart';
+import 'api_log_interceptor.dart';
 import 'token_store.dart';
 
 typedef OnSessionExpired = void Function();
@@ -29,14 +30,16 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(onRequest: _onRequest, onError: _onError),
     );
+    // After auth so logs include (redacted) Authorization; debug-only.
+    _dio.interceptors.add(ApiLogInterceptor());
   }
 
   final TokenStore _tokenStore;
   final Dio _dio;
   final OnSessionExpired? onSessionExpired;
 
-  /// In-flight refresh; shared so parallel 401s wait on one refresh.
-  Future<_RefreshOutcome>? _refreshFuture;
+  /// Shared with [AuthRepository] — only one refresh HTTP call at a time.
+  Future<RefreshResult>? _refreshFuture;
 
   Dio get raw => _dio;
 
@@ -90,6 +93,13 @@ class ApiClient {
     ),
   );
 
+  /// Sole entry for token rotation (SplashGate restore + 401 interceptor).
+  Future<RefreshResult> refreshSession() {
+    return _refreshFuture ??= _doRefresh().whenComplete(() {
+      _refreshFuture = null;
+    });
+  }
+
   Future<Response<T>> _wrap<T>(Future<Response<T>> Function() run) async {
     try {
       return await run();
@@ -126,13 +136,12 @@ class ApiClient {
       return;
     }
 
-    final outcome = await _refreshSingleFlight();
-    if (outcome == _RefreshOutcome.networkFailed) {
-      // Keep secure session when refresh fails due to connectivity.
+    final outcome = await refreshSession();
+    if (outcome.status == RefreshStatus.networkFailed) {
       handler.next(err);
       return;
     }
-    if (outcome != _RefreshOutcome.ok) {
+    if (outcome.status != RefreshStatus.ok) {
       await _tokenStore.clear();
       onSessionExpired?.call();
       handler.next(err);
@@ -151,16 +160,10 @@ class ApiClient {
     }
   }
 
-  Future<_RefreshOutcome> _refreshSingleFlight() {
-    return _refreshFuture ??= _doRefresh().whenComplete(() {
-      _refreshFuture = null;
-    });
-  }
-
-  Future<_RefreshOutcome> _doRefresh() async {
+  Future<RefreshResult> _doRefresh() async {
     final refresh = await _tokenStore.readRefreshToken();
     if (refresh == null || refresh.isEmpty) {
-      return _RefreshOutcome.authFailed;
+      return const RefreshResult.authFailed();
     }
 
     try {
@@ -170,28 +173,40 @@ class ApiClient {
         options: Options(extra: {'skipAuth': true}),
       );
       final data = res.data;
-      if (data == null) return _RefreshOutcome.authFailed;
+      if (data == null) return const RefreshResult.authFailed();
       final access = data['accessToken'] as String?;
       final newRefresh = data['refreshToken'] as String?;
       if (access == null ||
           access.isEmpty ||
           newRefresh == null ||
           newRefresh.isEmpty) {
-        return _RefreshOutcome.authFailed;
+        return const RefreshResult.authFailed();
       }
       await _tokenStore.saveTokens(
         accessToken: access,
         refreshToken: newRefresh,
       );
-      return _RefreshOutcome.ok;
+      return RefreshResult.ok(data);
     } on DioException catch (e) {
       final mapped = ApiException.fromDio(e);
-      if (mapped.isNetwork) return _RefreshOutcome.networkFailed;
-      return _RefreshOutcome.authFailed;
+      if (mapped.isNetwork) return const RefreshResult.networkFailed();
+      return const RefreshResult.authFailed();
     } catch (_) {
-      return _RefreshOutcome.authFailed;
+      return const RefreshResult.authFailed();
     }
   }
 }
 
-enum _RefreshOutcome { ok, authFailed, networkFailed }
+enum RefreshStatus { ok, authFailed, networkFailed }
+
+class RefreshResult {
+  const RefreshResult._(this.status, this.data);
+  const RefreshResult.ok(Map<String, dynamic> data)
+    : this._(RefreshStatus.ok, data);
+  const RefreshResult.authFailed() : this._(RefreshStatus.authFailed, null);
+  const RefreshResult.networkFailed()
+    : this._(RefreshStatus.networkFailed, null);
+
+  final RefreshStatus status;
+  final Map<String, dynamic>? data;
+}
