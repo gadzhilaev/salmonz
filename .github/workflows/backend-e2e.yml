@@ -151,7 +151,7 @@ jobs:
           docker run --detach --name salmonz-e2e-minio --network host \
             --env MINIO_ROOT_USER=minioadmin \
             --env MINIO_ROOT_PASSWORD=minioadmin \
-            minio/minio:latest server /data --console-address ":9001"
+            quay.io/minio/minio:latest server /data --console-address ":9001"
 
       - uses: actions/setup-node@v4
         with:
@@ -167,7 +167,7 @@ jobs:
             if (echo > /dev/tcp/127.0.0.1/9000) 2>/dev/null && \
               timeout 5s docker run --rm --network host \
                 --env MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
-                minio/mc:latest ready local; then
+                quay.io/minio/mc:latest ready local; then
               echo "MinIO is ready"
               break
             fi
@@ -182,10 +182,10 @@ jobs:
           for i in $(seq 1 30); do
             if docker run --rm --network host \
               --env MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
-              minio/mc:latest mb --ignore-existing local/salmonz && \
+              quay.io/minio/mc:latest mb --ignore-existing local/salmonz && \
               docker run --rm --network host \
                 --env MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
-                minio/mc:latest anonymous set download local/salmonz; then
+                quay.io/minio/mc:latest anonymous set download local/salmonz; then
               echo "MinIO bucket is ready"
               break
             fi
