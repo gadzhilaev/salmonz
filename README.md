@@ -162,7 +162,7 @@ flutter analyze && flutter test
 cd admin-web && npm ci && npm run lint && npm run build
 ```
 
-CI: `.github/workflows/backend.yml`, `.github/workflows/flutter.yml`, `.github/workflows/backend-e2e.yml`.
+CI: `.github/workflows/backend.yml`, `.github/workflows/flutter.yml`, `.github/workflows/backend-e2e.yml`, `.github/workflows/admin-web.yml`.
 
 ---
 
