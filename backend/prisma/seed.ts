@@ -66,59 +66,57 @@ const CATEGORIES: CatDef[] = [
     slug: 'rolls',
     sortOrder: 1,
     folder: 'rolls',
-    imageCandidates: [
-      'demo/categories/rolls.png',
-      'main/rolls.png',
-    ],
+    // Transparent plates from assets/main — overlay on tinted home tiles.
+    imageCandidates: ['main/rolls.png'],
   },
   {
     name: 'Сеты',
     slug: 'sets',
     sortOrder: 2,
     folder: 'sets',
-    imageCandidates: ['demo/categories/sets.png', 'main/sets.png'],
+    imageCandidates: ['main/sets.png'],
   },
   {
     name: 'Суши',
     slug: 'sushi',
     sortOrder: 3,
     folder: 'sushi',
-    imageCandidates: ['demo/categories/sushi.png', 'main/sushi.png'],
+    imageCandidates: ['main/sushi.png'],
   },
   {
     name: 'Закуски',
     slug: 'snacks',
     sortOrder: 4,
     folder: 'snacks',
-    imageCandidates: ['demo/categories/snacks.png', 'main/zakuski.png'],
+    imageCandidates: ['main/zakuski.png'],
   },
   {
     name: 'Лапша',
     slug: 'noodles',
     sortOrder: 5,
     folder: 'noodles',
-    imageCandidates: ['demo/categories/noodles.png', 'main/lapsha.png'],
+    imageCandidates: ['main/lapsha.png'],
   },
   {
     name: 'Напитки',
     slug: 'drinks',
     sortOrder: 6,
     folder: 'drinks',
-    imageCandidates: ['demo/categories/drinks.png', 'main/bootls.png'],
+    imageCandidates: ['main/bootls.png'],
   },
   {
     name: 'Десерты',
     slug: 'deserts',
     sortOrder: 7,
     folder: 'deserts',
-    imageCandidates: ['demo/categories/deserts.png', 'main/cakes.png'],
+    imageCandidates: ['main/cakes.png'],
   },
   {
     name: 'Соусы',
     slug: 'sauce',
     sortOrder: 8,
     folder: 'sauce',
-    imageCandidates: ['demo/categories/sauce.png', 'main/souses.png'],
+    imageCandidates: ['main/souses.png'],
   },
 ];
 
@@ -440,7 +438,22 @@ async function seedCatalog() {
 
   for (const c of CATEGORIES) {
     const imageKey = `categories/${c.slug}.png`;
-    await resolveAndUpload(c.imageCandidates, imageKey);
+    const existingCat = await prisma.category.findUnique({
+      where: { slug: c.slug },
+    });
+    // Do not overwrite an image the admin already set. Only upload/bind when
+    // creating or when the row still has no imageKey.
+    const shouldBindImage = !existingCat?.imageKey;
+    if (shouldBindImage || process.env.SEED_REFRESH_DEFAULT_MEDIA === '1') {
+      // Refresh allowed only for the canonical demo key, never for custom keys.
+      if (
+        shouldBindImage ||
+        !existingCat?.imageKey ||
+        existingCat.imageKey === imageKey
+      ) {
+        await resolveAndUpload(c.imageCandidates, imageKey);
+      }
+    }
     const row = await prisma.category.upsert({
       where: { slug: c.slug },
       create: {
@@ -454,7 +467,7 @@ async function seedCatalog() {
         name: c.name,
         isActive: true,
         sortOrder: c.sortOrder,
-        imageKey,
+        ...(shouldBindImage ? { imageKey } : {}),
       },
     });
     categoryIds.set(c.slug, row.id);
@@ -481,12 +494,18 @@ async function seedCatalog() {
         weight: 200,
       };
       const imageKey = `products/${c.folder}/${file}`;
-      await uploadFile(path.join(dir, file), imageKey);
-
       const categoryId = categoryIds.get(c.slug)!;
       const existing = await prisma.product.findFirst({
         where: { name: meta.name, categoryId },
       });
+      const bindImage =
+        !existing?.imageKey ||
+        (process.env.SEED_REFRESH_DEFAULT_MEDIA === '1' &&
+          (!existing.imageKey || existing.imageKey === imageKey));
+      if (bindImage) {
+        await uploadFile(path.join(dir, file), imageKey);
+      }
+
       const data = {
         categoryId,
         name: meta.name,
@@ -494,14 +513,16 @@ async function seedCatalog() {
         price: meta.price,
         oldPrice: meta.oldPrice ?? null,
         weight: meta.weight ?? null,
-        imageKey,
         isAvailable: true,
         sortOrder: sort++,
+        ...(bindImage || !existing ? { imageKey } : {}),
       };
       if (existing) {
         await prisma.product.update({ where: { id: existing.id }, data });
       } else {
-        await prisma.product.create({ data });
+        await prisma.product.create({
+          data: { ...data, imageKey },
+        });
       }
       productCount++;
     }
@@ -565,7 +586,7 @@ async function seedCatalog() {
     {
       title: '2 ролла по цене 1',
       description: 'На классические роллы в будние дни',
-      candidates: ['promotions/promotion4.png', 'demo/banners/home_hero.png'],
+      candidates: ['promotions/promotion4.png', 'promotions/promotion1.png'],
       key: 'promotions/promo_two_for_one.png',
       sortOrder: 4,
     },
