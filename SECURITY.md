@@ -8,28 +8,25 @@ This repository is a **portfolio / demo**. There is no formal support window. Fi
 
 Please **do not** open a public GitHub issue for security-sensitive findings.
 
-Prefer one of:
+Prefer GitHub **Security Advisories** / private vulnerability reporting (if enabled), or contact the repository owner via the profile email on GitHub.
 
-1. GitHub **Security Advisories** / private vulnerability reporting (if enabled on the repository), or
-2. Contact the repository owner via the profile email listed on GitHub.
+Include: affected component, steps to reproduce, impact, and an optional suggested fix. There is no bug bounty program.
 
-Include:
+## Demo security model
 
-- Affected component (Flutter client / NestJS API / storage)
-- Steps to reproduce
-- Impact assessment
-- Any suggested fix (optional)
+- Passwords: **Argon2id**
+- Auth: short-lived JWT **access** + rotating **refresh** (stored hashed; refresh reuse revokes the set)
+- Registration always creates role `USER`
+- Order prices and delivery fee are computed **on the server**
+- Client tokens live in **flutter_secure_storage** — never put JWT/DB secrets in the Flutter app
+- Uploads: jpeg/png/gif/webp with size limits; SVG rejected
 
-We will try to acknowledge reports when possible. There is no bug bounty program.
+## Operational hygiene
 
-## Please do not
+- Copy secrets from `backend/.env.example` / `docker-compose.example.env` — never commit real `.env`
+- Change seed `ADMIN_*` / `DEMO_USER_*` before any shared environment
+- Restrict `CORS_ORIGINS` when exposing the API beyond localhost
 
-- Include production secrets or personal data in reports
-- Demand immediate response for a demo project
-- Test against systems you do not own
+## Historical note
 
-## Historical note (Supabase)
-
-This project was previously prototyped with Supabase. The **current** default-branch runtime uses Flutter + NestJS + Prisma + PostgreSQL and does **not** use Supabase.
-
-Any old hosted Supabase project from early history should be disabled or have its keys rotated by the owner. Do not treat historical commits as the current architecture.
+Early history prototyped with Supabase. The **current** stack is Flutter + NestJS + Prisma + PostgreSQL. Disable or rotate any old Supabase project keys if they still exist — removing a token from Git does not revoke it.

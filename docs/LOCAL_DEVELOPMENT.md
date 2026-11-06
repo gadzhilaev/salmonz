@@ -106,5 +106,6 @@ npm run dev -- -p 3001
 ## Useful links
 
 - API overview: [API.md](API.md)
-- Backend notes: [BACKEND.md](BACKEND.md)
 - Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Testing: [TESTING.md](TESTING.md)
+- Security: [../SECURITY.md](../SECURITY.md)

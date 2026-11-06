@@ -5,6 +5,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-3.9+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter"/>
   <img src="https://img.shields.io/badge/NestJS-Backend-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS"/>
+  <img src="https://img.shields.io/badge/Next.js-Admin-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js"/>
   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License"/>
   <a href="https://github.com/gadzhilaev/salmonz/actions/workflows/flutter.yml"><img src="https://github.com/gadzhilaev/salmonz/actions/workflows/flutter.yml/badge.svg" alt="Flutter CI"/></a>
@@ -12,18 +13,18 @@
 </p>
 
 <p align="center">
-  <b>Портфолио / demo: Flutter-клиент + NestJS REST API</b>
+  <b>Портфолио / demo: Flutter · NestJS · Next.js admin · PostgreSQL</b>
 </p>
 
 ---
 
 ## О проекте
 
-**Salmonz** — кроссплатформенное приложение службы доставки японской кухни. Стек: **Flutter + NestJS + Prisma + PostgreSQL** (JWT auth, каталог, заказы с server-side quote, админ-панель, загрузка медиа).
+**Salmonz** — demo службы доставки японской кухни. Стек: **Flutter** (iOS/Android), **NestJS + Prisma + PostgreSQL**, админ-панель **Next.js** (`admin-web`).
 
-> Это **портфолио / demo**, а не production-ready продукт. Нет платежей, push, полноценного мониторинга и жёстких SLA. Не используйте как есть в коммерческой эксплуатации без доработки.
+> Это **портфолио / demo**, а не production-ready продукт. Нет платежей, push и жёстких SLA. Не используйте как есть в коммерческой эксплуатации без доработки.
 
-Документация: [LOCAL_DEVELOPMENT](docs/LOCAL_DEVELOPMENT.md) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [API](docs/API.md) · [BACKEND](docs/BACKEND.md) · [TESTING](docs/TESTING.md) · [SECURITY](docs/SECURITY.md) · [CONTRIBUTING](CONTRIBUTING.md)
+Документация: [LOCAL_DEVELOPMENT](docs/LOCAL_DEVELOPMENT.md) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [API](docs/API.md) · [TESTING](docs/TESTING.md) · [SECURITY](SECURITY.md) · [CONTRIBUTING](CONTRIBUTING.md)
 
 ---
 
@@ -33,15 +34,15 @@
 |---|---|---|
 | ![login phone](docs/screenshots/01_login.png) | ![home phone](docs/screenshots/02_home_light.png) | ![profile dark](docs/screenshots/05_profile_dark.png) |
 
-| Login (iPad) | Home (iPad landscape) | Admin (iPad) |
+| Login (iPad) | Home (iPad landscape) | Cart (iPad) |
 |---|---|---|
-| ![login ipad](docs/screenshots/09_ipad.png) | ![home ipad](docs/screenshots/11_ipad_home_landscape.png) | ![admin ipad](docs/screenshots/13_ipad_admin.png) |
+| ![login ipad](docs/screenshots/09_ipad.png) | ![home ipad](docs/screenshots/11_ipad_home_landscape.png) | ![cart ipad](docs/screenshots/14_ipad_cart.png) |
 
-| Cart (iPad) | Category (iPad) | Offline / Retry (iPhone) |
-|---|---|---|
-| ![cart ipad](docs/screenshots/14_ipad_cart.png) | ![category ipad](docs/screenshots/15_ipad_category.png) | ![offline](docs/screenshots/16_offline_home.png) |
+| Category (iPad) | Offline / Retry (iPhone) |
+|---|---|
+| ![category ipad](docs/screenshots/15_ipad_category.png) | ![offline](docs/screenshots/16_offline_home.png) |
 
-Снято на iOS Simulator (iPhone 17 Pro / iPad Pro 13" M5, iOS 26.5) против локального Docker API. На iPad ≥840 логических pt используется `NavigationRail`.
+Снято на iOS Simulator против локального Docker API. На iPad ≥840 логических pt используется `NavigationRail`. Админ-панель — отдельное Next.js-приложение (`admin-web/`), не Flutter.
 
 <p align="center">
   <a href="https://github.com/gadzhilaev/salmonz/actions/workflows/backend-e2e.yml"><img src="https://github.com/gadzhilaev/salmonz/actions/workflows/backend-e2e.yml/badge.svg" alt="Backend E2E"/></a>
@@ -51,7 +52,7 @@
 
 ## Функциональность
 
-### Пользователь
+### Пользователь (Flutter)
 
 | Функция | Описание |
 |---------|----------|
@@ -64,11 +65,11 @@
 | Профиль / адреса / support | CRUD адреса, аватар, обращения |
 | Тема | System / light / dark |
 
-### Администратор
+### Администратор (admin-web)
 
 | Функция | Описание |
 |---------|----------|
-| Админ-панель | Next.js `admin-web` (BFF + HttpOnly cookies), роль `ADMIN` |
+| Вход | BFF + HttpOnly cookies, роль `ADMIN` |
 | Каталог | CRUD категорий, продуктов, акций + upload изображений |
 | Заказы | Список и смена статуса |
 | Пользователи / support | Просмотр и обработка |
@@ -86,7 +87,7 @@ Flutter (Dio + flutter_secure_storage)     admin-web (Next.js BFF)
                          │
               ┌──────────┴──────────┐
          PostgreSQL            Storage: FS / S3/MinIO
-              (Prisma 7)
+              (Prisma)
 ```
 
 Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -119,13 +120,20 @@ docker compose up --build
 
 ```bash
 cp config/local.example.json config/local.json
-# iOS Simulator / desktop: http://127.0.0.1:3000
-# Android emulator:        http://10.0.2.2:3000
+# iOS Simulator: http://127.0.0.1:3000
+# Android emulator: http://10.0.2.2:3000
 
 flutter pub get
 flutter run
-# optional override (Android emulator / device LAN):
-# flutter run --dart-define-from-file=config/local.json
+# optional: flutter run --dart-define-from-file=config/local.json
+```
+
+### Admin-web
+
+```bash
+cd admin-web
+cp .env.example .env.local   # API_BASE_URL → Nest
+npm ci && npm run dev
 ```
 
 Demo-учётки после seed (только локально, **смените** перед любым shared env):
@@ -135,7 +143,7 @@ Demo-учётки после seed (только локально, **сменит
 | USER | `t@test.ru` | `12345678` |
 | ADMIN | `admin@example.com` | `ChangeMeAdmin123!` |
 
-Секреты не коммитятся: `.env`, `backend/.env`, `config/local.json` в `.gitignore`.
+Секреты не коммитятся: `.env`, `backend/.env`, `config/local.json`, `admin-web/.env.local` в `.gitignore`.
 
 ---
 
@@ -149,10 +157,12 @@ RUN_E2E=1 npm run test:e2e   # нужен живой API + seed
 
 # Flutter
 flutter analyze && flutter test
-flutter test integration_test -d <device> --dart-define-from-file=config/local.json
+
+# Admin-web
+cd admin-web && npm ci && npm run lint && npm run build
 ```
 
-CI: `.github/workflows/backend.yml`, `.github/workflows/flutter.yml` (analyze/unit/build; e2e с БД — локально).
+CI: `.github/workflows/backend.yml`, `.github/workflows/flutter.yml`, `.github/workflows/backend-e2e.yml`.
 
 ---
 
@@ -169,8 +179,7 @@ CI: `.github/workflows/backend.yml`, `.github/workflows/flutter.yml` (analyze/un
 
 - Нет эквайринга / push / email
 - Seed-пароли только для локальной разработки
-- Ранняя Git history может содержать старый Supabase anon JWT — в текущем HEAD его нет; владелец должен отключить/ротировать старый Supabase-проект
-- npm audit может показывать transitive high (например через swagger) без безопасного fix без major downgrade
+- Ранняя Git history могла содержать старый Supabase anon JWT — в текущем HEAD его нет; при необходимости отключите/ротируйте старый Supabase-проект
 
 ---
 

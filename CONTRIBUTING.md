@@ -20,7 +20,7 @@ cd backend && npm ci && npm run prisma:generate && npm test && npm run lint && n
 flutter pub get && flutter analyze && flutter test
 ```
 
-4. Open a PR using the template; describe *why* and how you tested.
+4. Open a PR; describe *why* and how you tested.
 
 ## Guidelines
 
