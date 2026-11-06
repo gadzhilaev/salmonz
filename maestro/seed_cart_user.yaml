@@ -17,7 +17,7 @@ appId: ru.gadzhilaev.salmonz
 - extendedWaitUntil:
     visible: "ДОБАВИТЬ В КОРЗИНУ"
     timeout: 15000
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_product_card_static
+- takeScreenshot: docs/screenshots/qa/offline_product_card_static
 - tapOn: "ДОБАВИТЬ В КОРЗИНУ"
 - waitForAnimationToEnd:
     timeout: 3000
@@ -27,4 +27,4 @@ appId: ru.gadzhilaev.salmonz
 - back
 - waitForAnimationToEnd:
     timeout: 2000
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_seed_cart_done
+- takeScreenshot: docs/screenshots/qa/offline_seed_cart_done

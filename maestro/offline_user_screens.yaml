@@ -13,8 +13,8 @@ appId: ru.gadzhilaev.salmonz
     timeout: 45000
 - assertNotVisible: "DioException"
 - assertNotVisible: "SocketException"
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_home
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_categories
+- takeScreenshot: docs/screenshots/qa/offline_home
+- takeScreenshot: docs/screenshots/qa/offline_categories
 
 - tapOn: "ЗАКАЗЫ"
 - waitForAnimationToEnd:
@@ -28,7 +28,7 @@ appId: ru.gadzhilaev.salmonz
     timeout: 45000
 - assertNotVisible: "DioException"
 - assertNotVisible: "SocketException"
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_orders
+- takeScreenshot: docs/screenshots/qa/offline_orders
 
 - tapOn: "КОРЗИНА"
 - waitForAnimationToEnd:
@@ -45,7 +45,7 @@ appId: ru.gadzhilaev.salmonz
           timeout: 60000
       - assertNotVisible: "DioException"
       - assertNotVisible: "SocketException"
-      - takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_cart_quote
+      - takeScreenshot: docs/screenshots/qa/offline_cart_quote
       - back
 
 - tapOn: "ПРОФИЛЬ"
@@ -60,4 +60,4 @@ appId: ru.gadzhilaev.salmonz
     timeout: 45000
 - assertNotVisible: "DioException"
 - assertNotVisible: "SocketException"
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_profile
+- takeScreenshot: docs/screenshots/qa/offline_profile

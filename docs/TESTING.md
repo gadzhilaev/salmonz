@@ -51,20 +51,24 @@ Individual suites:
 
 ```bash
 flutter test integration_test/app_test.dart -d emulator-5554 --dart-define-from-file=config/local.json
-flutter test integration_test/admin_smoke_test.dart -d emulator-5554 --dart-define-from-file=config/local.json
+flutter test integration_test/support_flow_test.dart -d emulator-5554 --dart-define-from-file=config/local.json
 ```
 
-Demo users (seeded by backend):
+Demo users (seeded by backend; see `backend/.env.example`):
 
 | Role | Email | Password |
 |------|-------|----------|
-| User | `demo@example.com` | `ChangeMeDemo123!` |
+| User | `t@test.ru` | `12345678` |
 | Admin | `admin@example.com` | `ChangeMeAdmin123!` |
 
 `app_test.dart` covers login validation, demo login, home → category → cart →
 checkout quote (`quoteTotal`), and logout. Placing an order is optional and left
-for manual QA when an address exists. `admin_smoke_test.dart` logs in as admin
-and opens the admin panel.
+for manual QA when an address exists. Admin UI lives in `admin-web/` —
+use `node admin-web/scripts/smoke-auth.mjs` for CSRF/login/logout smoke.
+
+Maestro flows under `maestro/` cover user login, offline/retry, cart seed, and
+avatar flows (relative screenshot paths). Flutter in-app admin panel flows were
+removed after the Next.js admin migration.
 
 If no emulator is available, integration tests still compile; run
 `flutter analyze` and `flutter test` locally instead.

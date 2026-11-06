@@ -39,9 +39,7 @@
 
 | Cart (iPad) | Category (iPad) | Offline / Retry (iPhone) |
 |---|---|---|
-| ![cart ipad](docs/screenshots/14_ipad_cart.png) | ![category ipad](docs/screenshots/15_ipad_category.png) | ![offline](docs/screenshots/qa/iphone_offline_home.png) |
-
-Дополнительные QA-кадры: [`docs/screenshots/qa/`](docs/screenshots/qa/) (session relaunch, recovery, iPad home).
+| ![cart ipad](docs/screenshots/14_ipad_cart.png) | ![category ipad](docs/screenshots/15_ipad_category.png) | ![offline](docs/screenshots/16_offline_home.png) |
 
 Снято на iOS Simulator (iPhone 17 Pro / iPad Pro 13" M5, iOS 26.5) против локального Docker API. На iPad ≥840 логических pt используется `NavigationRail`.
 
@@ -70,7 +68,7 @@
 
 | Функция | Описание |
 |---------|----------|
-| Админ-панель | Роль `ADMIN` |
+| Админ-панель | Next.js `admin-web` (BFF + HttpOnly cookies), роль `ADMIN` |
 | Каталог | CRUD категорий, продуктов, акций + upload изображений |
 | Заказы | Список и смена статуса |
 | Пользователи / support | Просмотр и обработка |
@@ -80,14 +78,15 @@
 ## Архитектура
 
 ```
-Flutter (Dio + flutter_secure_storage)
-        │  REST  /api/v1
-        ▼
-NestJS modular monolith  ·  Swagger /docs
-        │
-   ┌────┴────┐
-PostgreSQL   Storage: local FS  или  S3/MinIO
-(Prisma 7)
+Flutter (Dio + flutter_secure_storage)     admin-web (Next.js BFF)
+        │  REST  /api/v1                            │
+        └────────────────┬──────────────────────────┘
+                         ▼
+              NestJS · Swagger /docs
+                         │
+              ┌──────────┴──────────┐
+         PostgreSQL            Storage: FS / S3/MinIO
+              (Prisma 7)
 ```
 
 Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

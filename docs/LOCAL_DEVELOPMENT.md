@@ -89,6 +89,20 @@ Tokens use **flutter_secure_storage**. Cart remains in SharedPreferences (device
 
 Do not commit `config/local.json` or `backend/.env`.
 
+## Admin web (`admin-web/`)
+
+Next.js BFF against the same Nest API (HttpOnly session cookies + CSRF).
+
+```bash
+cd admin-web
+cp .env.example .env.local   # if present; otherwise set BACKEND_URL=http://127.0.0.1:3000
+npm ci
+npm run dev -- -p 3001
+```
+
+- UI: `http://localhost:3001`
+- Smoke: `node scripts/smoke-auth.mjs` (API on `:3000`, admin on `:3001`)
+
 ## Useful links
 
 - API overview: [API.md](API.md)

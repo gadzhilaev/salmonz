@@ -14,7 +14,7 @@ appId: ru.gadzhilaev.salmonz
     timeout: 45000
 - assertNotVisible: "DioException"
 - assertNotVisible: "SocketException"
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_products
+- takeScreenshot: docs/screenshots/qa/offline_products
 - back
 - waitForAnimationToEnd:
     timeout: 2000
@@ -32,7 +32,7 @@ appId: ru.gadzhilaev.salmonz
     timeout: 45000
 - assertNotVisible: "DioException"
 - assertNotVisible: "SocketException"
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_addresses
+- takeScreenshot: docs/screenshots/qa/offline_addresses
 - back
 - waitForAnimationToEnd:
     timeout: 2000
@@ -46,7 +46,7 @@ appId: ru.gadzhilaev.salmonz
     visible: "ПОВТОРИТЬ"
     timeout: 45000
 - assertNotVisible: "DioException"
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_edit_profile
+- takeScreenshot: docs/screenshots/qa/offline_edit_profile
 - back
 - waitForAnimationToEnd:
     timeout: 2000
@@ -68,5 +68,5 @@ appId: ru.gadzhilaev.salmonz
     timeout: 45000
 - assertNotVisible: "DioException"
 - assertNotVisible: "SocketException"
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_support
+- takeScreenshot: docs/screenshots/qa/offline_support
 - back

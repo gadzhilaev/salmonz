@@ -18,4 +18,4 @@ appId: ru.gadzhilaev.salmonz
 - extendedWaitUntil:
     visible: "АКЦИИ"
     timeout: 60000
-- takeScreenshot: /Users/gadzhilaev/Documents/Mobile Projects/salmonz/docs/screenshots/qa/offline_user_logged_in
+- takeScreenshot: docs/screenshots/qa/offline_user_logged_in

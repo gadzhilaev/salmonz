@@ -87,6 +87,9 @@ samples/
 # Client correspondence — sibling *-private/ only, never this git repo
 docs/correspondence/
 
+# Cursor IDE rules (local only; not part of the public tree)
+.cursor/
+
 # Next.js admin
 admin-web/node_modules/
 admin-web/.next/
