@@ -70,7 +70,24 @@ if [[ "$SKIP_ADMIN_SMOKE" != "1" ]]; then
   log "Admin-web smoke"
   (
     cd admin-web
+    export ADMIN_WEB_URL="${ADMIN_WEB_URL:-http://127.0.0.1:3001}"
+    # After a fresh production build, bring up next start if nothing answers CSRF.
+    if ! curl -sf "${ADMIN_WEB_URL}/api/auth/csrf" >/dev/null 2>&1; then
+      port="${ADMIN_WEB_URL##*:}"
+      port="${port%%/*}"
+      unset NODE_ENV || true
+      npx next start -p "${port:-3001}" > /tmp/salmonz-admin-smoke-server.log 2>&1 &
+      echo $! > /tmp/salmonz-admin-smoke-server.pid
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        curl -sf "${ADMIN_WEB_URL}/api/auth/csrf" >/dev/null 2>&1 && break
+        sleep 1
+      done
+    fi
     npm run test:smoke || fail "admin-web smoke failed"
+    if [[ -f /tmp/salmonz-admin-smoke-server.pid ]]; then
+      kill "$(cat /tmp/salmonz-admin-smoke-server.pid)" 2>/dev/null || true
+      rm -f /tmp/salmonz-admin-smoke-server.pid
+    fi
   )
 else
   log "SKIP_ADMIN_SMOKE=1 — smoke skipped (default; needs running API+admin)"
