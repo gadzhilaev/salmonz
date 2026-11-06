@@ -106,7 +106,7 @@ jobs:
         run: |
           if [ -f /tmp/salmonz-api.pid ]; then kill "$(cat /tmp/salmonz-api.pid)" || true; fi
 
-  minio-upload:
+  s3-upload:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -130,12 +130,12 @@ jobs:
       JWT_ACCESS_SECRET: ci-access-secret-not-for-production
       JWT_REFRESH_SECRET: ci-refresh-secret-not-for-production
       STORAGE_DRIVER: s3
-      S3_ENDPOINT: http://127.0.0.1:9000
+      S3_ENDPOINT: http://127.0.0.1:4566
       S3_REGION: us-east-1
-      S3_ACCESS_KEY: minioadmin
-      S3_SECRET_KEY: minioadmin
+      S3_ACCESS_KEY: test
+      S3_SECRET_KEY: test
       S3_BUCKET: salmonz
-      S3_PUBLIC_BASE_URL: http://127.0.0.1:9000/salmonz
+      S3_PUBLIC_BASE_URL: http://127.0.0.1:4566/salmonz
       S3_FORCE_PATH_STYLE: 'true'
       ADMIN_EMAIL: admin@example.com
       ADMIN_PASSWORD: ChangeMeAdmin123!
@@ -146,12 +146,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Start MinIO
+      - name: Start LocalStack S3
         run: |
-          docker run --detach --name salmonz-e2e-minio --network host \
-            --env MINIO_ROOT_USER=minioadmin \
-            --env MINIO_ROOT_PASSWORD=minioadmin \
-            quay.io/minio/minio:latest server /data --console-address ":9001"
+          docker run --detach --name salmonz-e2e-s3 --network host \
+            --env SERVICES=s3 \
+            localstack/localstack:3.8
 
       - uses: actions/setup-node@v4
         with:
@@ -159,43 +158,26 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
-      - name: Wait for MinIO and initialize bucket
+      - name: Wait for LocalStack and create bucket
         shell: bash
         run: |
           set -euo pipefail
           for i in $(seq 1 60); do
-            if (echo > /dev/tcp/127.0.0.1/9000) 2>/dev/null && \
-              timeout 5s docker run --rm --network host \
-                --env MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
-                quay.io/minio/mc:latest ready local; then
-              echo "MinIO is ready"
+            if curl -sf http://127.0.0.1:4566/_localstack/health >/dev/null; then
+              echo "LocalStack is ready"
               break
             fi
             if [ "$i" -eq 60 ]; then
-              echo "MinIO did not become ready"
-              docker logs salmonz-e2e-minio
+              echo "LocalStack did not become ready"
+              docker logs salmonz-e2e-s3
               exit 1
             fi
             sleep 1
           done
-
-          for i in $(seq 1 30); do
-            if docker run --rm --network host \
-              --env MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
-              quay.io/minio/mc:latest mb --ignore-existing local/salmonz && \
-              docker run --rm --network host \
-                --env MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
-                quay.io/minio/mc:latest anonymous set download local/salmonz; then
-              echo "MinIO bucket is ready"
-              break
-            fi
-            if [ "$i" -eq 30 ]; then
-              echo "Unable to initialize MinIO bucket"
-              docker logs salmonz-e2e-minio
-              exit 1
-            fi
-            sleep 1
-          done
+          pip install --quiet awscli
+          export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1
+          aws --endpoint-url=http://127.0.0.1:4566 s3 mb s3://salmonz || true
+          aws --endpoint-url=http://127.0.0.1:4566 s3 ls
 
       - name: Install / migrate / seed / build
         run: |
@@ -226,6 +208,9 @@ jobs:
         env:
           RUN_E2E: '1'
           API_URL: http://127.0.0.1:3000
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
         run: |
           npm run test:e2e
 
@@ -234,6 +219,6 @@ jobs:
         run: |
           if [ -f /tmp/salmonz-api.pid ]; then kill "$(cat /tmp/salmonz-api.pid)" || true; fi
 
-      - name: Stop MinIO
+      - name: Stop LocalStack
         if: always()
-        run: docker rm --force salmonz-e2e-minio || true
+        run: docker rm --force salmonz-e2e-s3 || true

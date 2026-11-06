@@ -20,7 +20,7 @@ services:
       - salmonz
 
   minio:
-    image: quay.io/minio/minio:latest
+    image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -35,7 +35,7 @@ services:
       - salmonz
 
   minio-init:
-    image: quay.io/minio/mc:latest
+    image: minio/mc:latest
     depends_on:
       minio:
         condition: service_started
