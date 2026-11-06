@@ -168,7 +168,7 @@ class _ProductCard extends StatelessWidget {
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(width: 100, height: 100, child: _image()),
+                    SizedBox(width: 100, height: 100, child: _image(fill: false)),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(child: _body(theme, desc, weight, inStock)),
                   ],
@@ -176,7 +176,9 @@ class _ProductCard extends StatelessWidget {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: _image()),
+                    // Expanded fills width — do not wrap in AspectRatio here
+                    // (that letterboxed a smaller square inside the card).
+                    Expanded(child: _image(fill: true)),
                     const SizedBox(height: AppSpacing.xs),
                     _body(theme, desc, weight, inStock),
                   ],
@@ -186,18 +188,19 @@ class _ProductCard extends StatelessWidget {
     );
   }
 
-  Widget _image() {
+  Widget _image({required bool fill}) {
+    // Photo sits on the card surface (transparent well). contain keeps the dish
+    // intact; fill:true expands to the grid cell so we don't get a nested square.
+    final image = AppNetworkImage(
+      url: product.imageUrl,
+      kind: AppImageKind.dish,
+      borderRadius: AppRadii.smAll,
+      backgroundColor: Colors.transparent,
+      memCacheWidth: 480,
+    );
     return Opacity(
       opacity: product.isAvailable ? 1 : 0.45,
-      child: AspectRatio(
-        aspectRatio: 1.15,
-        child: AppNetworkImage(
-          url: product.imageUrl,
-          kind: AppImageKind.dish,
-          borderRadius: AppRadii.smAll,
-          memCacheWidth: 480,
-        ),
-      ),
+      child: fill ? SizedBox.expand(child: image) : image,
     );
   }
 

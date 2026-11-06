@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
-import '../core/theme/app_spacing.dart';
 
 enum AppImageKind {
   /// Dish / product photo — contain, padded, no crop of the food.
@@ -55,6 +54,7 @@ class AppNetworkImage extends StatelessWidget {
   BoxFit get _resolvedFit =>
       fit ??
       switch (kind) {
+        // Dish: contain keeps the plate intact; category overlays the tile tint.
         AppImageKind.dish || AppImageKind.category => BoxFit.contain,
         AppImageKind.banner || AppImageKind.avatar => BoxFit.cover,
       };
@@ -62,17 +62,28 @@ class AppNetworkImage extends StatelessWidget {
   EdgeInsetsGeometry get _resolvedPadding =>
       padding ??
       switch (kind) {
-        AppImageKind.dish => const EdgeInsets.all(AppSpacing.xs),
-        AppImageKind.category => const EdgeInsets.all(AppSpacing.xs),
-        AppImageKind.banner || AppImageKind.avatar => EdgeInsets.zero,
+        // No inset pad — avoids a second “photo square” inside the card.
+        AppImageKind.dish ||
+        AppImageKind.category ||
+        AppImageKind.banner ||
+        AppImageKind.avatar => EdgeInsets.zero,
       };
+
+  /// Bump when seed/demo media files change under the same object key so
+  /// CachedNetworkImage does not keep a stale disk entry on localhost.
+  static const String mediaCacheEpoch = '20261107b';
 
   static String? rewriteUrl(String? url) {
     final u = (url ?? '').trim();
     if (u.isEmpty) return null;
-    return u
+    var out = u
         .replaceFirst('http://localhost:', 'http://127.0.0.1:')
         .replaceFirst('https://localhost:', 'https://127.0.0.1:');
+    final host = out.contains('127.0.0.1') || out.contains('localhost');
+    if (host && !out.contains('v=$mediaCacheEpoch')) {
+      out = '$out${out.contains('?') ? '&' : '?'}v=$mediaCacheEpoch';
+    }
+    return out;
   }
 
   /// Best-effort warm of disk/memory cache. Dedupes in-flight URLs.
@@ -105,11 +116,17 @@ class AppNetworkImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rewritten = rewriteUrl(url);
-    final bg =
-        backgroundColor ??
-        (Theme.of(context).brightness == Brightness.dark
-            ? AppColors.darkSurfaceElevated
-            : AppColors.lightSurfaceAlt);
+    final themeBg = Theme.of(context).brightness == Brightness.dark
+        ? AppColors.darkSurfaceElevated
+        : AppColors.lightSurfaceAlt;
+    // Category tiles sit on a colored Material — keep the image layer transparent
+    // so we don't paint a white/gray photo plate inside the card.
+    final Color bg = backgroundColor ??
+        switch (kind) {
+          AppImageKind.category => Colors.transparent,
+          AppImageKind.dish => Colors.transparent,
+          AppImageKind.banner || AppImageKind.avatar => themeBg,
+        };
 
     Widget content;
     if (rewritten == null) {
@@ -130,7 +147,9 @@ class AppNetworkImage extends StatelessWidget {
     }
 
     final padded = Padding(padding: _resolvedPadding, child: content);
-    final boxed = ColoredBox(color: bg, child: padded);
+    final Widget boxed = bg == Colors.transparent
+        ? padded
+        : ColoredBox(color: bg, child: padded);
 
     Widget child = sized(boxed);
     if (borderRadius != null) {
@@ -147,19 +166,18 @@ class AppNetworkImage extends StatelessWidget {
   }
 
   Widget _skeleton(BuildContext context, Color bg) {
-    return ColoredBox(
-      color: bg,
-      child: Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-          ),
+    final box = Center(
+      child: SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
         ),
       ),
     );
+    if (bg == Colors.transparent) return box;
+    return ColoredBox(color: bg, child: box);
   }
 
   Widget _fallback(BuildContext context, Color bg) {

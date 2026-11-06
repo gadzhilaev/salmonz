@@ -194,7 +194,6 @@ class _SuccessPageState extends State<SuccessPage> {
                                 child: _CategoryCard(
                                   title: it.name,
                                   imageUrl: it.imageUrl,
-                                  slug: it.slug,
                                   titleColor: titleColor,
                                   fontWeight: isFirst
                                       ? FontWeight.w800
@@ -225,38 +224,10 @@ class _HomeData {
   final List<PromotionModel> promotions;
 }
 
-String _categoryAssetFallback(String slug, String name) {
-  final s = slug.toLowerCase();
-  final n = name.toLowerCase();
-  if (s.contains('roll') || n.contains('ролл')) return 'assets/main/rolls.png';
-  if (s.contains('set') || n.contains('сет')) return 'assets/main/sets.png';
-  if (s.contains('sushi') || n.contains('суши')) return 'assets/main/sushi.png';
-  if (s.contains('drink') ||
-      s.contains('bottle') ||
-      n.contains('напит') ||
-      n.contains('бутыл')) {
-    return 'assets/main/bootls.png';
-  }
-  if (s.contains('sauce') || s.contains('sous') || n.contains('соус')) {
-    return 'assets/main/souses.png';
-  }
-  if (s.contains('cake') || n.contains('торт') || n.contains('десерт')) {
-    return 'assets/main/cakes.png';
-  }
-  if (s.contains('lapsha') || s.contains('noodle') || n.contains('лапш')) {
-    return 'assets/main/lapsha.png';
-  }
-  if (s.contains('zakusk') || n.contains('закуск')) {
-    return 'assets/main/zakuski.png';
-  }
-  return AppNetworkImage.defaultCategoryAsset;
-}
-
 class _CategoryCard extends StatelessWidget {
   const _CategoryCard({
     required this.title,
     required this.imageUrl,
-    required this.slug,
     required this.titleColor,
     required this.fontWeight,
     required this.titleScale,
@@ -264,28 +235,29 @@ class _CategoryCard extends StatelessWidget {
 
   final String title;
   final String? imageUrl;
-  final String slug;
   final Color titleColor;
   final FontWeight fontWeight;
   final double titleScale;
 
   @override
   Widget build(BuildContext context) {
-    final fallback = _categoryAssetFallback(slug, title);
-
+    // Image comes from admin/backend (`imageUrl`). No local asset override —
+    // that previously painted a white photo plate over the tinted tile.
     return Stack(
       fit: StackFit.expand,
       children: [
         Positioned(
-          right: -4,
-          bottom: -4,
-          left: 40,
-          top: 36,
+          right: -6,
+          bottom: -8,
+          left: 28,
+          top: 28,
           child: AppNetworkImage(
             url: imageUrl,
             kind: AppImageKind.category,
-            assetFallback: fallback,
             backgroundColor: Colors.transparent,
+            // Slight cover trims empty transparent margins of cutout plates
+            // without inventing a white photo tile.
+            fit: BoxFit.contain,
             memCacheWidth: 400,
           ),
         ),
