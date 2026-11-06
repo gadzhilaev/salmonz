@@ -323,14 +323,18 @@ describeS3('S3-backed upload e2e', () => {
     );
   });
 
-  it('uses a ready MinIO bucket for validated, publicly retrievable uploads', async () => {
+  it('uses a ready S3-compatible bucket for validated, publicly retrievable uploads', async () => {
     expect(endpoint).toBeTruthy();
 
     await request(api).get('/api/v1/health/live').expect(200);
+    // MinIO exposes /minio/health/live; LocalStack (CI) uses /_localstack/health.
     const minioHealth = await fetch(
       new URL('/minio/health/live', endpoint).toString(),
     );
-    expect(minioHealth.ok).toBe(true);
+    const localstackHealth = await fetch(
+      new URL('/_localstack/health', endpoint).toString(),
+    );
+    expect(minioHealth.ok || localstackHealth.ok).toBe(true);
 
     await expect(
       s3.send(new HeadBucketCommand({ Bucket: bucket })),
