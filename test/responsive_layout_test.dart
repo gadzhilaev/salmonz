@@ -66,7 +66,9 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // Avoid pumpAndSettle — AppShell/theme may keep a ticker alive in tests.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
   }
 
   testWidgets('compact uses bottom NavigationBar chrome', (tester) async {
@@ -121,7 +123,8 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     final box = tester.renderObject<RenderBox>(
       find.byKey(const Key('formInner')),
@@ -155,7 +158,8 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.byKey(const Key('cell-0')), findsOneWidget);
     final first = tester.getRect(find.byKey(const Key('cell-0')));

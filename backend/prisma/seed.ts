@@ -1,15 +1,46 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
+import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { PrismaClient } from '../generated/prisma/client';
-import { Role } from '../generated/prisma/enums';
+import { OrderStatus, Role, SupportStatus } from '../generated/prisma/enums';
+
+/**
+ * Local demo seed only.
+ * Refuses to run when NODE_ENV=production unless ALLOW_DEMO_SEED=1
+ * (still blocked if NODE_ENV is production AND ALLOW_DEMO_SEED is not explicitly set —
+ * and even with the flag we refuse real production-looking DATABASE_URL hosts).
+ */
+function assertDemoSeedAllowed() {
+  const nodeEnv = (process.env.NODE_ENV ?? 'development').toLowerCase();
+  const allow = process.env.ALLOW_DEMO_SEED === '1';
+  if (nodeEnv === 'production' && !allow) {
+    throw new Error(
+      'Demo seed refused: NODE_ENV=production. This seed is for local portfolio demos only.',
+    );
+  }
+  if (nodeEnv === 'production' && allow) {
+    throw new Error(
+      'Demo seed refused even with ALLOW_DEMO_SEED=1 under NODE_ENV=production.',
+    );
+  }
+  const db = process.env.DATABASE_URL ?? '';
+  if (/[?&]sslmode=require/i.test(db) && /amazonaws\.com|neon\.tech|supabase\.co|railway\.app/i.test(db)) {
+    throw new Error(
+      'Demo seed refused: DATABASE_URL looks like a hosted production database.',
+    );
+  }
+}
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error('DATABASE_URL is required for seeding');
 }
+
+assertDemoSeedAllowed();
 
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
@@ -19,20 +50,78 @@ const assetsRoot =
   process.env.ASSETS_ROOT?.trim() ||
   path.resolve(__dirname, '..', '..', 'assets');
 
-type CatDef = { name: string; slug: string; sortOrder: number; folder: string };
+const demoRoot = path.join(assetsRoot, 'demo');
+
+type CatDef = {
+  name: string;
+  slug: string;
+  sortOrder: number;
+  folder: string;
+  imageCandidates: string[];
+};
 
 const CATEGORIES: CatDef[] = [
-  { name: 'Роллы', slug: 'rolls', sortOrder: 1, folder: 'rolls' },
-  { name: 'Сеты', slug: 'sets', sortOrder: 2, folder: 'sets' },
-  { name: 'Суши', slug: 'sushi', sortOrder: 3, folder: 'sushi' },
-  { name: 'Закуски', slug: 'snacks', sortOrder: 4, folder: 'snacks' },
-  { name: 'Лапша', slug: 'noodles', sortOrder: 5, folder: 'noodles' },
-  { name: 'Напитки', slug: 'drinks', sortOrder: 6, folder: 'drinks' },
-  { name: 'Десерты', slug: 'deserts', sortOrder: 7, folder: 'deserts' },
-  { name: 'Соусы', slug: 'sauce', sortOrder: 8, folder: 'sauce' },
+  {
+    name: 'Роллы',
+    slug: 'rolls',
+    sortOrder: 1,
+    folder: 'rolls',
+    imageCandidates: [
+      'demo/categories/rolls.png',
+      'main/rolls.png',
+    ],
+  },
+  {
+    name: 'Сеты',
+    slug: 'sets',
+    sortOrder: 2,
+    folder: 'sets',
+    imageCandidates: ['demo/categories/sets.png', 'main/sets.png'],
+  },
+  {
+    name: 'Суши',
+    slug: 'sushi',
+    sortOrder: 3,
+    folder: 'sushi',
+    imageCandidates: ['demo/categories/sushi.png', 'main/sushi.png'],
+  },
+  {
+    name: 'Закуски',
+    slug: 'snacks',
+    sortOrder: 4,
+    folder: 'snacks',
+    imageCandidates: ['demo/categories/snacks.png', 'main/zakuski.png'],
+  },
+  {
+    name: 'Лапша',
+    slug: 'noodles',
+    sortOrder: 5,
+    folder: 'noodles',
+    imageCandidates: ['demo/categories/noodles.png', 'main/lapsha.png'],
+  },
+  {
+    name: 'Напитки',
+    slug: 'drinks',
+    sortOrder: 6,
+    folder: 'drinks',
+    imageCandidates: ['demo/categories/drinks.png', 'main/bootls.png'],
+  },
+  {
+    name: 'Десерты',
+    slug: 'deserts',
+    sortOrder: 7,
+    folder: 'deserts',
+    imageCandidates: ['demo/categories/deserts.png', 'main/cakes.png'],
+  },
+  {
+    name: 'Соусы',
+    slug: 'sauce',
+    sortOrder: 8,
+    folder: 'sauce',
+    imageCandidates: ['demo/categories/sauce.png', 'main/souses.png'],
+  },
 ];
 
-/** Human titles / prices for known asset stems; others get a pretty-printed name. */
 const PRODUCT_META: Record<
   string,
   { name: string; description?: string; price: number; oldPrice?: number; weight?: number }
@@ -73,6 +162,12 @@ const PRODUCT_META: Record<
     description: 'Острый ролл',
     price: 449,
     weight: 240,
+  },
+  dragon: {
+    name: 'Дракон',
+    description: 'Угорь, авокадо, унаги-соус',
+    price: 529,
+    weight: 280,
   },
   white_tiger: {
     name: 'Белый тигр',
@@ -154,6 +249,12 @@ const PRODUCT_META: Record<
     price: 130,
     weight: 500,
   },
+  cola: {
+    name: 'Кола 0.5л',
+    description: 'Газированный напиток 0.5 л',
+    price: 120,
+    weight: 500,
+  },
   banana_kiwi_roll: {
     name: 'Ролл банан-киви',
     description: 'Сладкий ролл',
@@ -172,104 +273,16 @@ const PRODUCT_META: Record<
 };
 
 function titleFromStem(stem: string): string {
-  return stem
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return stem.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-async function upsertAdmin() {
-  const email = process.env.ADMIN_EMAIL?.trim();
-  const password = process.env.ADMIN_PASSWORD;
-  if (!email || !password) {
-    throw new Error(
-      'ADMIN_EMAIL and ADMIN_PASSWORD are required to seed the admin user',
-    );
+async function fileExists(abs: string) {
+  try {
+    await readFile(abs);
+    return true;
+  } catch {
+    return false;
   }
-
-  const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-  await prisma.user.upsert({
-    where: { email: email.toLowerCase() },
-    create: {
-      email: email.toLowerCase(),
-      passwordHash,
-      name: 'Admin',
-      phone: '+79990000001',
-      role: Role.ADMIN,
-    },
-    update: {
-      passwordHash,
-      role: Role.ADMIN,
-      isActive: true,
-      name: 'Admin',
-    },
-  });
-  console.log(`Admin upserted: ${email.toLowerCase()}`);
-}
-
-async function upsertDemoUser() {
-  const email = process.env.DEMO_USER_EMAIL?.trim();
-  const password = process.env.DEMO_USER_PASSWORD;
-  if (!email || !password) {
-    console.log('DEMO_USER_EMAIL/DEMO_USER_PASSWORD not set — skipping demo user');
-    return null;
-  }
-  const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-  const user = await prisma.user.upsert({
-    where: { email: email.toLowerCase() },
-    create: {
-      email: email.toLowerCase(),
-      passwordHash,
-      name: 'Demo User',
-      phone: '+79991234567',
-      role: Role.USER,
-    },
-    update: {
-      passwordHash,
-      isActive: true,
-      name: 'Demo User',
-      phone: '+79991234567',
-    },
-  });
-  console.log(`Demo user upserted: ${email.toLowerCase()}`);
-  return user;
-}
-
-async function seedDemoAddress(userId: string) {
-  const existing = await prisma.address.findFirst({
-    where: { userId, isDefault: true },
-  });
-  if (existing) {
-    await prisma.address.update({
-      where: { id: existing.id },
-      data: {
-        title: 'Дом',
-        city: 'Махачкала',
-        street: 'пр. Акушинского',
-        house: '12',
-        apartment: '45',
-        entrance: '2',
-        floor: '5',
-        comment: 'Домофон 45',
-        isDefault: true,
-      },
-    });
-  } else {
-    await prisma.address.create({
-      data: {
-        userId,
-        title: 'Дом',
-        city: 'Махачкала',
-        street: 'пр. Акушинского',
-        house: '12',
-        apartment: '45',
-        entrance: '2',
-        floor: '5',
-        comment: 'Домофон 45',
-        isDefault: true,
-      },
-    });
-  }
-  console.log('Demo address upserted');
 }
 
 async function uploadBuffer(key: string, body: Buffer, contentType: string) {
@@ -325,10 +338,109 @@ async function uploadFile(absPath: string, key: string) {
   }
 }
 
+async function resolveAndUpload(relCandidates: string[], key: string) {
+  for (const rel of relCandidates) {
+    const abs = path.join(assetsRoot, rel);
+    if (await fileExists(abs)) {
+      const uploaded = await uploadFile(abs, key);
+      if (uploaded) return uploaded;
+    }
+  }
+  return null;
+}
+
+async function upsertAdmin() {
+  const email = (process.env.ADMIN_EMAIL?.trim() || 'admin@example.com').toLowerCase();
+  const password = process.env.ADMIN_PASSWORD || 'ChangeMeAdmin123!';
+  const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+  await prisma.user.upsert({
+    where: { email },
+    create: {
+      email,
+      passwordHash,
+      name: 'Admin Demo',
+      phone: '+79990000001',
+      role: Role.ADMIN,
+    },
+    update: {
+      passwordHash,
+      role: Role.ADMIN,
+      isActive: true,
+      name: 'Admin Demo',
+    },
+  });
+  console.log(`Admin upserted: ${email}`);
+}
+
+async function upsertDemoUser() {
+  const email = (process.env.DEMO_USER_EMAIL?.trim() || 't@test.ru').toLowerCase();
+  const password = process.env.DEMO_USER_PASSWORD || '12345678';
+  const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+  const user = await prisma.user.upsert({
+    where: { email },
+    create: {
+      email,
+      passwordHash,
+      name: 'Иван Демо',
+      phone: '+79991234567',
+      role: Role.USER,
+    },
+    update: {
+      passwordHash,
+      isActive: true,
+      name: 'Иван Демо',
+      phone: '+79991234567',
+    },
+  });
+  console.log(`Demo user upserted: ${email}`);
+  return user;
+}
+
+async function seedDemoAddresses(userId: string) {
+  const specs = [
+    {
+      title: 'Дом',
+      city: 'Махачкала',
+      street: 'пр. Акушинского',
+      house: '12',
+      apartment: '45',
+      entrance: '2',
+      floor: '5',
+      comment: 'Домофон 45',
+      isDefault: true,
+    },
+    {
+      title: 'Работа',
+      city: 'Махачкала',
+      street: 'ул. Ярагского',
+      house: '77',
+      apartment: '12',
+      entrance: '1',
+      floor: '3',
+      comment: 'Офис Salmonz Demo',
+      isDefault: false,
+    },
+  ];
+
+  for (const s of specs) {
+    const existing = await prisma.address.findFirst({
+      where: { userId, title: s.title },
+    });
+    if (existing) {
+      await prisma.address.update({ where: { id: existing.id }, data: s });
+    } else {
+      await prisma.address.create({ data: { userId, ...s } });
+    }
+  }
+  console.log(`Demo addresses upserted: ${specs.length}`);
+}
+
 async function seedCatalog() {
   const categoryIds = new Map<string, string>();
 
   for (const c of CATEGORIES) {
+    const imageKey = `categories/${c.slug}.png`;
+    await resolveAndUpload(c.imageCandidates, imageKey);
     const row = await prisma.category.upsert({
       where: { slug: c.slug },
       create: {
@@ -336,8 +448,14 @@ async function seedCatalog() {
         slug: c.slug,
         sortOrder: c.sortOrder,
         isActive: true,
+        imageKey,
       },
-      update: { name: c.name, isActive: true, sortOrder: c.sortOrder },
+      update: {
+        name: c.name,
+        isActive: true,
+        sortOrder: c.sortOrder,
+        imageKey,
+      },
     });
     categoryIds.set(c.slug, row.id);
   }
@@ -348,9 +466,7 @@ async function seedCatalog() {
     const dir = path.join(assetsRoot, 'products', c.folder);
     let files: string[] = [];
     try {
-      files = (await readdir(dir)).filter((f) =>
-        /\.(png|jpe?g|webp)$/i.test(f),
-      );
+      files = (await readdir(dir)).filter((f) => /\.(png|jpe?g|webp)$/i.test(f));
     } catch {
       console.log(`No assets for ${c.folder} at ${dir}`);
       continue;
@@ -391,74 +507,72 @@ async function seedCatalog() {
     }
   }
 
-  // Ensure classic drinks item exists even without a dedicated cola asset.
+  // Legacy row «Кола 0.5л» without imageKey: attach drinks/cola.png if present.
   const drinksId = categoryIds.get('drinks');
   if (drinksId) {
-    const cola = await prisma.product.findFirst({
-      where: { name: 'Кола 0.5л', categoryId: drinksId },
-    });
-    if (!cola) {
-      await prisma.product.create({
-        data: {
-          categoryId: drinksId,
-          name: 'Кола 0.5л',
-          description: '',
-          price: 120,
-          weight: 500,
-          isAvailable: true,
-          sortOrder: 99,
-        },
+    const colaPath = path.join(assetsRoot, 'products', 'drinks', 'cola.png');
+    const colaKey = 'products/drinks/cola.png';
+    if (existsSync(colaPath)) {
+      await uploadFile(colaPath, colaKey);
+      const orphan = await prisma.product.findFirst({
+        where: { name: 'Кола 0.5л', categoryId: drinksId, imageKey: null },
       });
-      productCount++;
+      if (orphan) {
+        await prisma.product.update({
+          where: { id: orphan.id },
+          data: {
+            imageKey: colaKey,
+            description: 'Газированный напиток 0.5 л',
+            price: 120,
+            weight: 500,
+            isAvailable: true,
+          },
+        });
+      }
     }
   }
 
   console.log(`Products upserted: ${productCount}`);
 
-  // Promotions from assets/promotions + classic free-delivery.
-  const promoDir = path.join(assetsRoot, 'promotions');
   const promoDefs = [
     {
       title: 'Бесплатная доставка от 1500₽',
       description: 'При заказе от 1500 ₽ доставка бесплатно',
-      file: 'promotion1.png',
+      candidates: [
+        'demo/promotions/promo_delivery.png',
+        'promotions/promotion1.png',
+      ],
+      key: 'promotions/promo_delivery.png',
       sortOrder: 1,
-      fallbackKey: 'promotions/free-delivery.webp',
-      fallbackFile: path.join(
-        __dirname,
-        '..',
-        'seed-assets',
-        'promo-free-delivery.png',
-      ),
     },
     {
       title: 'Скидка на сеты −15%',
       description: 'Только сегодня на все сеты',
-      file: 'promotion2.png',
+      candidates: ['demo/promotions/promo_sets.png', 'promotions/promotion2.png'],
+      key: 'promotions/promo_sets.png',
       sortOrder: 2,
+    },
+    {
+      title: 'Острые новинки недели',
+      description: 'Спайси-роллы и вулкан со скидкой',
+      candidates: [
+        'demo/promotions/promo_spicy.png',
+        'promotions/promotion3.png',
+      ],
+      key: 'promotions/promo_spicy.png',
+      sortOrder: 3,
     },
     {
       title: '2 ролла по цене 1',
       description: 'На классические роллы в будние дни',
-      file: 'promotion3.png',
-      sortOrder: 3,
-    },
-    {
-      title: 'Новинки недели',
-      description: 'Попробуйте свежие позиции меню',
-      file: 'promotion4.png',
+      candidates: ['promotions/promotion4.png', 'demo/banners/home_hero.png'],
+      key: 'promotions/promo_two_for_one.png',
       sortOrder: 4,
     },
   ];
 
   for (const p of promoDefs) {
-    let imageKey = `promotions/${p.file}`;
-    const fromAssets = path.join(promoDir, p.file);
-    let uploaded = await uploadFile(fromAssets, imageKey).catch(() => null);
-    if (!uploaded && p.fallbackFile) {
-      imageKey = p.fallbackKey ?? imageKey;
-      uploaded = await uploadFile(p.fallbackFile, imageKey);
-    }
+    const uploaded = await resolveAndUpload(p.candidates, p.key);
     if (!uploaded) {
       console.log(`Promo image missing for ${p.title} — skip`);
       continue;
@@ -469,7 +583,7 @@ async function seedCatalog() {
     const data = {
       title: p.title,
       description: p.description,
-      imageKey,
+      imageKey: p.key,
       isActive: true,
       sortOrder: p.sortOrder,
     };
@@ -480,15 +594,195 @@ async function seedCatalog() {
     }
   }
   console.log('Promotions upserted');
+
+  return categoryIds;
+}
+
+async function seedDemoOrders(userId: string) {
+  const products = await prisma.product.findMany({
+    where: { isAvailable: true },
+    orderBy: { sortOrder: 'asc' },
+    take: 12,
+  });
+  if (products.length < 3) {
+    console.log('Not enough products for demo orders — skip');
+    return;
+  }
+
+  const addressSnapshot = {
+    title: 'Дом',
+    city: 'Махачкала',
+    street: 'пр. Акушинского',
+    house: '12',
+    apartment: '45',
+  };
+
+  const scenarios: Array<{
+    key: string;
+    status: OrderStatus;
+    publicNumber: string;
+    pick: number[];
+    deliveryFee: number;
+  }> = [
+    {
+      key: 'demo-order-completed-1',
+      status: OrderStatus.COMPLETED,
+      publicNumber: 'DEMO-1001',
+      pick: [0, 1, 2],
+      deliveryFee: 0,
+    },
+    {
+      key: 'demo-order-delivering-1',
+      status: OrderStatus.DELIVERING,
+      publicNumber: 'DEMO-1002',
+      pick: [3, 4],
+      deliveryFee: 199,
+    },
+    {
+      key: 'demo-order-new-1',
+      status: OrderStatus.NEW,
+      publicNumber: 'DEMO-1003',
+      pick: [5, 6, 7],
+      deliveryFee: 199,
+    },
+  ];
+
+  for (const s of scenarios) {
+    const items = s.pick
+      .map((i) => products[i % products.length])
+      .filter(Boolean)
+      .map((p) => {
+        const qty = 1 + (s.pick.length % 2);
+        const unit = Number(p.price);
+        return {
+          productId: p.id,
+          productNameSnapshot: p.name,
+          unitPrice: unit,
+          quantity: qty,
+          lineTotal: unit * qty,
+        };
+      });
+    const subtotal = items.reduce((a, i) => a + i.lineTotal, 0);
+    const total = subtotal + s.deliveryFee;
+    const payloadHash = createHash('sha256')
+      .update(JSON.stringify({ items, total }))
+      .digest('hex');
+
+    const existing = await prisma.order.findFirst({
+      where: { userId, idempotencyKey: s.key },
+    });
+    if (existing) {
+      await prisma.orderItem.deleteMany({ where: { orderId: existing.id } });
+      await prisma.order.update({
+        where: { id: existing.id },
+        data: {
+          status: s.status,
+          publicNumber: s.publicNumber,
+          addressSnapshot,
+          phone: '+79991234567',
+          comment: 'Демо-заказ для портфолио',
+          subtotal,
+          deliveryFee: s.deliveryFee,
+          total,
+          idempotencyPayloadHash: payloadHash,
+          items: { create: items },
+        },
+      });
+    } else {
+      await prisma.order.create({
+        data: {
+          userId,
+          publicNumber: s.publicNumber,
+          addressSnapshot,
+          phone: '+79991234567',
+          comment: 'Демо-заказ для портфолио',
+          status: s.status,
+          subtotal,
+          deliveryFee: s.deliveryFee,
+          total,
+          idempotencyKey: s.key,
+          idempotencyPayloadHash: payloadHash,
+          items: { create: items },
+        },
+      });
+    }
+  }
+  console.log(`Demo orders upserted: ${scenarios.length}`);
+}
+
+async function seedSupport(userId: string) {
+  const tickets = [
+    {
+      subject: 'Вопрос по доставке',
+      message: 'Подскажите среднее время доставки по центру?',
+      status: SupportStatus.CLOSED,
+      reply: 'Обычно 40–60 минут. Спасибо, что выбрали Salmonz!',
+    },
+    {
+      subject: 'Состав Филадельфии',
+      message: 'Есть ли кунжут в классической Филадельфии?',
+      status: SupportStatus.IN_PROGRESS,
+      reply: 'В классическом рецепте кунжута нет. Можем добавить по просьбе.',
+    },
+    {
+      subject: 'Промокод',
+      message: 'Как активировать акцию «2 ролла по цене 1»?',
+      status: SupportStatus.NEW,
+      reply: null,
+    },
+  ];
+
+  for (const t of tickets) {
+    let row = await prisma.supportMessage.findFirst({
+      where: { userId, subject: t.subject },
+    });
+    if (row) {
+      row = await prisma.supportMessage.update({
+        where: { id: row.id },
+        data: { message: t.message, status: t.status },
+      });
+      await prisma.supportReply.deleteMany({ where: { messageId: row.id } });
+    } else {
+      row = await prisma.supportMessage.create({
+        data: {
+          userId,
+          subject: t.subject,
+          message: t.message,
+          status: t.status,
+        },
+      });
+    }
+    if (t.reply) {
+      await prisma.supportReply.create({
+        data: {
+          messageId: row.id,
+          authorUserId: null,
+          body: t.reply,
+          isStaff: true,
+        },
+      });
+    }
+  }
+  console.log(`Support tickets upserted: ${tickets.length}`);
 }
 
 async function main() {
   console.log(`ASSETS_ROOT=${assetsRoot}`);
+  console.log(`DEMO_ROOT=${demoRoot}`);
   await upsertAdmin();
   const demo = await upsertDemoUser();
-  if (demo) await seedDemoAddress(demo.id);
+  await seedDemoAddresses(demo.id);
   await seedCatalog();
-  console.log('Seed complete — app is ready for local demo');
+  await seedDemoOrders(demo.id);
+  await seedSupport(demo.id);
+  const userEmail = (process.env.DEMO_USER_EMAIL?.trim() || 't@test.ru').toLowerCase();
+  const userPass = process.env.DEMO_USER_PASSWORD || '12345678';
+  const adminEmail = (process.env.ADMIN_EMAIL?.trim() || 'admin@example.com').toLowerCase();
+  const adminPass = process.env.ADMIN_PASSWORD || 'ChangeMeAdmin123!';
+  console.log('Seed complete — local demo catalog, orders and support are ready');
+  console.log('Demo logins (local only):');
+  console.log(`  USER  ${userEmail} / ${userPass}`);
+  console.log(`  ADMIN ${adminEmail} / ${adminPass}`);
 }
 
 main()

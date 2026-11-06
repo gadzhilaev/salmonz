@@ -1,185 +1,220 @@
-![SALMONZ - магазин доставки суши](assets/SALMONZ%20-%20магазин%20доставки%20суши.png)
-
-# SALMONZ — магазин доставки суши
-
 <p align="center">
-  <img src="https://img.shields.io/badge/Flutter-3.9+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter"/>
-  <img src="https://img.shields.io/badge/NestJS-Backend-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS"/>
-  <img src="https://img.shields.io/badge/Next.js-Admin-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js"/>
-  <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License"/>
-  <a href="https://github.com/gadzhilaev/salmonz/actions/workflows/flutter.yml"><img src="https://github.com/gadzhilaev/salmonz/actions/workflows/flutter.yml/badge.svg" alt="Flutter CI"/></a>
-  <a href="https://github.com/gadzhilaev/salmonz/actions/workflows/backend.yml"><img src="https://github.com/gadzhilaev/salmonz/actions/workflows/backend.yml/badge.svg" alt="Backend CI"/></a>
+  <img src="assets/icon/logo_salmonz.png" alt="Salmonz" width="160"/>
 </p>
 
-<p align="center">
-  <b>Портфолио / demo: Flutter · NestJS · Next.js admin · PostgreSQL</b>
-</p>
+# Salmonz
 
----
+Локальный демонстрационный проект доставки суши и роллов для портфолио.
 
-## О проекте
+Клиент на Flutter, API на NestJS, админка на Next.js, PostgreSQL + Prisma, медиа через локальный storage или MinIO.
 
-**Salmonz** — demo службы доставки японской кухни. Стек: **Flutter** (iOS/Android), **NestJS + Prisma + PostgreSQL**, админ-панель **Next.js** (`admin-web`).
-
-> Это **портфолио / demo**, а не production-ready продукт. Нет платежей, push и жёстких SLA. Не используйте как есть в коммерческой эксплуатации без доработки.
-
-Документация: [LOCAL_DEVELOPMENT](docs/LOCAL_DEVELOPMENT.md) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [API](docs/API.md) · [TESTING](docs/TESTING.md) · [SECURITY](SECURITY.md) · [CONTRIBUTING](CONTRIBUTING.md)
-
----
-
-## Скриншоты
-
-| Login (iPhone) | Home (iPhone) | Profile dark (iPhone) |
-|---|---|---|
-| ![login phone](docs/screenshots/01_login.png) | ![home phone](docs/screenshots/02_home_light.png) | ![profile dark](docs/screenshots/05_profile_dark.png) |
-
-| Login (iPad) | Home (iPad landscape) | Cart (iPad) |
-|---|---|---|
-| ![login ipad](docs/screenshots/09_ipad.png) | ![home ipad](docs/screenshots/11_ipad_home_landscape.png) | ![cart ipad](docs/screenshots/14_ipad_cart.png) |
-
-| Category (iPad) | Offline / Retry (iPhone) |
-|---|---|
-| ![category ipad](docs/screenshots/15_ipad_category.png) | ![offline](docs/screenshots/16_offline_home.png) |
-
-Снято на iOS Simulator против локального Docker API. На iPad ≥840 логических pt используется `NavigationRail`. Админ-панель — отдельное Next.js-приложение (`admin-web/`), не Flutter.
+> Не production: без публичного хостинга, платежей и публикации в App Store / Google Play. Всё рассчитано на запуск у себя на машине.
 
 <p align="center">
-  <a href="https://github.com/gadzhilaev/salmonz/actions/workflows/backend-e2e.yml"><img src="https://github.com/gadzhilaev/salmonz/actions/workflows/backend-e2e.yml/badge.svg" alt="Backend E2E"/></a>
+  <img src="https://img.shields.io/badge/Flutter-iOS%20%7C%20Android-02569B?logo=flutter&logoColor=white" alt="Flutter"/>
+  <img src="https://img.shields.io/badge/NestJS-API-E0234E?logo=nestjs&logoColor=white" alt="NestJS"/>
+  <img src="https://img.shields.io/badge/Next.js-Admin-000000?logo=nextdotjs&logoColor=white" alt="Next.js"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-Prisma-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL"/>
+  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT"/>
 </p>
 
 ---
 
-## Функциональность
+## Возможности покупателя
 
-### Пользователь (Flutter)
+- Регистрация и вход (JWT)
+- Каталог: 8 категорий, товары с фото, акции и баннеры
+- Корзина и оформление заказа (server-side quote доставки)
+- История заказов и статусы
+- Адреса доставки, профиль, поддержка
+- Светлая и тёмная тема, адаптив (телефон / iPad NavigationRail)
 
-| Функция | Описание |
-|---------|----------|
-| Аутентификация | Email/пароль, JWT access + refresh, secure storage |
-| Каталог | Категории и товары |
-| Корзина | Локально (SharedPreferences) |
-| Заказ | Адрес, телефон, комментарий; цены считает сервер (`/orders/quote`) |
-| Idempotency | Повторный submit с тем же ключом не создаёт дубликат |
-| История заказов | Список и детали |
-| Профиль / адреса / support | CRUD адреса, аватар, обращения |
-| Тема | System / light / dark |
+## Возможности админ-панели
 
-### Администратор (admin-web)
+- Вход только с ролью `ADMIN` (сессия в HttpOnly cookies)
+- Обзор магазина
+- Заказы со сменой статуса
+- CRUD товаров, категорий, акций и баннеров
+- Пользователи и обращения поддержки
+- Загрузка изображений через BFF → Nest API
 
-| Функция | Описание |
-|---------|----------|
-| Вход | BFF + HttpOnly cookies, роль `ADMIN` |
-| Каталог | CRUD категорий, продуктов, акций + upload изображений |
-| Заказы | Список и смена статуса |
-| Пользователи / support | Просмотр и обработка |
+---
+
+## Технологии
+
+| Слой | Стек |
+|------|------|
+| Мобильный клиент | Flutter, Cubit/BLoC, Dio |
+| API | NestJS, JWT, Swagger, Prisma |
+| БД | PostgreSQL |
+| Админка | Next.js (BFF), TypeScript |
+| Медиа | локальный FS или S3-совместимое хранилище (MinIO) |
+| Инфра | Docker Compose |
+
+Документация: [ARCHITECTURE](docs/ARCHITECTURE.md) · [API](docs/API.md) · [LOCAL_DEVELOPMENT](docs/LOCAL_DEVELOPMENT.md) · [TESTING](docs/TESTING.md) · [SECURITY](SECURITY.md)
 
 ---
 
 ## Архитектура
 
 ```
-Flutter (Dio + flutter_secure_storage)     admin-web (Next.js BFF)
-        │  REST  /api/v1                            │
-        └────────────────┬──────────────────────────┘
-                         ▼
-              NestJS · Swagger /docs
-                         │
-              ┌──────────┴──────────┐
-         PostgreSQL            Storage: FS / S3/MinIO
-              (Prisma)
+Flutter (iOS / Android)              admin-web (Next.js BFF)
+        │ REST /api/v1                         │
+        └──────────────────┬───────────────────┘
+                           ▼
+                    NestJS + Swagger
+                           │
+                 ┌─────────┴─────────┐
+            PostgreSQL          Storage (local / MinIO)
 ```
 
-Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- **Flutter** — presentation + Cubit, репозитории к REST API.
+- **NestJS** — доменные модули, Prisma, auth, заказы, каталог, media.
+- **Next.js** — серверный BFF: CSRF, HttpOnly cookies, proxy к `/api/v1/admin/*`.
 
 ---
 
-## Быстрый старт
+## Скриншоты
 
-### Требования
+Сняты с локально запущенного Flutter (iOS Simulator) и admin-web.
 
-- Flutter SDK 3.9+, Node.js 20+, Docker (рекомендуется)
-- **Git LFS** (`git lfs install && git lfs pull`) — PNG-ассеты хранятся в LFS
+| Вход | Главная | Заказы |
+|:---:|:---:|:---:|
+| ![login](docs/screenshots/01_login.png) | ![home](docs/screenshots/02_home.png) | ![orders](docs/screenshots/03_orders.png) |
 
-### Backend (Docker Compose)
+| Корзина | Профиль |
+|:---:|:---:|
+| ![cart](docs/screenshots/04_cart.png) | ![profile](docs/screenshots/05_profile.png) |
+
+| Админ: вход | Админ: обзор |
+|:---:|:---:|
+| ![admin login](docs/screenshots/07_admin_login.png) | ![admin dashboard](docs/screenshots/08_admin_dashboard.png) |
+
+| Админ: заказы | Админ: товары |
+|:---:|:---:|
+| ![admin orders](docs/screenshots/09_admin_orders.png) | ![admin products](docs/screenshots/10_admin_products.png) |
+
+---
+
+## Локальный запуск
+
+Нужны: Flutter 3.9+, Node.js 20+, Docker, Git LFS.
+
+### 1. Docker (PostgreSQL + MinIO) и backend
 
 ```bash
-cp docker-compose.example.env .env   # задайте JWT_* (длинные случайные строки)
-docker compose up --build
+git lfs install && git lfs pull
+cp docker-compose.example.env .env   # задайте JWT_* локально
+docker compose up -d
+cd backend
+cp .env.example .env                 # при первом запуске
+npm ci
+npm run prisma:generate
+npm run prisma:migrate:deploy
+npm run start:dev
 ```
 
-Сервисы: `postgres`, `minio`, `minio-init`, `backend` (migrate + seed при старте).
+- API: http://127.0.0.1:3000/api/v1  
+- Swagger: http://127.0.0.1:3000/docs  
 
-- API: `http://localhost:3000/api/v1`
-- Swagger: `http://localhost:3000/docs`
-- MinIO console: `http://localhost:9001`
-
-Альтернатива без Docker backend: Postgres в Compose + `STORAGE_DRIVER=local`, см. [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md).
-
-### Flutter
+### 2. Seed демо-данных
 
 ```bash
-cp config/local.example.json config/local.json
-# iOS Simulator: http://127.0.0.1:3000
-# Android emulator: http://10.0.2.2:3000
-
-flutter pub get
-flutter run
-# optional: flutter run --dart-define-from-file=config/local.json
+cd backend
+npm run prisma:seed
 ```
 
-### Admin-web
+Seed идемпотентный: повторный запуск безопасен. В `NODE_ENV=production` seed **не выполняется**.
+
+### 3. Admin-web
 
 ```bash
 cd admin-web
-cp .env.example .env.local   # API_BASE_URL → Nest
-npm ci && npm run dev
+cp .env.example .env.local
+npm ci
+npm run dev
 ```
 
-Demo-учётки после seed (только локально, **смените** перед любым shared env):
+UI: http://127.0.0.1:3001
 
-| Role | Email | Password |
-|------|-------|----------|
-| USER | `t@test.ru` | `12345678` |
-| ADMIN | `admin@example.com` | `ChangeMeAdmin123!` |
-
-Секреты не коммитятся: `.env`, `backend/.env`, `config/local.json`, `admin-web/.env.local` в `.gitignore`.
-
----
-
-## Тесты
+### 4. Flutter
 
 ```bash
-# Backend
-cd backend && npm ci && npm run prisma:generate
-npm test && npm run lint && npm run build
-RUN_E2E=1 npm run test:e2e   # нужен живой API + seed
-
-# Flutter
-flutter analyze && flutter test
-
-# Admin-web
-cd admin-web && npm ci && npm run lint && npm run build
+cp config/local.example.json config/local.json
+flutter pub get
+flutter run
 ```
 
-CI: `.github/workflows/backend.yml`, `.github/workflows/flutter.yml`, `.github/workflows/backend-e2e.yml`, `.github/workflows/admin-web.yml`.
+`config/local.json` указывает на `http://127.0.0.1:3000` (см. `config/local.example.json`).
 
 ---
 
-## Storage
+## Demo-аккаунты
 
-| `STORAGE_DRIVER` | Поведение |
-|------------------|-----------|
-| `local` (host-run default) | Файлы в `backend/uploads`, URL `/media/...` |
-| `s3` (Compose default) | MinIO/S3-compatible bucket |
+Создаются seed из переменных `backend/.env` (шаблон — `backend/.env.example`):
+
+| Роль | Email | Пароль |
+|------|-------|--------|
+| Покупатель | `t@test.ru` | `12345678` |
+| Администратор | `admin@example.com` | `ChangeMeAdmin123!` |
+
+Только фиктивные данные для локальной БД. Секреты из приватного `.env` в README не копируются.
+
+Если в своём `backend/.env` переопределены `DEMO_USER_*` / `ADMIN_*`, seed создаст именно их — смотрите вывод `npm run prisma:seed`.
 
 ---
 
-## Ограничения demo
+## Тестовые данные после seed
 
-- Нет эквайринга / push / email
-- Seed-пароли только для локальной разработки
-- Ранняя Git history могла содержать старый Supabase anon JWT — в текущем HEAD его нет; при необходимости отключите/ротируйте старый Supabase-проект
+- 8 категорий меню
+- 39 товаров с подходящими фотографиями
+- Акции и баннеры
+- Адреса демо-покупателя
+- Примеры заказов в разных статусах
+- История переписки поддержки
+
+Медиа отдаются через backend / MinIO; в клиенте и админке отображаются `imageUrl` из API.
+
+---
+
+## Команды проверки
+
+Локальный gate перед push (тесты не отключаются):
+
+```bash
+./scripts/check-before-push.sh
+```
+
+По частям:
+
+```bash
+flutter analyze
+flutter test
+flutter build apk --debug \
+  --dart-define=API_BASE_URL=http://127.0.0.1:3000 \
+  --dart-define=APP_ENV=ci \
+  --dart-define=APP_DEMO=true
+
+cd backend && npm test && npm run lint && npm run build
+# при живом API + DATABASE_URL:
+cd backend && RUN_E2E=1 npm run test:e2e
+
+cd admin-web && npm run lint && npm run build
+# при живых API (:3000) и admin-web (:3001):
+cd admin-web && ADMIN_WEB_URL=http://127.0.0.1:3001 npm run test:smoke
+```
+
+CI на GitHub Actions в этом репозитории не используется: проверки — локально через `scripts/check-before-push.sh`.
+
+---
+
+## Ограничения демонстрационного проекта
+
+- Нет реального эквайринга и push-уведомлений
+- Нет продакшен-деплоя и магазинных сборок
+- Seed и demo-логины только для локальной разработки
+- Изображения каталога — демонстрационные ассеты (не коммерческий сток под прод)
+- Портфолио-демо: поведение API и UI могут упрощаться относительно боевого сервиса
 
 ---
 
