@@ -10,6 +10,7 @@ import '../core/theme/theme_controller.dart';
 import '../data/models/models.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
 import '../widgets/app_network_image.dart';
+import '../widgets/app_notice.dart';
 import '../widgets/app_root.dart';
 import '../widgets/cart.dart';
 
@@ -66,9 +67,14 @@ class _SplashGateState extends State<SplashGate> {
         cubit.emitAuthenticated(_user!);
       } else {
         cubit.emitUnauthenticated();
+        AppNotice.clear(context);
       }
     } catch (_) {
       _user = null;
+      if (mounted) {
+        context.read<AuthCubit>().emitUnauthenticated();
+        AppNotice.clear(context);
+      }
     }
 
     if (!mounted) return;

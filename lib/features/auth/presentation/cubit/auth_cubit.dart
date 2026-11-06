@@ -55,7 +55,10 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthAuthenticated(user));
       }
     } on ApiException catch (e) {
-      emit(AuthFailure(e.message));
+      // Missing / expired session is expected — not a toast-worthy failure.
+      if (e.isNetwork) {
+        emit(AuthFailure(e.userMessage));
+      }
       emit(const AuthUnauthenticated());
     } catch (_) {
       emit(const AuthUnauthenticated());
@@ -68,9 +71,9 @@ class AuthCubit extends Cubit<AuthState> {
       final result = await _s.auth.login(email: email, password: password);
       emit(AuthAuthenticated(result.user));
     } on ApiException catch (e) {
-      emit(AuthFailure(e.message));
-    } catch (e) {
-      emit(AuthFailure(e.toString()));
+      emit(AuthFailure(e.userMessage));
+    } catch (_) {
+      emit(const AuthFailure(ApiException.genericMessage));
     }
   }
 
@@ -88,9 +91,9 @@ class AuthCubit extends Cubit<AuthState> {
       );
       emit(AuthAuthenticated(result.user));
     } on ApiException catch (e) {
-      emit(AuthFailure(e.message));
-    } catch (e) {
-      emit(AuthFailure(e.toString()));
+      emit(AuthFailure(e.userMessage));
+    } catch (_) {
+      emit(const AuthFailure(ApiException.genericMessage));
     }
   }
 

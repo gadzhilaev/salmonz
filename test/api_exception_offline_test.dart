@@ -67,8 +67,9 @@ void main() {
 
       expect(e.isUnauthorized, isTrue);
       expect(e.isNetwork, isFalse);
-      expect(e.userMessage, 'Требуется авторизация');
+      expect(e.userMessage, ApiException.sessionExpiredMessage);
       expect(e.userMessage, isNot(contains('Unauthorized')));
+      expect(e.userMessage, isNot(contains('Требуется авторизация')));
     });
 
     test('maps 500 responses to a safe Russian message', () {

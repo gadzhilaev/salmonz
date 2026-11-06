@@ -72,9 +72,9 @@ class _RegisterPageState extends State<RegisterPage> {
         (route) => false,
       );
     } on ApiException catch (e) {
-      _showSnack(e.message);
+      _showSnack(e.userMessage);
     } catch (e) {
-      _showSnack('Ошибка: $e');
+      _showSnack(ApiException.userMessageFrom(e));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }

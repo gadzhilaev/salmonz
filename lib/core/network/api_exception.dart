@@ -23,9 +23,20 @@ class ApiException implements Exception {
   bool get isNotFound => statusCode == 404;
   bool get isConflict => statusCode == 409;
 
-  static const _connectionMessage = 'Нет соединения с сервером';
-  static const _timeoutMessage = 'Превышено время ожидания сервера';
-  static const _genericMessage = 'Произошла ошибка';
+  /// Wrong email/password (login) — not the same as mid-session expiry.
+  bool get isInvalidCredentials {
+    final lower = message.toLowerCase();
+    return statusCode == 401 &&
+        (lower.contains('неверный email') ||
+            lower.contains('invalid credentials') ||
+            code?.toLowerCase() == 'unauthorized');
+  }
+
+  static const connectionMessage = 'Нет соединения с сервером';
+  static const timeoutMessage = 'Превышено время ожидания сервера';
+  static const genericMessage = 'Произошла ошибка';
+  static const invalidCredentialsMessage = 'Неверный email или пароль';
+  static const sessionExpiredMessage = 'Сессия истекла. Войдите снова';
 
   /// User-facing text for any thrown object.
   static String userMessageFrom(Object error) =>
@@ -34,12 +45,13 @@ class ApiException implements Exception {
   factory ApiException.fromError(Object error) {
     if (error is ApiException) return error;
     if (error is DioException) return ApiException.fromDio(error);
-    return const ApiException(message: _genericMessage);
+    return const ApiException(message: genericMessage);
   }
 
   factory ApiException.fromDio(DioException e) {
     final status = e.response?.statusCode;
     final data = e.response?.data;
+    final path = e.requestOptions.path;
 
     var message = _sanitizeMessage(e.message);
     String? code;
@@ -60,11 +72,11 @@ class ApiException implements Exception {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        message = _timeoutMessage;
+        message = timeoutMessage;
         isNetwork = true;
         break;
       case DioExceptionType.connectionError:
-        message = _connectionMessage;
+        message = connectionMessage;
         isNetwork = true;
         break;
       case DioExceptionType.cancel:
@@ -72,19 +84,21 @@ class ApiException implements Exception {
         break;
       default:
         if (status == null && _looksLikeNetworkFailure(e, message)) {
-          message = _connectionMessage;
+          message = connectionMessage;
           isNetwork = true;
         } else if (_isTechnicalMessage(message)) {
-          message = status != null ? 'Ошибка сервера' : _connectionMessage;
+          message = status != null ? 'Ошибка сервера' : connectionMessage;
           if (status == null) isNetwork = true;
         }
         break;
     }
 
-    if (status == 401) {
-      message = 'Требуется авторизация';
+    if (!isNetwork && status == 401) {
+      message = _mapUnauthorizedMessage(raw: message, path: path, code: code);
     } else if (status != null && status >= 500) {
       message = 'Ошибка сервера';
+    } else {
+      message = _mapKnownApiMessage(message);
     }
 
     return ApiException(
@@ -93,6 +107,50 @@ class ApiException implements Exception {
       code: code,
       isNetworkError: isNetwork,
     );
+  }
+
+  /// Never expose "Требуется авторизация" for expected auth flows.
+  static String _mapUnauthorizedMessage({
+    required String raw,
+    required String path,
+    String? code,
+  }) {
+    final lower = raw.toLowerCase();
+    final pathLower = path.toLowerCase();
+
+    if (lower.contains('invalid credentials') ||
+        pathLower.contains('/auth/login')) {
+      return invalidCredentialsMessage;
+    }
+    if (lower.contains('refresh') || pathLower.contains('/auth/refresh')) {
+      return sessionExpiredMessage;
+    }
+    if (pathLower.contains('/auth/register')) {
+      return _mapKnownApiMessage(raw);
+    }
+    // Mid-session 401 after failed refresh / protected call.
+    return sessionExpiredMessage;
+  }
+
+  static String _mapKnownApiMessage(String raw) {
+    final lower = raw.toLowerCase().trim();
+    if (lower.contains('invalid credentials')) {
+      return invalidCredentialsMessage;
+    }
+    if (lower.contains('email') &&
+        (lower.contains('already') || lower.contains('exists')) &&
+        !lower.contains(',')) {
+      return 'Этот email уже зарегистрирован';
+    }
+    if ((lower == 'password too short' ||
+            lower.startsWith('password must be')) &&
+        !lower.contains(',')) {
+      return 'Пароль должен быть не короче 8 символов';
+    }
+    if (_isTechnicalMessage(raw) || raw.trim().isEmpty) {
+      return genericMessage;
+    }
+    return raw;
   }
 
   static String _sanitizeMessage(String? raw) {

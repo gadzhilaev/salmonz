@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:salmonz/core/network/api_exception.dart';
 import 'package:salmonz/core/responsive/app_breakpoints.dart';
 import 'package:salmonz/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:salmonz/widgets/app_notice.dart';
 import 'package:salmonz/widgets/app_root.dart';
 import 'register_page.dart';
 
@@ -27,6 +28,17 @@ class _LoginState extends State<Login> {
   final passCtr = TextEditingController();
   bool isLoading = false;
   bool _obscurePass = true;
+  String? _formError;
+  bool _formErrorIsNetwork = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Stale toasts from a previous session must not stick on the login screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppNotice.clear(context);
+    });
+  }
 
   @override
   void dispose() {
@@ -41,22 +53,39 @@ class _LoginState extends State<Login> {
     final pass = passCtr.text;
 
     if (email.isEmpty || pass.isEmpty) {
-      _showSnack('Введите почту и пароль');
+      setState(() {
+        _formError = 'Введите почту и пароль';
+        _formErrorIsNetwork = false;
+      });
       return;
     }
 
-    setState(() => isLoading = true);
+    setState(() {
+      isLoading = true;
+      _formError = null;
+      _formErrorIsNetwork = false;
+    });
+    AppNotice.clear(context);
+
     try {
       final cubit = context.read<AuthCubit>();
       await cubit.login(email: email, password: pass);
       final state = cubit.state;
       if (!mounted) return;
       if (state is AuthFailure) {
-        _showSnack(state.message);
+        setState(() {
+          _formError = state.message;
+          _formErrorIsNetwork =
+              state.message == ApiException.connectionMessage ||
+              state.message == ApiException.timeoutMessage;
+        });
         return;
       }
       if (state is! AuthAuthenticated) {
-        _showSnack('Не удалось войти');
+        setState(() {
+          _formError = 'Не удалось войти';
+          _formErrorIsNetwork = false;
+        });
         return;
       }
       Navigator.pushAndRemoveUntil(
@@ -65,16 +94,20 @@ class _LoginState extends State<Login> {
         (route) => false,
       );
     } on ApiException catch (e) {
-      if (mounted) _showSnack(e.userMessage);
+      if (!mounted) return;
+      setState(() {
+        _formError = e.userMessage;
+        _formErrorIsNetwork = e.isNetwork;
+      });
     } catch (e) {
-      if (mounted) _showSnack(ApiException.userMessageFrom(e));
+      if (!mounted) return;
+      setState(() {
+        _formError = ApiException.userMessageFrom(e);
+        _formErrorIsNetwork = false;
+      });
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
-  }
-
-  void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -143,6 +176,11 @@ class _LoginState extends State<Login> {
                                   child: TextField(
                                     key: const Key('loginEmail'),
                                     controller: emailCtr,
+                                    onChanged: (_) {
+                                      if (_formError != null) {
+                                        setState(() => _formError = null);
+                                      }
+                                    },
                                     onTapOutside: (_) => FocusManager
                                         .instance
                                         .primaryFocus
@@ -196,6 +234,11 @@ class _LoginState extends State<Login> {
                                     controller: passCtr,
                                     obscureText: _obscurePass,
                                     obscuringCharacter: '•',
+                                    onChanged: (_) {
+                                      if (_formError != null) {
+                                        setState(() => _formError = null);
+                                      }
+                                    },
                                     onTapOutside: (_) => FocusManager
                                         .instance
                                         .primaryFocus
@@ -260,6 +303,14 @@ class _LoginState extends State<Login> {
                                   ),
                                 ),
                               ),
+                              if (_formError != null) ...[
+                                const SizedBox(height: 16),
+                                _LoginFormError(
+                                  message: _formError!,
+                                  showRetry: _formErrorIsNetwork,
+                                  onRetry: _formErrorIsNetwork ? _login : null,
+                                ),
+                              ],
                               const SizedBox(height: 24),
                               SizedBox(
                                 width: double.infinity,
@@ -343,6 +394,68 @@ class _LoginState extends State<Login> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _LoginFormError extends StatelessWidget {
+  const _LoginFormError({
+    required this.message,
+    required this.showRetry,
+    this.onRetry,
+  });
+
+  final String message;
+  final bool showRetry;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0x33FFFFFF),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                key: const Key('loginFormError'),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1.3,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            if (showRetry && onRetry != null)
+              TextButton(
+                key: const Key('loginRetry'),
+                onPressed: onRetry,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'Повторить',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

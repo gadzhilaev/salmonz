@@ -114,7 +114,8 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.forest,
+        // Neutral default — errors/success go through AppNotice colors.
+        backgroundColor: AppColors.forestMuted,
         contentTextStyle: AppTypography.textTheme(
           Brightness.light,
         ).bodyMedium?.copyWith(color: Colors.white),

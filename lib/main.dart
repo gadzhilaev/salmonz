@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'app/splash_gate.dart';
+import 'auth/login.dart';
 import 'core/config/app_config.dart';
 import 'core/di/app_services.dart';
 import 'core/theme/app_colors.dart';
@@ -10,6 +11,11 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/cart/presentation/cubit/cart_cubit.dart';
+import 'widgets/app_notice.dart';
+
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
+var _handlingSessionExpiry = false;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,13 +30,33 @@ Future<void> main() async {
   );
 
   final config = AppConfig.fromEnvironment();
-  AppServices.init(config: config);
+  late final AuthCubit authCubit;
+
+  AppServices.init(
+    config: config,
+    onSessionExpired: () {
+      if (_handlingSessionExpiry) return;
+      _handlingSessionExpiry = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          authCubit.emitUnauthenticated();
+          final nav = appNavigatorKey.currentState;
+          final ctx = appNavigatorKey.currentContext;
+          if (ctx != null) AppNotice.clear(ctx);
+          nav?.pushAndRemoveUntil(
+            MaterialPageRoute<void>(builder: (_) => const Login()),
+            (_) => false,
+          );
+        } finally {
+          _handlingSessionExpiry = false;
+        }
+      });
+    },
+  );
 
   final themeController = ThemeController();
   // Do NOT call AuthCubit.restore() here — SplashGate owns a single restore.
-  // Parallel refresh with the same token triggers server-side reuse detection
-  // and revokes the whole session (looks like "logout after backend restart").
-  final authCubit = AuthCubit();
+  authCubit = AuthCubit();
   final cartCubit = CartCubit()..hydrate();
 
   runApp(
@@ -70,6 +96,7 @@ class MyApp extends StatelessWidget {
           animation: themeController,
           builder: (context, _) {
             return MaterialApp(
+              navigatorKey: appNavigatorKey,
               debugShowCheckedModeBanner: false,
               theme: AppTheme.light,
               darkTheme: AppTheme.dark,
