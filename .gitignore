@@ -98,3 +98,23 @@ admin-web/node_modules/
 admin-web/.next/
 admin-web/.env
 admin-web/.env.local
+
+# AI agent instruction files (local only; do not commit these rules)
+AGENTS.md
+AGENTS.override.md
+CLAUDE.md
+GEMINI.md
+.cursorrules
+**/.claude/
+**/.codex/
+.windsurfrules
+**/.windsurf/rules/
+**/.github/copilot-instructions.md
+**/.github/instructions/
+**/.github/prompts/
+**/.clinerules/
+**/.roo/
+**/.continue/rules/
+**/.amazonq/rules/
+**/.junie/
+**/.openhands/
